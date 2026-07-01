@@ -23,28 +23,17 @@ export async function GET(request: NextRequest) {
   );
 
   const params: StrategyParams = {
-    supertrendPeriod:
-      Number(searchParams.get("supertrendPeriod")) ||
-      DEFAULT_PARAMS.supertrendPeriod,
-    supertrendMultiplier:
-      Number(searchParams.get("supertrendMultiplier")) ||
-      DEFAULT_PARAMS.supertrendMultiplier,
-    rsiPeriod:
-      Number(searchParams.get("rsiPeriod")) || DEFAULT_PARAMS.rsiPeriod,
-    rsiOverbought:
-      Number(searchParams.get("rsiOverbought")) || DEFAULT_PARAMS.rsiOverbought,
-    rsiOversold:
-      Number(searchParams.get("rsiOversold")) || DEFAULT_PARAMS.rsiOversold,
-    macdFast:
-      Number(searchParams.get("macdFast")) || DEFAULT_PARAMS.macdFast,
-    macdSlow:
-      Number(searchParams.get("macdSlow")) || DEFAULT_PARAMS.macdSlow,
-    macdSignal:
-      Number(searchParams.get("macdSignal")) || DEFAULT_PARAMS.macdSignal,
+    supertrendPeriod: Number(searchParams.get("supertrendPeriod")) || DEFAULT_PARAMS.supertrendPeriod,
+    supertrendMultiplier: Number(searchParams.get("supertrendMultiplier")) || DEFAULT_PARAMS.supertrendMultiplier,
+    rsiPeriod: Number(searchParams.get("rsiPeriod")) || DEFAULT_PARAMS.rsiPeriod,
+    rsiOverbought: Number(searchParams.get("rsiOverbought")) || DEFAULT_PARAMS.rsiOverbought,
+    rsiOversold: Number(searchParams.get("rsiOversold")) || DEFAULT_PARAMS.rsiOversold,
+    macdFast: Number(searchParams.get("macdFast")) || DEFAULT_PARAMS.macdFast,
+    macdSlow: Number(searchParams.get("macdSlow")) || DEFAULT_PARAMS.macdSlow,
+    macdSignal: Number(searchParams.get("macdSignal")) || DEFAULT_PARAMS.macdSignal,
   };
 
   try {
-    // Fetch real historical data from Yahoo Finance
     const stockData = await getHistoricalData(symbol, days);
 
     if (stockData.length < 50) {
@@ -54,7 +43,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Run strategy on real data
     const signals = generateSignals(stockData, params);
     const backtest = runBacktest(stockData, signals);
 

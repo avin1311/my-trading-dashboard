@@ -1,0 +1,297 @@
+     1→   537→              </CardContent>
+     2→   538→            </Card>
+     3→   539→
+     4→   540→            {/* Fundamentals KPI Grid */}
+     5→   541→            <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">
+     6→   542→              <KPICard icon={<DollarSign className="w-3.5 h-3.5" />} label="Market Cap" value={liveQuote.marketCap ? formatNum(liveQuote.marketCap) : '-'} sub={liveQuote.type === 'equity' ? '₹' : ''} color="text-blue-400" />
+     7→   543→              <KPICard icon={<Target className="w-3.5 h-3.5" />} label="P/E Ratio" value={liveQuote.pe?.toFixed(2) || '-'} sub={liveQuote.forwardPE ? `Fwd: ${liveQuote.forwardPE.toFixed(2)}` : ''} color={liveQuote.pe && liveQuote.pe > 50 ? 'text-red-400' : liveQuote.pe && liveQuote.pe > 30 ? 'text-amber-400' : 'text-emerald-400'} />
+     8→   544→              <KPICard icon={<Building2 className="w-3.5 h-3.5" />} label="P/B Ratio" value={liveQuote.pb?.toFixed(2) || '-'} sub={liveQuote.bookValue ? `BV: ${formatINR(liveQuote.bookValue)}` : ''} color={liveQuote.pb && liveQuote.pb > 5 ? 'text-red-400' : 'text-blue-400'} />
+     9→   545→              <KPICard icon={<Percent className="w-3.5 h-3.5" />} label="Div Yield" value={liveQuote.dividendYield?.toFixed(2) + '%' || '-'} sub={liveQuote.payoutRatio ? `Payout: ${(liveQuote.payoutRatio * 100).toFixed(0)}%` : ''} color="text-emerald-400" />
+    10→   546→              <KPICard icon={<Activity className="w-3.5 h-3.5" />} label="EPS (TTM)" value={liveQuote.eps ? formatINR(liveQuote.eps) : '-'} sub="" color="text-cyan-400" />
+    11→   547→              <KPICard icon={<Gauge className="w-3.5 h-3.5" />} label="ROE" value={liveQuote.roe?.toFixed(1) + '%' || '-'} sub={liveQuote.roa ? `ROA: ${liveQuote.roa.toFixed(1)}%` : ''} color={liveQuote.roe && liveQuote.roe > 15 ? 'text-emerald-400' : 'text-amber-400'} />
+    12→   548→              <KPICard icon={<TrendingDown className="w-3.5 h-3.5" />} label="D/E Ratio" value={liveQuote.debtToEquity?.toFixed(2) || '-'} sub={liveQuote.currentRatio ? `CR: ${liveQuote.currentRatio.toFixed(2)}` : ''} color={liveQuote.debtToEquity && liveQuote.debtToEquity > 1 ? 'text-red-400' : 'text-emerald-400'} />
+    13→   549→              <KPICard icon={<Zap className="w-3.5 h-3.5" />} label="Revenue Growth" value={liveQuote.revenueGrowth?.toFixed(1) + '%' || '-'} sub={liveQuote.profitMargins ? `Margin: ${liveQuote.profitMargins.toFixed(1)}%` : ''} color={liveQuote.revenueGrowth && liveQuote.revenueGrowth > 0 ? 'text-emerald-400' : 'text-red-400'} />
+    14→   550→
+    15→   551→              {/* Technical Position */}
+    16→   552→              <Card className="col-span-2 bg-slate-900 border-slate-800 p-3">
+    17→   553→                <div className="text-[10px] text-slate-500 font-medium mb-2 flex items-center gap-1"><Radio className="w-3 h-3" /> Technical Position (DMA)</div>
+    18→   554→                <div className="grid grid-cols-2 gap-2">
+    19→   555→                  <div className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
+    20→   556→                    <span className="text-[11px] text-slate-400">50 DMA</span>
+    21→   557→                    <span className={`text-xs font-bold ${liveQuote.percentAbove50DMA !== null ? (liveQuote.percentAbove50DMA >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-slate-500'}`}>
+    22→   558→                      {liveQuote.fiftyDMA ? formatINR(liveQuote.fiftyDMA) : '-'}
+    23→   559→                      {liveQuote.percentAbove50DMA !== null && <span className="ml-1 text-[10px]">({liveQuote.percentAbove50DMA >= 0 ? '+' : ''}{liveQuote.percentAbove50DMA.toFixed(1)}%)</span>}
+    24→   560→                    </span>
+    25→   561→                  </div>
+    26→   562→                  <div className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
+    27→   563→                    <span className="text-[11px] text-slate-400">200 DMA</span>
+    28→   564→                    <span className={`text-xs font-bold ${liveQuote.percentAbove200DMA !== null ? (liveQuote.percentAbove200DMA >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-slate-500'}`}>
+    29→   565→                      {liveQuote.twoHundredDMA ? formatINR(liveQuote.twoHundredDMA) : '-'}
+    30→   566→                      {liveQuote.percentAbove200DMA !== null && <span className="ml-1 text-[10px]">({liveQuote.percentAbove200DMA >= 0 ? '+' : ''}{liveQuote.percentAbove200DMA.toFixed(1)}%)</span>}
+    31→   567→                    </span>
+    32→   568→                  </div>
+    33→   569→                </div>
+    34→   570→              </Card>
+    35→   571→
+    36→   572→              {/* Analyst Consensus */}
+    37→   573→              <Card className="col-span-2 bg-slate-900 border-slate-800 p-3">
+    38→   574→                <div className="text-[10px] text-slate-500 font-medium mb-2 flex items-center gap-1"><Eye className="w-3 h-3" /> Analyst Consensus</div>
+    39→   575→                <div className="flex items-center gap-3">
+    40→   576→                  <div className={`text-lg font-bold ${liveQuote.recommendation === 'strong_buy' || liveQuote.recommendation === 'buy' ? 'text-emerald-400' : liveQuote.recommendation === 'sell' || liveQuote.recommendation === 'strong_sell' ? 'text-red-400' : 'text-amber-400'}`}>
+    41→   577→                    {liveQuote.recommendation ? liveQuote.recommendation.replace(/_/g, ' ').toUpperCase() : 'N/A'}
+    42→   578→                  </div>
+    43→   579→                  {liveQuote.analysts && <Badge variant="outline" className="text-[9px] border-slate-600 text-slate-400">{liveQuote.analysts} analysts</Badge>}
+    44→   580→                </div>
+    45→   581→                {liveQuote.targetMean && (
+    46→   582→                  <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+    47→   583→                    <div><span className="text-slate-500">Target Low</span><div className="text-xs text-red-400 font-medium">{formatINR(liveQuote.targetLow!)}</div></div>
+    48→   584→                    <div><span className="text-slate-500">Target Mean</span><div className="text-xs text-white font-bold">{formatINR(liveQuote.targetMean)}</div></div>
+    49→   585→                    <div><span className="text-slate-500">Target High</span><div className="text-xs text-emerald-400 font-medium">{formatINR(liveQuote.targetHigh!)}</div></div>
+    50→   586→                  </div>
+    51→   587→                )}
+    52→   588→                {liveQuote.targetMean && liveQuote.price && (
+    53→   589→                  <div className="mt-2">
+    54→   590→                    <div className="flex justify-between text-[10px] mb-1">
+    55→   591→                      <span className="text-slate-500">Current: {formatINR(liveQuote.price)}</span>
+    56→   592→                      <span className="text-emerald-400">Target: {formatINR(liveQuote.targetMean)} ({((liveQuote.targetMean - liveQuote.price) / liveQuote.price * 100).toFixed(1)}% upside)</span>
+    57→   593→                    </div>
+    58→   594→                    <Progress value={Math.min(100, (liveQuote.price / liveQuote.targetMean) * 100)} className="h-1.5 bg-slate-800" />
+    59→   595→                  </div>
+    60→   596→                )}
+    61→   597→              </Card>
+    62→   598→            </div>
+    63→   599→          </div>
+    64→   600→        )}
+    65→   601→
+    66→   602→        {/* ===== MAIN CHART ===== */}
+    67→   603→        {loading ? <DashboardSkeleton /> : (
+    68→   604→          <>
+    69→   605→            <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+    70→   606→              <CardHeader className="pb-0">
+    71→   607→                <div className="flex items-center justify-between">
+    72→   608→                  <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+    73→   609→                    <Activity className="w-4 h-4 text-emerald-400" />
+    74→   610→                    Price Chart with Supertrend
+    75→   611→                    {latestData && <span className="ml-2"><span className="text-white font-semibold text-base">{formatINR(latestData.close)}</span> <span className={`ml-1.5 text-sm font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{priceChange >= 0 ? '+' : ''}{formatINR(priceChange)} ({priceChangePct >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}%)</span></span>}
+    76→   612→                    {dataSource === 'yahoo_finance_realtime' && <Badge className="text-[9px] bg-blue-500/15 text-blue-400 border-blue-500/30">LIVE DATA</Badge>}
+    77→   613→                  </CardTitle>
+    78→   614→                  <div className="flex items-center gap-1">
+    79→   615→                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800" disabled={!canSlideRight} onClick={() => setChartOffset(p => Math.max(0, p - 50))}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="rotate-180"><path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></Button>
+    80→   616→                    <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800" disabled={!canSlideLeft} onClick={() => setChartOffset(p => p + 50)}><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></Button>
+    81→   617→                  </div>
+    82→   618→                </div>
+    83→   619→              </CardHeader>
+    84→   620→              <CardContent className="pt-2">
+    85→   621→                <div className="h-[350px] sm:h-[420px]">
+    86→   622→                  <ResponsiveContainer width="100%" height="100%">
+    87→   623→                    <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+    88→   624→                      <defs><linearGradient id="pGB" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="100%" stopColor="#10b981" stopOpacity={0.02} /></linearGradient></defs>
+    89→   625→                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+    90→   626→                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v: string) => new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} axisLine={{ stroke: '#334155' }} tickLine={false} interval={Math.floor(visibleData.length / 8)} />
+    91→   627→                      <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v: number) => '₹' + v.toLocaleString('en-IN')} axisLine={{ stroke: '#334155' }} tickLine={false} width={75} />
+    92→   628→                      <RechartsTooltip content={<MainChartTooltip />} />
+    93→   629→                      <Line type="monotone" dataKey="supertrend" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Supertrend" connectNulls={false} strokeDasharray="4 2" />
+    94→   630→                      <Area type="monotone" dataKey="close" stroke="#e2e8f0" strokeWidth={2} fill="url(#pGB)" name="Close" isAnimationActive={false} />
+    95→   631→                      {visibleData.map((d, idx) => {
+    96→   632→                        if (d.signal === 'STRONG_BUY' || d.signal === 'BUY') return <ReferenceDot key={`b-${idx}`} x={d.date} y={d.close} r={5} fill="#10b981" stroke="#064e3b" strokeWidth={1} shape={<g><polygon points={`${0},${6} ${-5},${-4} ${5},${-4}`} fill="#10b981" stroke="#064e3b" strokeWidth={1} /></g>} />;
+    97→   633→                        if (d.signal === 'STRONG_SELL' || d.signal === 'SELL') return <ReferenceDot key={`s-${idx}`} x={d.date} y={d.close} r={5} fill="#ef4444" stroke="#7f1d1d" strokeWidth={1} shape={<g><polygon points={`${0},${-6} ${-5},${4} ${5},${4}`} fill="#ef4444" stroke="#7f1d1d" strokeWidth={1} /></g>} />;
+    98→   634→                        return null;
+    99→   635→                      })}
+   100→   636→                    </ComposedChart>
+   101→   637→                  </ResponsiveContainer>
+   102→   638→                </div>
+   103→   639→              </CardContent>
+   104→   640→            </Card>
+   105→   641→
+   106→   642→            {/* INDICATOR PANELS */}
+   107→   643→            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   108→   644→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+   109→   645→                <CardHeader className="pb-0"><CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> RSI ({params.rsiPeriod})</CardTitle></CardHeader>
+   110→   646→                <CardContent>
+   111→   647→                  <div className="flex items-center gap-4">
+   112→   648→                    <div className="relative w-20 h-20 shrink-0"><svg viewBox="0 0 100 100" className="w-full h-full -rotate-90"><circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" strokeWidth="8" /><circle cx="50" cy="50" r="42" fill="none" stroke={currentRSI < 30 ? '#ef4444' : currentRSI > 70 ? '#ef4444' : '#10b981'} strokeWidth="8" strokeDasharray={`${(currentRSI / 100) * 264} 264`} strokeLinecap="round" /></svg><div className="absolute inset-0 flex items-center justify-center"><span className={`text-lg font-bold ${currentRSI < 30 ? 'text-red-400' : currentRSI > 70 ? 'text-red-400' : 'text-emerald-400'}`}>{currentRSI.toFixed(1)}</span></div></div>
+   113→   649→                    <div className="space-y-1.5 text-xs"><div className="flex items-center gap-2"><span className="text-slate-500">Zone:</span><span className={currentRSI < 30 ? 'text-red-400 font-medium' : currentRSI > 70 ? 'text-red-400 font-medium' : 'text-emerald-400 font-medium'}>{currentRSI < 30 ? 'Oversold' : currentRSI > 70 ? 'Overbought' : 'Neutral'}</span></div><div className="flex items-center gap-2"><span className="text-slate-500">OB:</span><span className="text-slate-300">{params.rsiOverbought}</span></div><div className="flex items-center gap-2"><span className="text-slate-500">OS:</span><span className="text-slate-300">{params.rsiOversold}</span></div></div>
+   114→   650→                  </div>
+   115→   651→                </CardContent>
+   116→   652→              </Card>
+   117→   653→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+   118→   654→                <CardHeader className="pb-0"><CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> MACD ({params.macdFast},{params.macdSlow},{params.macdSignal})</CardTitle></CardHeader>
+   119→   655→                <CardContent>
+   120→   656→                  <div className="h-[80px]"><ResponsiveContainer width="100%" height="100%"><ComposedChart data={visibleData.slice(-50)} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}><Bar dataKey="macdHistogram" name="Histogram">{visibleData.slice(-50).map((d, i) => <Cell key={i} fill={d.macdHistogram !== null && d.macdHistogram >= 0 ? '#10b981' : '#ef4444'} opacity={0.7} />)}</Bar><Line type="monotone" dataKey="macd" stroke="#3b82f6" strokeWidth={1.5} dot={false} name="MACD" connectNulls={false} /><Line type="monotone" dataKey="macdSignal" stroke="#f59e0b" strokeWidth={1.5} dot={false} name="Signal" connectNulls={false} /></ComposedChart></ResponsiveContainer></div>
+   121→   657→                  <div className="flex justify-between text-[10px] text-slate-500 mt-1"><span>MACD: <span className={latestSignal?.macd >= 0 ? 'text-emerald-400' : 'text-red-400'}>{latestSignal?.macd?.toFixed(2) ?? '-'}</span></span><span>Sig: <span className={latestSignal?.macdSignal >= 0 ? 'text-emerald-400' : 'text-red-400'}>{latestSignal?.macdSignal?.toFixed(2) ?? '-'}</span></span></div>
+   122→   658→                </CardContent>
+   123→   659→              </Card>
+   124→   660→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+   125→   661→                <CardHeader className="pb-0"><CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> Supertrend ({params.supertrendPeriod},{params.supertrendMultiplier})</CardTitle></CardHeader>
+   126→   662→                <CardContent>
+   127→   663→                  <div className="flex items-center gap-4">
+   128→   664→                    <div className={`flex items-center justify-center w-20 h-20 rounded-full border-2 ${currentSTDir === 1 ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-red-500/40 bg-red-500/10'}`}><div className="text-center">{currentSTDir === 1 ? <TrendingUp className="w-6 h-6 mx-auto text-emerald-400" /> : <TrendingDown className="w-6 h-6 mx-auto text-red-400" />}<span className={`text-[10px] font-medium ${currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'}`}>{currentSTDir === 1 ? 'Bullish' : 'Bearish'}</span></div></div>
+   129→   665→                    <div className="space-y-1.5 text-xs"><div className="flex items-center gap-2"><span className="text-slate-500">Value:</span><span className={`font-medium ${currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'}`}>{formatINR(currentSTValue)}</span></div><div className="flex items-center gap-2"><span className="text-slate-500">Period:</span><span className="text-slate-300">{params.supertrendPeriod}</span></div><div className="flex items-center gap-2"><span className="text-slate-500">Mult:</span><span className="text-slate-300">{params.supertrendMultiplier}</span></div></div>
+   130→   666→                  </div>
+   131→   667→                </CardContent>
+   132→   668→              </Card>
+   133→   669→            </div>
+   134→   670→
+   135→   671→            {/* SIGNAL CARD */}
+   136→   672→            {latestSignal && (
+   137→   673→              <Card className={`border py-4 gap-4 ${{ STRONG_BUY: 'bg-emerald-950/40 border-emerald-500/30', BUY: 'bg-green-950/40 border-green-500/30', HOLD: 'bg-amber-950/30 border-amber-500/30', SELL: 'bg-orange-950/30 border-orange-500/30', STRONG_SELL: 'bg-red-950/40 border-red-500/30' }[latestSignal.signal]}`}>
+   138→   674→                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+   139→   675→                  <div className="flex items-center gap-4">
+   140→   676→                    <div className={`flex items-center justify-center w-16 h-16 rounded-xl border-2 ${getSignalBg(latestSignal.signal)}`}><span className="text-2xl">{getSignalIcon(latestSignal.signal)}</span></div>
+   141→   677→                    <div><div className="text-xs text-slate-400 mb-0.5">Latest Signal</div><div className={`text-2xl font-bold ${getSignalColor(latestSignal.signal)}`}>{latestSignal.signal.replace('_', ' ')}</div><div className="text-xs text-slate-400 mt-1 max-w-md">{latestSignal.reason}</div></div>
+   142→   678→                  </div>
+   143→   679→                  <div className="text-right"><div className="text-xs text-slate-400">Current Price</div><div className="text-2xl font-bold text-white">{formatINR(latestSignal.close)}</div><div className={`text-sm font-medium ${priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{priceChange >= 0 ? '+' : ''}{priceChangePct.toFixed(2)}%</div><div className="text-[10px] text-slate-500 mt-1">{formatDate(latestSignal.date)}</div></div>
+   144→   680→                </CardContent>
+   145→   681→              </Card>
+   146→   682→            )}
+   147→   683→
+   148→   684→            {/* PEERS TABLE */}
+   149→   685→            {peers.length > 0 && (
+   150→   686→              <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+   151→   687→                <CardHeader className="pb-0"><CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2"><Users className="w-4 h-4 text-blue-400" /> Sector Peers Comparison</CardTitle></CardHeader>
+   152→   688→                <CardContent>
+   153→   689→                  <div className="overflow-x-auto rounded-md border border-slate-800">
+   154→   690→                    <Table><TableHeader><TableRow className="border-slate-800 hover:bg-slate-800/50">
+   155→   691→                      <TableHead className="text-slate-400 text-[10px]">Symbol</TableHead>
+   156→   692→                      <TableHead className="text-slate-400 text-[10px] text-right">Price</TableHead>
+   157→   693→                      <TableHead className="text-slate-400 text-[10px] text-right">Change %</TableHead>
+   158→   694→                      <TableHead className="text-slate-400 text-[10px] text-right">MCap</TableHead>
+   159→   695→                      <TableHead className="text-slate-400 text-[10px] text-right">P/E</TableHead>
+   160→   696→                      <TableHead className="text-slate-400 text-[10px] text-right">ROE</TableHead>
+   161→   697→                    </TableRow></TableHeader>
+   162→   698→                    <TableBody>{peers.map(p => (
+   163→   699→                      <TableRow key={p.symbol} className="border-slate-800 hover:bg-slate-800/50 cursor-pointer" onClick={() => handleSelectInstrument(p.symbol, 'equity')}>
+   164→   700→                        <TableCell className="text-xs"><span className="text-emerald-400 font-medium">{p.symbol}</span></TableCell>
+   165→   701→                        <TableCell className="text-xs text-right font-mono">{formatINR(p.price)}</TableCell>
+   166→   702→                        <TableCell className={`text-xs text-right font-semibold ${p.changePct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{p.changePct >= 0 ? '+' : ''}{p.changePct.toFixed(2)}%</TableCell>
+   167→   703→                        <TableCell className="text-xs text-right text-slate-300">{formatNum(p.marketCap)}</TableCell>
+   168→   704→                        <TableCell className="text-xs text-right text-slate-300">{p.pe?.toFixed(1) || '-'}</TableCell>
+   169→   705→                        <TableCell className="text-xs text-right text-slate-300">{p.roe?.toFixed(1) + '%' || '-'}</TableCell>
+   170→   706→                      </TableRow>
+   171→   707→                    ))}</TableBody></Table>
+   172→   708→                  </div>
+   173→   709→                </CardContent>
+   174→   710→              </Card>
+   175→   711→            )}
+   176→   712→
+   177→   713→            {/* BACKTEST */}
+   178→   714→            {backtest && (<>
+   179→   715→              <div className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-slate-400" /><h2 className="text-sm font-semibold text-slate-300">Backtest Results</h2></div>
+   180→   716→              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   181→   717→                <MetricCard icon={<TrendingUp className="w-4 h-4" />} label="Total Return" value={`${backtest.totalReturnPct >= 0 ? '+' : ''}${backtest.totalReturnPct.toFixed(2)}%`} color={backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+   182→   718→                <MetricCard icon={<Trophy className="w-4 h-4" />} label="Win Rate" value={`${backtest.winRate.toFixed(1)}%`} color={backtest.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'} />
+   183→   719→                <MetricCard icon={<Activity className="w-4 h-4" />} label="Total Trades" value={String(backtest.totalTrades)} color="text-slate-200" />
+   184→   720→                <MetricCard icon={<Zap className="w-4 h-4" />} label="Winning" value={String(backtest.winningTrades)} color="text-emerald-400" />
+   185→   721→                <MetricCard icon={<Flame className="w-4 h-4" />} label="Losing" value={String(backtest.losingTrades)} color="text-red-400" />
+   186→   722→                <MetricCard icon={<ArrowUp className="w-4 h-4" />} label="Avg Win" value={`+${backtest.avgWinPct.toFixed(2)}%`} color="text-emerald-400" />
+   187→   723→                <MetricCard icon={<ArrowDown className="w-4 h-4" />} label="Avg Loss" value={`${backtest.avgLossPct.toFixed(2)}%`} color="text-red-400" />
+   188→   724→                <MetricCard icon={<AlertTriangle className="w-4 h-4" />} label="Max Drawdown" value={`-${backtest.maxDrawdownPct.toFixed(2)}%`} color={backtest.maxDrawdownPct > 10 ? 'text-red-400' : 'text-amber-400'} />
+   189→   725→              </div>
+   190→   726→              <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+   191→   727→                <CardHeader className="pb-0"><CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2"><Shield className="w-4 h-4 text-slate-400" /> Trade History (Last {backtest.trades.length})</CardTitle></CardHeader>
+   192→   728→                <CardContent>
+   193→   729→                  <div className="max-h-72 overflow-y-auto rounded-md border border-slate-800">
+   194→   730→                    <Table><TableHeader><TableRow className="border-slate-800 hover:bg-slate-800/50">
+   195→   731→                      <TableHead className="text-slate-400 text-xs">Entry</TableHead><TableHead className="text-slate-400 text-xs">Exit</TableHead><TableHead className="text-slate-400 text-xs text-right">Entry Price</TableHead><TableHead className="text-slate-400 text-xs text-right">Exit Price</TableHead><TableHead className="text-slate-400 text-xs text-right">P&L %</TableHead><TableHead className="text-slate-400 text-xs">Signal</TableHead>
+   196→   732→                    </TableRow></TableHeader>
+   197→   733→                    <TableBody>{backtest.trades.map((t, i) => (
+   198→   734→                      <TableRow key={i} className="border-slate-800 hover:bg-slate-800/50">
+   199→   735→                        <TableCell className="text-slate-300 text-xs font-mono">{formatDate(t.entryDate)}</TableCell>
+   200→   736→                        <TableCell className="text-slate-300 text-xs font-mono">{formatDate(t.exitDate)}</TableCell>
+   201→   737→                        <TableCell className="text-slate-300 text-xs text-right font-mono">{formatINR(t.entryPrice)}</TableCell>
+   202→   738→                        <TableCell className="text-slate-300 text-xs text-right font-mono">{formatINR(t.exitPrice)}</TableCell>
+   203→   739→                        <TableCell className={`text-xs text-right font-semibold font-mono ${t.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{t.pnlPct >= 0 ? '+' : ''}{t.pnlPct.toFixed(2)}%</TableCell>
+   204→   740→                        <TableCell><Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getSignalBg(t.signal)}`}>{t.signal}</Badge></TableCell>
+   205→   741→                      </TableRow>
+   206→   742→                    ))}{backtest.trades.length === 0 && <TableRow className="border-slate-800"><TableCell className="text-slate-500 text-center py-8" colSpan={6}>No trades</TableCell></TableRow>}</TableBody></Table>
+   207→   743→                  </div>
+   208→   744→                </CardContent>
+   209→   745→              </Card>
+   210→   746→            </>)}
+   211→   747→
+   212→   748→            {/* STRATEGY PARAMETERS */}
+   213→   749→            <Accordion type="single" collapsible className="w-full">
+   214→   750→              <AccordionItem value="params" className="border-slate-800">
+   215→   751→                <AccordionTrigger className="text-sm font-medium text-slate-300 hover:no-underline py-3"><div className="flex items-center gap-2"><Settings2 className="w-4 h-4 text-slate-400" /> Strategy Parameters {recalculating && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}</div></AccordionTrigger>
+   216→   752→                <AccordionContent>
+   217→   753→                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+   218→   754→                    <ParamSlider label="ST Period" value={params.supertrendPeriod} min={5} max={20} step={1} onChange={v => handleParamChange('supertrendPeriod', v)} />
+   219→   755→                    <ParamSlider label="ST Multiplier" value={params.supertrendMultiplier} min={1} max={5} step={0.5} onChange={v => handleParamChange('supertrendMultiplier', v)} />
+   220→   756→                    <ParamSlider label="RSI Period" value={params.rsiPeriod} min={5} max={30} step={1} onChange={v => handleParamChange('rsiPeriod', v)} />
+   221→   757→                    <ParamSlider label="RSI Overbought" value={params.rsiOverbought} min={60} max={90} step={1} onChange={v => handleParamChange('rsiOverbought', v)} />
+   222→   758→                    <ParamSlider label="RSI Oversold" value={params.rsiOversold} min={10} max={40} step={1} onChange={v => handleParamChange('rsiOversold', v)} />
+   223→   759→                    <ParamSlider label="MACD Fast" value={params.macdFast} min={5} max={20} step={1} onChange={v => handleParamChange('macdFast', v)} />
+   224→   760→                    <ParamSlider label="MACD Slow" value={params.macdSlow} min={15} max={40} step={1} onChange={v => handleParamChange('macdSlow', v)} />
+   225→   761→                    <ParamSlider label="MACD Signal" value={params.macdSignal} min={3} max={15} step={1} onChange={v => handleParamChange('macdSignal', v)} />
+   226→   762→                  </div>
+   227→   763→                  <div className="flex items-center gap-3">
+   228→   764→                    <Button onClick={handleApplyParams} disabled={recalculating} className="bg-emerald-600 hover:bg-emerald-700 text-white">{recalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Apply & Recalculate</Button>
+   229→   765→                    <Button variant="ghost" onClick={() => setParams({ ...DEFAULT_PARAMS })} className="text-slate-400 hover:text-white">Reset</Button>
+   230→   766→                  </div>
+   231→   767→                </AccordionContent>
+   232→   768→              </AccordionItem>
+   233→   769→            </Accordion>
+   234→   770→          </>
+   235→   771→        )}
+   236→   772→      </main>
+   237→   773→
+   238→   774→      <footer className="border-t border-slate-800 mt-auto">
+   239→   775→        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-4">
+   240→   776→          <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+   241→   777→            Data sourced from Yahoo Finance (real-time). Strategy signals are for educational purposes. Not financial advice. Always do your own research before trading.
+   242→   778→          </p>
+   243→   779→        </div>
+   244→   780→      </footer>
+   245→   781→    </div>
+   246→   782→    </TooltipProvider>
+   247→   783→  );
+   248→   784→}
+   249→   785→
+   250→   786→// ==================== SUB-COMPONENTS ====================
+   251→   787→
+   252→   788→function KPICard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string; sub?: string; color: string }) {
+   253→   789→  return (
+   254→   790→    <Card className="bg-slate-900 border-slate-800 p-3 flex flex-col gap-1">
+   255→   791→      <div className="flex items-center gap-1.5 text-slate-500">{icon}<span className="text-[10px] font-medium">{label}</span></div>
+   256→   792→      <div className={`text-base font-bold ${color}`}>{value}</div>
+   257→   793→      {sub && <div className="text-[10px] text-slate-500">{sub}</div>}
+   258→   794→    </Card>
+   259→   795→  );
+   260→   796→}
+   261→   797→
+   262→   798→function MetricCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
+   263→   799→  return (
+   264→   800→    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-1.5">
+   265→   801→      <div className="flex items-center gap-1.5 text-slate-400">{icon}<span className="text-[11px] font-medium">{label}</span></div>
+   266→   802→      <div className={`text-lg font-bold ${color}`}>{value}</div>
+   267→   803→    </div>
+   268→   804→  );
+   269→   805→}
+   270→   806→
+   271→   807→function ParamSlider({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
+   272→   808→  return (
+   273→   809→    <div className="space-y-2">
+   274→   810→      <div className="flex items-center justify-between"><label className="text-xs text-slate-400 font-medium">{label}</label><Input type="number" value={value} min={min} max={max} step={step} onChange={e => onChange(Number(e.target.value))} className="w-16 h-7 text-xs text-right bg-slate-800 border-slate-700 text-slate-200" /></div>
+   275→   811→      <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} className="py-1" />
+   276→   812→      <div className="flex justify-between text-[10px] text-slate-600"><span>{min}</span><span>{max}</span></div>
+   277→   813→    </div>
+   278→   814→  );
+   279→   815→}
+   280→   816→
+   281→   817→function QuoteHeroSkeleton() {
+   282→   818→  return (
+   283→   819→    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+   284→   820→      <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-4"><Skeleton className="h-4 w-32 mb-3 bg-slate-800" /><Skeleton className="h-8 w-48 mb-2 bg-slate-800" /><Skeleton className="h-4 w-64 mb-6 bg-slate-800" /><Skeleton className="h-10 w-40 mb-4 bg-slate-800" /><Skeleton className="h-24 w-full bg-slate-800 rounded" /></div>
+   285→   821→      <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="bg-slate-900 border border-slate-800 rounded-lg p-3"><Skeleton className="h-3 w-16 mb-2 bg-slate-800" /><Skeleton className="h-5 w-12 bg-slate-800" /></div>)}</div>
+   286→   822→    </div>
+   287→   823→  );
+   288→   824→}
+   289→   825→
+   290→   826→function DashboardSkeleton() {
+   291→   827→  return (
+   292→   828→    <div className="space-y-5">
+   293→   829→      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4"><Skeleton className="h-6 w-48 mb-4 bg-slate-800" /><Skeleton className="h-[350px] w-full bg-slate-800 rounded-lg" /></div>
+   294→   830→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{[1, 2, 3].map(i => <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4"><Skeleton className="h-4 w-32 mb-3 bg-slate-800" /><Skeleton className="h-20 w-full bg-slate-800 rounded-lg" /></div>)}</div>
+   295→   831→    </div>
+   296→   832→  );
+   297→   833→}

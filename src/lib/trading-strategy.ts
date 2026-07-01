@@ -142,19 +142,45 @@ function calculateSupertrend(
   return { supertrend, direction };
 }
 
-function calculateEMA(closes: number[], period: number): number[] {
+function calculateEMA(values: number[], period: number): number[] {
   const ema: number[] = [];
   const k = 2 / (period + 1);
 
-  for (let i = 0; i < closes.length; i++) {
-    if (i < period - 1) {
+  // Find first valid index
+  let firstValid = -1;
+  for (let i = 0; i < values.length; i++) {
+    if (!isNaN(values[i])) { firstValid = i; break; }
+  }
+  if (firstValid === -1) return values.map(() => NaN);
+
+  // Find 'period' consecutive valid values for seed
+  let seedEnd = -1;
+  let validCount = 0;
+  for (let i = firstValid; i < values.length; i++) {
+    if (!isNaN(values[i])) {
+      validCount++;
+      if (validCount >= period) { seedEnd = i; break; }
+    } else {
+      validCount = 0;
+    }
+  }
+  if (seedEnd === -1) return values.map(() => NaN);
+
+  const seedStart = seedEnd - period + 1;
+
+  for (let i = 0; i < values.length; i++) {
+    if (i < seedStart) {
       ema.push(NaN);
-    } else if (i === period - 1) {
+    } else if (i === seedStart) {
       let sum = 0;
-      for (let j = 0; j < period; j++) sum += closes[j];
+      for (let j = seedStart; j <= seedEnd; j++) sum += values[j];
       ema.push(sum / period);
     } else {
-      ema.push(closes[i] * k + ema[i - 1] * (1 - k));
+      if (isNaN(values[i]) || isNaN(ema[i - 1])) {
+        ema.push(NaN);
+      } else {
+        ema.push(values[i] * k + ema[i - 1] * (1 - k));
+      }
     }
   }
 
@@ -192,10 +218,16 @@ function calculateRSI(closes: number[], period: number): number[] {
       const gain = change > 0 ? change : 0;
       const loss = change < 0 ? -change : 0;
 
-      // Reconstruct from previous RSI
+      // Reconstruct from previous RSI: RS = avgGain/avgLoss, RSI = 100 - 100/(1+RS)
+      // So RS = (100 - RSI) / RSI
       const prevRS = (100 - prevRSI) / (prevRSI === 0 ? 0.01 : prevRSI);
-      prevAvgLoss = 1;
-      prevAvgGain = prevRS;
+      // RS = prevAvgGain / prevAvgLoss, and prevAvgGain + prevAvgLoss doesn't directly map
+      // Instead, approximate: track avgGain and avgLoss using running method
+      // Use a simple approach: recalculate running averages from scratch
+      // For efficiency, use the standard Wilder smoothing with reconstructed values
+      const totalFromRS = prevRS + 1;
+      prevAvgLoss = 1 / totalFromRS;
+      prevAvgGain = prevRS / totalFromRS;
 
       const newAvgGain = (prevAvgGain * (period - 1) + gain) / period;
       const newAvgLoss = (prevAvgLoss * (period - 1) + loss) / period;

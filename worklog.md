@@ -1,47 +1,29 @@
-# Work Log
+---
+Task ID: 1
+Agent: Main Agent
+Task: Continue NSE Trading Dashboard - Real-time data, Power BI dashboard, fix date issue
 
-## 2025-07-13 - NSE Trading Strategy Dashboard
+Work Log:
+- Analyzed full project state: 100+ equities, 16 indices, options chain, Yahoo Finance integration
+- Discovered yahoo-finance2 npm package hitting 429 rate limits, replaced with direct HTTP calls
+- Rewrote `/src/lib/market-data.ts` to use Yahoo v8 chart API directly (no external deps)
+- Added comprehensive fundamentals database (FUNDAMENTALS_DB) for 60+ Indian stocks with PE, PB, ROE, D/E, revenue, EBITDA, analyst targets, etc.
+- Updated all API routes (quote, historical, signals) to use new data layer
+- Fixed critical bug in `calculateEMA` function - NaN propagation when MACD line had leading NaN values caused all signals to be empty
+- Fixed RSI reconstruction bug in running average calculation
+- Built complete Power BI styled dashboard (1048 lines) with:
+  - Sticky market bar (NIFTY, BANKNIFTY, NIFTYIT, INDIAVIX)
+  - Comprehensive price hero with fundamentals grid
+  - 5-tab deep analysis panel (Fundamentals, Financials, Ownership & Analysts, Peer Comparison, Technical Analysis)
+  - Real Yahoo Finance data with dates up to 2026-07-01 (current)
+  - Strategy signals (186 signals, 13 trades for RELIANCE)
+  - Backtest results with trade history
+- Fixed ownership display bug (instHolding already in %, not fraction)
+- Production build succeeds, server running on port 3000
 
-### Task: Build comprehensive trading dashboard for Indian Stock Market (NSE)
-
-### Files Created/Modified:
-
-1. **`/api/stocks/route.ts`** - New API route
-   - GET endpoint returning the NSE_STOCKS list from stock-data.ts
-   - Returns array of StockInfo objects (20 NSE stocks)
-
-2. **`/api/stock-data/route.ts`** - New API route
-   - GET endpoint accepting `symbol` (required) and `days` (optional, default 200) query params
-   - Generates simulated OHLCV stock data using the seeded random generator
-   - Returns `{ stockInfo, data }` JSON response
-   - Validates stock symbol existence, clamps days between 30-500
-
-3. **`/api/signals/route.ts`** - New API route
-   - GET endpoint accepting `symbol`, `days`, and all StrategyParams as query params
-   - Generates stock data, runs signal generation (Supertrend + RSI + MACD confluence), and backtest
-   - Returns `{ signals, backtest, stockInfo, params, stockData }` JSON response
-   - Uses DEFAULT_PARAMS for any missing strategy parameters
-
-4. **`/src/app/page.tsx`** - Complete dashboard page rewrite
-   - Dark theme trading terminal aesthetic (bg-slate-950)
-   - **Header**: App title with TrendingUp icon, subtitle, searchable stock selector using Popover+Command
-   - **Main Chart**: Recharts ComposedChart with area chart for close price, Supertrend line overlay (purple dashed), buy/sell signal markers (green/red triangles), custom tooltip with OHLC+signal info, zoom/slide navigation (last 100 data points)
-   - **Indicator Panels** (3 cards): RSI gauge (circular SVG with overbought/oversold zones), MACD mini chart (bar histogram + MACD/signal lines), Supertrend status (bullish/bearish indicator)
-   - **Current Signal Card**: Large prominent card with color-coded signal (STRONG_BUY=emerald, BUY=green, HOLD=amber, SELL=orange, STRONG_SELL=red), signal reason, current price with change %
-   - **Backtest Results**: 9 metric cards (Total Return %, Win Rate, Total Trades, Winning/Losing Trades, Avg Win/Loss %, Max Drawdown %, Profit Factor)
-   - **Trade History Table**: Last 20 trades with Entry/Exit dates, prices, P&L %, signal type - color-coded and scrollable
-   - **Strategy Parameters Panel**: Collapsible accordion with 8 slider+input controls for all strategy params, Apply & Recalculate button, Reset to Defaults
-   - **Footer**: Disclaimer text
-   - **Loading States**: Skeleton loaders for all sections
-   - **Indian formatting**: ₹ currency symbol, lakhs/crores for volume, en-IN number formatting
-   - **Responsive**: Mobile-first design with sm/md/lg breakpoints
-
-### Tech Stack Used:
-- Next.js 16 App Router API routes
-- Recharts (ComposedChart, Area, Line, Bar, ReferenceDot, Cell)
-- shadcn/ui (Card, Badge, Button, Select, Skeleton, Slider, Input, Accordion, Table, Popover, Command)
-- Lucide React icons
-- TypeScript throughout
-- React hooks (useState, useEffect, useCallback, useMemo)
-
-### Lint Status: ✅ Clean (no errors)
+Stage Summary:
+- Real-time data: Working via Yahoo Finance v8 chart API (direct HTTP, no npm deps)
+- Date fix: Data now shows up to 2026-07-01 (current), was previously showing Nov 2025
+- Power BI dashboard: Complete with 5 analysis tabs, market overview bar, comprehensive fundamentals
+- OOM fix: Removed yahoo-finance2 dependency, lighter memory footprint
+- Signals working: Fixed EMA NaN propagation bug, 186 signals generated for 200 data points
