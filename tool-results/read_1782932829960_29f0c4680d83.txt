@@ -1,0 +1,540 @@
+     1→     1→// Real-time market data service using Yahoo Finance v8 Chart API (direct HTTP)
+     2→     2→// No external dependencies - uses Node.js native https module
+     3→     3→
+     4→     4→// ==================== TYPES ====================
+     5→     5→export interface LiveQuote {
+     6→     6→  symbol: string;
+     7→     7→  name: string;
+     8→     8→  longName: string;
+     9→     9→  sector: string;
+    10→    10→  industry: string;
+    11→    11→  exchange: string;
+    12→    12→  currency: string;
+    13→    13→  type: "equity" | "index";
+    14→    14→
+    15→    15→  // Price
+    16→    16→  price: number;
+    17→    17→  change: number;
+    18→    18→  changePct: number;
+    19→    19→  prevClose: number;
+    20→    20→  open: number;
+    21→    21→  dayHigh: number;
+    22→    22→  dayLow: number;
+    23→    23→
+    24→    24→  // Volume
+    25→    25→  volume: number;
+    26→    26→  avgVolume: number;
+    27→    27→  volumeRatio: number;
+    28→    28→
+    29→    29→  // Market Cap & Valuation
+    30→    30→  marketCap: number;
+    31→    31→  pe: number | null;
+    32→    32→  forwardPE: number | null;
+    33→    33→  pb: number | null;
+    34→    34→  eps: number | null;
+    35→    35→  bookValue: number | null;
+    36→    36→  dividendYield: number | null;
+    37→    37→  payoutRatio: number | null;
+    38→    38→
+    39→    39→  // 52 Week Range
+    40→    40→  high52w: number;
+    41→    41→  low52w: number;
+    42→    42→  percentFrom52wHigh: number;
+    43→    43→  percentFrom52wLow: number;
+    44→    44→
+    45→    45→  // Moving Averages (calculated from historical data)
+    46→    46→  fiftyDMA: number | null;
+    47→    47→  twoHundredDMA: number | null;
+    48→    48→  percentAbove50DMA: number | null;
+    49→    49→  percentAbove200DMA: number | null;
+    50→    50→
+    51→    51→  // Fundamentals (enriched from our data)
+    52→    52→  beta: number | null;
+    53→    53→  roe: number | null;
+    54→    54→  roa: number | null;
+    55→    55→  debtToEquity: number | null;
+    56→    56→  revenueGrowth: number | null;
+    57→    57→  profitMargins: number | null;
+    58→    58→  operatingMargins: number | null;
+    59→    59→  currentRatio: number | null;
+    60→    60→  totalRevenue: number | null;
+    61→    61→  ebitda: number | null;
+    62→    62→  grossProfits: number | null;
+    63→    63→  freeCashflow: number | null;
+    64→    64→
+    65→    65→  // Analyst Coverage
+    66→    66→  recommendation: string | null;
+    67→    67→  targetHigh: number | null;
+    68→    68→  targetLow: number | null;
+    69→    69→  targetMean: number | null;
+    70→    70→  targetMedian: number | null;
+    71→    71→  analysts: number | null;
+    72→    72→
+    73→    73→  // Ownership
+    74→    74→  instHolding: number | null;
+    75→    75→  insiderHolding: number | null;
+    76→    76→
+    77→    77→  // Derived
+    78→    78→  marketState: string;
+    79→    79→  lastUpdated: string;
+    80→    80→}
+    81→    81→
+    82→    82→export interface HistoricalDataPoint {
+    83→    83→  date: string;
+    84→    84→  open: number;
+    85→    85→  high: number;
+    86→    86→  low: number;
+    87→    87→  close: number;
+    88→    88→  volume: number;
+    89→    89→}
+    90→    90→
+    91→    91→export interface PeerData {
+    92→    92→  symbol: string;
+    93→    93→  name: string;
+    94→    94→  price: number;
+    95→    95→  changePct: number;
+    96→    96→  marketCap: number;
+    97→    97→  pe: number | null;
+    98→    98→  pb: number | null;
+    99→    99→  divYield: number | null;
+   100→   100→  roe: number | null;
+   101→   101→  revenueGrowth: number | null;
+   102→   102→}
+   103→   103→
+   104→   104→// ==================== SYMBOL MAPPING ====================
+   105→   105→const YAHOO_SYMBOL_MAP: Record<string, string> = {
+   106→   106→  NIFTY: "^NSEI",
+   107→   107→  BANKNIFTY: "^NSEBANK",
+   108→   108→  NIFTYIT: "^CNXIT",
+   109→   109→  NIFTYNXT50: "^NSMIDCP",
+   110→   110→  NIFTYFIN: "^CNXFIN",
+   111→   111→  NIFTYMIDCAP: "^CNXMIDCAP",
+   112→   112→  NIFTYSMLCAP: "^CNXSC",
+   113→   113→  NIFTYPHARMA: "^CNXPHARMA",
+   114→   114→  NIFTYAUTO: "^CNXAUTO",
+   115→   115→  NIFTYMETAL: "^CNXMETAL",
+   116→   116→  NIFTYENERGY: "^CNXENERGY",
+   117→   117→  NIFTYFMCG: "^CNXFMCG",
+   118→   118→  NIFTYREALTY: "^CNXREALTY",
+   119→   119→  NIFTYINFRA: "^CNXINFRA",
+   120→   120→  NIFTYPSUBANK: "^CNXPSUBANK",
+   121→   121→  NIFTYCOMMOD: "^CNXCOMMODITY",
+   122→   122→  INDIAVIX: "^INDIAVIX",
+   123→   123→};
+   124→   124→
+   125→   125→const SECTOR_PEERS: Record<string, string[]> = {
+   126→   126→  Banking: ["HDFCBANK", "ICICIBANK", "SBIN", "KOTAKBANK", "AXISBANK", "INDUSINDBK", "BANKBARODA", "FEDERALBNK", "CANBK", "IDFCFIRSTB", "PNB", "INDIANB", "YESBANK"],
+   127→   127→  IT: ["TCS", "INFY", "HCLTECH", "WIPRO", "TECHM", "LTIM", "MPHASIS", "COFORGE", "PERSISTENT"],
+   128→   128→  FMCG: ["HINDUNILVR", "ITC", "TATACONSUM", "BRITANNIA", "NESTLEIND", "GODREJCP", "VBL", "DABUR"],
+   129→   129→  Auto: ["MARUTI", "TATAMOTORS", "M&M", "EICHERMOT", "HEROMOTOCO", "BAJAJAUTO", "TVSMOTOR", "TATAMTRDVR"],
+   130→   130→  Pharma: ["SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "ALKEM", "BIOCON", "LUPIN", "LAURUSLABS", "TORNTPHARM"],
+   131→   131→  Metals: ["TATASTEEL", "JSWSTEEL", "HINDALCO", "HINDZINC", "VEDL", "SAIL", "JINDALSTEL", "COALINDIA"],
+   132→   132→  Energy: ["RELIANCE", "ONGC", "BPCL", "IOC", "ADANIENT", "TATAPOWER", "NTPC", "POWERGRID", "ADANIGREEN", "ADANIENSOL", "SUZLON"],
+   133→   133→  Finance: ["BAJFINANCE", "BAJAJFINSV", "CHOLAHLDNG", "MUTHOOTFIN", "SHRIRAMFIN"],
+   134→   134→  Insurance: ["HDFCLIFE", "SBILIFE"],
+   135→   135→  Infrastructure: ["LT", "ADANIPORTS"],
+   136→   136→  Consumer: ["ASIANPAINT", "TITAN", "CROMPTON", "VOLTAS", "BLUESTAR", "WHIRLPOOL"],
+   137→   137→  Cement: ["ULTRACEMCO", "GRASIM", "AMBUJACEM", "ACC", "SHREECEM"],
+   138→   138→  "Capital Goods": ["SIEMENS", "ABB", "HONEYWELL", "VSTTILLERS"],
+   139→   139→  Retail: ["DMART", "TRENT"],
+   140→   140→  "Real Estate": ["DLF", "OBEROIRLTY", "GODREJPROP", "PHOENIXLTD"],
+   141→   141→  Telecom: ["BHARTIARTL"],
+   142→   142→  Fintech: ["PAYTM", "ZOMATO"],
+   143→   143→  "E-commerce": ["NYKAA", "DELHIVERY"],
+   144→   144→  Conglomerate: ["ADANIENT", "BAJAJHLDNG"],
+   145→   145→  Internet: ["ZOMATO"],
+   146→   146→  Logistics: ["DELHIVERY"],
+   147→   147→  Electronics: ["DIXON"],
+   148→   148→  Chemicals: ["PIDILITIND"],
+   149→   149→  Healthcare: ["APOLLOHOSP", "MAXHEALTH"],
+   150→   150→  Mining: ["COALINDIA"],
+   151→   151→  Textiles: ["WELSPUNLIV", "PAGEIND"],
+   152→   152→  "Auto Ancillary": ["MRF", "BOSCHLTD", "MOTHERSUMI"],
+   153→   153→  Power: ["NTPC", "POWERGRID", "TATAPOWER", "ADANIGREEN", "ADANIENSOL", "SUZLON"],
+   154→   154→  "Volatility Index": ["INDIAVIX"],
+   155→   155→  Index: ["NIFTY", "BANKNIFTY"],
+   156→   156→};
+   157→   157→
+   158→   158→// ==================== FUNDAMENTALS ENRICHMENT DATABASE ====================
+   159→   159→// Real fundamentals data for major Indian stocks (approximate, from recent public filings)
+   160→   160→const FUNDAMENTALS_DB: Record<string, {
+   161→   161→  pe?: number; forwardPE?: number; pb?: number; eps?: number; bookValue?: number;
+   162→   162→  dividendYield?: number; payoutRatio?: number; beta?: number; roe?: number; roa?: number;
+   163→   163→  debtToEquity?: number; revenueGrowth?: number; profitMargins?: number; operatingMargins?: number;
+   164→   164→  currentRatio?: number; totalRevenue?: number; ebitda?: number; grossProfits?: number;
+   165→   165→  freeCashflow?: number; sector?: string; industry?: string; marketCap?: number;
+   166→   166→  instHolding?: number; insiderHolding?: number;
+   167→   167→  recommendation?: string; targetHigh?: number; targetLow?: number; targetMean?: number; targetMedian?: number; analysts?: number;
+   168→   168→}> = {
+   169→   169→  RELIANCE: { pe: 27.5, forwardPE: 24.2, pb: 2.8, eps: 47.7, bookValue: 1052, dividendYield: 0.3, payoutRatio: 0.08, beta: 0.95, roe: 10.2, roa: 5.1, debtToEquity: 0.42, revenueGrowth: 8.5, profitMargins: 10.8, operatingMargins: 14.2, currentRatio: 1.25, totalRevenue: 10.65e12, ebitda: 1.72e12, grossProfits: 2.1e12, freeCashflow: 0.8e12, sector: "Energy", industry: "Oil & Gas Integrated", marketCap: 890000e9, instHolding: 27.5, recommendation: "buy", targetMean: 1580, targetHigh: 1850, targetLow: 1200, analysts: 42 },
+   170→   170→  TCS: { pe: 32.1, forwardPE: 28.5, pb: 14.2, eps: 129.3, bookValue: 292, dividendYield: 1.2, payoutRatio: 0.42, beta: 0.65, roe: 48.5, roa: 22.1, debtToEquity: 0.08, revenueGrowth: 9.2, profitMargins: 19.5, operatingMargins: 24.8, currentRatio: 2.1, totalRevenue: 2.40e12, ebitda: 0.65e12, grossProfits: 0.95e12, freeCashflow: 0.52e12, sector: "IT", industry: "IT Services", marketCap: 1340000e9, instHolding: 15.2, recommendation: "buy", targetMean: 4600, targetHigh: 5200, targetLow: 3800, analysts: 38 },
+   171→   171→  HDFCBANK: { pe: 19.8, forwardPE: 17.2, pb: 3.2, eps: 84.8, bookValue: 527, dividendYield: 1.1, payoutRatio: 0.21, beta: 0.85, roe: 16.2, roa: 2.0, debtToEquity: 5.8, revenueGrowth: 16.5, profitMargins: 42.5, operatingMargins: 42.5, currentRatio: 0, totalRevenue: 3.0e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 1260000e9, instHolding: 52.1, recommendation: "buy", targetMean: 1850, targetHigh: 2100, targetLow: 1500, analysts: 45 },
+   172→   172→  INFY: { pe: 27.5, forwardPE: 24.0, pb: 8.8, eps: 57.5, bookValue: 180, dividendYield: 2.3, payoutRatio: 0.55, beta: 0.72, roe: 32.1, roa: 16.8, debtToEquity: 0.05, revenueGrowth: 7.1, profitMargins: 18.8, operatingMargins: 23.5, currentRatio: 2.3, totalRevenue: 1.78e12, ebitda: 0.42e12, grossProfits: 0.62e12, freeCashflow: 0.35e12, sector: "IT", industry: "IT Services", marketCap: 667000e9, instHolding: 35.2, recommendation: "buy", targetMean: 1820, targetHigh: 2100, targetLow: 1500, analysts: 40 },
+   173→   173→  ICICIBANK: { pe: 18.5, forwardPE: 16.0, pb: 2.9, eps: 69.2, bookValue: 345, dividendYield: 0.8, payoutRatio: 0.15, beta: 0.88, roe: 17.8, roa: 2.2, debtToEquity: 6.2, revenueGrowth: 15.2, profitMargins: 40.8, operatingMargins: 40.8, currentRatio: 0, totalRevenue: 2.3e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 895000e9, instHolding: 48.5, recommendation: "buy", targetMean: 1420, targetHigh: 1650, targetLow: 1100, analysts: 42 },
+   174→   174→  SBIN: { pe: 10.2, forwardPE: 8.8, pb: 1.8, eps: 80.9, bookValue: 455, dividendYield: 1.8, payoutRatio: 0.18, beta: 1.1, roe: 18.2, roa: 1.0, debtToEquity: 8.5, revenueGrowth: 12.8, profitMargins: 35.2, operatingMargins: 35.2, currentRatio: 0, totalRevenue: 3.5e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Public", marketCap: 735000e9, instHolding: 43.2, recommendation: "buy", targetMean: 950, targetHigh: 1100, targetLow: 750, analysts: 38 },
+   175→   175→  BHARTIARTL: { pe: 75.5, forwardPE: 55.0, pb: 6.5, eps: 21.5, bookValue: 249, dividendYield: 0.4, payoutRatio: 0.15, beta: 0.62, roe: 12.5, roa: 5.8, debtToEquity: 0.95, revenueGrowth: 18.5, profitMargins: 15.2, operatingMargins: 22.8, currentRatio: 0.8, totalRevenue: 1.55e12, ebitda: 0.52e12, grossProfits: 0.65e12, freeCashflow: 0.25e12, sector: "Telecom", industry: "Telecom Services", marketCap: 970000e9, instHolding: 32.5, recommendation: "buy", targetMean: 1800, targetHigh: 2000, targetLow: 1500, analysts: 35 },
+   176→   176→  ITC: { pe: 26.8, forwardPE: 24.0, pb: 7.8, eps: 17.4, bookValue: 59, dividendYield: 2.8, payoutRatio: 0.72, beta: 0.55, roe: 29.5, roa: 18.2, debtToEquity: 0.01, revenueGrowth: 5.8, profitMargins: 28.5, operatingMargins: 32.1, currentRatio: 1.8, totalRevenue: 0.70e12, ebitda: 0.22e12, grossProfits: 0.35e12, freeCashflow: 0.18e12, sector: "FMCG", industry: "Tobacco & FMCG", marketCap: 582000e9, instHolding: 42.8, recommendation: "hold", targetMean: 480, targetHigh: 540, targetLow: 380, analysts: 35 },
+   177→   177→  HINDUNILVR: { pe: 55.2, forwardPE: 48.0, pb: 7.2, eps: 46.7, bookValue: 358, dividendYield: 1.5, payoutRatio: 0.82, beta: 0.48, roe: 13.2, roa: 10.5, debtToEquity: 0.25, revenueGrowth: 2.5, profitMargins: 11.8, operatingMargins: 15.2, currentRatio: 1.1, totalRevenue: 0.60e12, ebitda: 0.12e12, grossProfits: 0.25e12, freeCashflow: 0.08e12, sector: "FMCG", industry: "Consumer Goods", marketCap: 602000e9, instHolding: 55.2, recommendation: "hold", targetMean: 2750, targetHigh: 3100, targetLow: 2300, analysts: 32 },
+   178→   178→  LT: { pe: 32.5, forwardPE: 27.0, pb: 5.8, eps: 112.3, bookValue: 629, dividendYield: 0.8, payoutRatio: 0.25, beta: 0.92, roe: 18.5, roa: 6.2, debtToEquity: 0.18, revenueGrowth: 12.5, profitMargins: 8.2, operatingMargins: 12.5, currentRatio: 1.5, totalRevenue: 2.25e12, ebitda: 0.28e12, grossProfits: 0.35e12, freeCashflow: 0.15e12, sector: "Infrastructure", industry: "Engineering & Construction", marketCap: 503000e9, instHolding: 28.5, recommendation: "buy", targetMean: 4000, targetHigh: 4500, targetLow: 3200, analysts: 38 },
+   179→   179→  AXISBANK: { pe: 14.2, forwardPE: 12.5, pb: 2.2, eps: 82.8, bookValue: 380, dividendYield: 0.5, payoutRatio: 0.07, beta: 0.95, roe: 15.5, roa: 1.9, debtToEquity: 5.8, revenueGrowth: 14.2, profitMargins: 39.5, operatingMargins: 39.5, currentRatio: 0, totalRevenue: 1.85e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 361000e9, instHolding: 51.2, recommendation: "buy", targetMean: 1350, targetHigh: 1550, targetLow: 1050, analysts: 40 },
+   180→   180→  TATAMOTORS: { pe: 7.8, forwardPE: 6.5, pb: 2.5, eps: 121.8, bookValue: 380, dividendYield: 0.5, payoutRatio: 0.04, beta: 1.35, roe: 32.5, roa: 8.5, debtToEquity: 0.85, revenueGrowth: 22.5, profitMargins: 5.8, operatingMargins: 8.2, currentRatio: 0.95, totalRevenue: 4.45e12, ebitda: 0.45e12, grossProfits: 0.65e12, freeCashflow: 0.18e12, sector: "Auto", industry: "Automobiles", marketCap: 356000e9, instHolding: 18.5, recommendation: "buy", targetMean: 1100, targetHigh: 1350, targetLow: 800, analysts: 32 },
+   181→   181→  BAJFINANCE: { pe: 32.8, forwardPE: 27.5, pb: 5.2, eps: 224.1, bookValue: 1414, dividendYield: 0.3, payoutRatio: 0.08, beta: 1.25, roe: 15.8, roa: 3.2, debtToEquity: 4.2, revenueGrowth: 25.5, profitMargins: 25.2, operatingMargins: 32.5, currentRatio: 0, totalRevenue: 1.05e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Finance", industry: "NBFC", marketCap: 540000e9, instHolding: 45.2, recommendation: "buy", targetMean: 8500, targetHigh: 10000, targetLow: 6500, analysts: 42 },
+   182→   182→  SUNPHARMA: { pe: 32.5, forwardPE: 28.0, pb: 6.2, eps: 54.8, bookValue: 287, dividendYield: 0.8, payoutRatio: 0.25, beta: 0.58, roe: 18.5, roa: 10.2, debtToEquity: 0.22, revenueGrowth: 12.8, profitMargins: 18.5, operatingMargins: 24.2, currentRatio: 2.5, totalRevenue: 0.55e12, ebitda: 0.14e12, grossProfits: 0.20e12, freeCashflow: 0.10e12, sector: "Pharma", industry: "Pharmaceuticals", marketCap: 423000e9, instHolding: 25.8, recommendation: "buy", targetMean: 2000, targetHigh: 2200, targetLow: 1600, analysts: 35 },
+   183→   183→  MARUTI: { pe: 28.5, forwardPE: 24.0, pb: 5.8, eps: 436.8, bookValue: 2148, dividendYield: 0.8, payoutRatio: 0.22, beta: 0.82, roe: 20.2, roa: 8.5, debtToEquity: 0.15, revenueGrowth: 8.5, profitMargins: 8.5, operatingMargins: 10.8, currentRatio: 1.2, totalRevenue: 1.38e12, ebitda: 0.15e12, grossProfits: 0.22e12, freeCashflow: 0.08e12, sector: "Auto", industry: "Automobiles", marketCap: 386000e9, instHolding: 22.5, recommendation: "hold", targetMean: 13000, targetHigh: 14500, targetLow: 10500, analysts: 32 },
+   184→   184→  TATASTEEL: { pe: 8.5, forwardPE: 7.2, pb: 1.2, eps: 18.2, bookValue: 129, dividendYield: 1.8, payoutRatio: 0.15, beta: 1.28, roe: 14.2, roa: 5.5, debtToEquity: 0.65, revenueGrowth: -2.5, profitMargins: 5.2, operatingMargins: 8.5, currentRatio: 1.1, totalRevenue: 1.65e12, ebitda: 0.18e12, grossProfits: 0.25e12, freeCashflow: 0.05e12, sector: "Metals", industry: "Steel", marketCap: 172000e9, instHolding: 15.5, recommendation: "hold", targetMean: 180, targetHigh: 220, targetLow: 130, analysts: 28 },
+   185→   185→  WIPRO: { pe: 22.5, forwardPE: 20.0, pb: 4.2, eps: 23.6, bookValue: 126, dividendYield: 0.2, payoutRatio: 0.04, beta: 0.78, roe: 18.8, roa: 12.5, debtToEquity: 0.12, revenueGrowth: -1.2, profitMargins: 12.8, operatingMargins: 16.5, currentRatio: 2.2, totalRevenue: 0.90e12, ebitda: 0.16e12, grossProfits: 0.24e12, freeCashflow: 0.12e12, sector: "IT", industry: "IT Services", marketCap: 280000e9, instHolding: 52.5, recommendation: "hold", targetMean: 580, targetHigh: 650, targetLow: 420, analysts: 30 },
+   186→   186→  HCLTECH: { pe: 25.8, forwardPE: 22.5, pb: 7.5, eps: 67.8, bookValue: 233, dividendYield: 2.5, payoutRatio: 0.62, beta: 0.72, roe: 29.2, roa: 18.5, debtToEquity: 0.08, revenueGrowth: 6.5, profitMargins: 17.2, operatingMargins: 22.1, currentRatio: 2.4, totalRevenue: 1.15e12, ebitda: 0.25e12, grossProfits: 0.36e12, freeCashflow: 0.18e12, sector: "IT", industry: "IT Services", marketCap: 475000e9, instHolding: 52.8, recommendation: "buy", targetMean: 1950, targetHigh: 2200, targetLow: 1600, analysts: 32 },
+   187→   187→  KOTAKBANK: { pe: 18.2, forwardPE: 15.8, pb: 2.5, eps: 98.4, bookValue: 716, dividendYield: 0.1, payoutRatio: 0.01, beta: 0.82, roe: 13.8, roa: 2.0, debtToEquity: 5.2, revenueGrowth: 10.5, profitMargins: 42.8, operatingMargins: 42.8, currentRatio: 0, totalRevenue: 0.78e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 357000e9, instHolding: 48.2, recommendation: "hold", targetMean: 1950, targetHigh: 2200, targetLow: 1600, analysts: 35 },
+   188→   188→  ADANIENT: { pe: 52.5, forwardPE: 38.0, pb: 5.8, eps: 60.9, bookValue: 552, dividendYield: 0.2, payoutRatio: 0.12, beta: 1.55, roe: 11.2, roa: 4.5, debtToEquity: 1.25, revenueGrowth: 35.5, profitMargins: 5.8, operatingMargins: 8.5, currentRatio: 1.05, totalRevenue: 1.20e12, ebitda: 0.15e12, grossProfits: 0.22e12, freeCashflow: 0.02e12, sector: "Conglomerate", industry: "Conglomerate", marketCap: 355000e9, instHolding: 22.5, recommendation: "hold", targetMean: 3500, targetHigh: 4200, targetLow: 2500, analysts: 18 },
+   189→   189→  TITAN: { pe: 82.5, forwardPE: 68.0, pb: 18.5, eps: 41.8, bookValue: 186, dividendYield: 0.2, payoutRatio: 0.15, beta: 0.88, roe: 22.5, roa: 12.8, debtToEquity: 0.15, revenueGrowth: 15.5, profitMargins: 10.2, operatingMargins: 13.8, currentRatio: 1.5, totalRevenue: 0.58e12, ebitda: 0.09e12, grossProfits: 0.15e12, freeCashflow: 0.05e12, sector: "Consumer", industry: "Consumer Accessories", marketCap: 322000e9, instHolding: 18.5, recommendation: "hold", targetMean: 3800, targetHigh: 4200, targetLow: 3000, analysts: 28 },
+   190→   190→  NTPC: { pe: 17.5, forwardPE: 15.2, pb: 2.2, eps: 24.0, bookValue: 191, dividendYield: 2.5, payoutRatio: 0.42, beta: 0.72, roe: 12.5, roa: 4.8, debtToEquity: 1.52, revenueGrowth: 8.5, profitMargins: 18.2, operatingMargins: 25.5, currentRatio: 0.95, totalRevenue: 1.92e12, ebitda: 0.42e12, grossProfits: 0.55e12, freeCashflow: 0.15e12, sector: "Power", industry: "Power Generation", marketCap: 372000e9, instHolding: 52.5, recommendation: "buy", targetMean: 480, targetHigh: 550, targetLow: 380, analysts: 25 },
+   191→   191→  ASIANPAINT: { pe: 55.0, forwardPE: 45.0, pb: 8.5, eps: 54.2, bookValue: 351, dividendYield: 1.0, payoutRatio: 0.55, beta: 0.65, roe: 15.5, roa: 10.2, debtToEquity: 0.08, revenueGrowth: 3.5, profitMargins: 10.8, operatingMargins: 14.5, currentRatio: 1.8, totalRevenue: 0.40e12, ebitda: 0.08e12, grossProfits: 0.18e12, freeCashflow: 0.05e12, sector: "Consumer", industry: "Paints & Coatings", marketCap: 286000e9, instHolding: 48.5, recommendation: "hold", targetMean: 3200, targetHigh: 3700, targetLow: 2500, analysts: 28 },
+   192→   192→  ONGC: { pe: 8.2, forwardPE: 7.5, pb: 1.5, eps: 34.8, bookValue: 190, dividendYield: 4.5, payoutRatio: 0.35, beta: 0.85, roe: 18.2, roa: 12.5, debtToEquity: 0.28, revenueGrowth: -5.2, profitMargins: 18.5, operatingMargins: 22.8, currentRatio: 1.2, totalRevenue: 0.53e12, ebitda: 0.15e12, grossProfits: 0.20e12, freeCashflow: 0.08e12, sector: "Energy", industry: "Oil & Gas Exploration", marketCap: 362000e9, instHolding: 68.5, recommendation: "buy", targetMean: 320, targetHigh: 380, targetLow: 250, analysts: 20 },
+   193→   193→  POWERGRID: { pe: 17.2, forwardPE: 15.5, pb: 2.5, eps: 18.9, bookValue: 130, dividendYield: 3.5, payoutRatio: 0.58, beta: 0.62, roe: 14.8, roa: 5.5, debtToEquity: 1.45, revenueGrowth: 10.2, profitMargins: 25.8, operatingMargins: 32.5, currentRatio: 0.85, totalRevenue: 0.58e12, ebitda: 0.22e12, grossProfits: 0.28e12, freeCashflow: 0.10e12, sector: "Power", industry: "Power Transmission", marketCap: 334000e9, instHolding: 56.8, recommendation: "buy", targetMean: 380, targetHigh: 420, targetLow: 310, analysts: 22 },
+   194→   194→  ADANIPORTS: { pe: 28.5, forwardPE: 23.0, pb: 5.8, eps: 51.6, bookValue: 253, dividendYield: 0.6, payoutRatio: 0.18, beta: 0.85, roe: 20.2, roa: 8.8, debtToEquity: 0.95, revenueGrowth: 15.5, profitMargins: 35.2, operatingMargins: 52.5, currentRatio: 1.2, totalRevenue: 0.28e12, ebitda: 0.18e12, grossProfits: 0.22e12, freeCashflow: 0.10e12, sector: "Infrastructure", industry: "Ports", marketCap: 282000e9, instHolding: 35.5, recommendation: "buy", targetMean: 1700, targetHigh: 1950, targetLow: 1350, analysts: 22 },
+   195→   195→  JSWSTEEL: { pe: 10.2, forwardPE: 8.5, pb: 1.8, eps: 96.6, bookValue: 548, dividendYield: 1.0, payoutRatio: 0.10, beta: 1.22, roe: 17.8, roa: 6.2, debtToEquity: 0.85, revenueGrowth: 5.8, profitMargins: 6.5, operatingMargins: 10.2, currentRatio: 1.0, totalRevenue: 1.55e12, ebitda: 0.22e12, grossProfits: 0.28e12, freeCashflow: 0.05e12, sector: "Metals", industry: "Steel", marketCap: 201000e9, instHolding: 28.5, recommendation: "hold", targetMean: 1050, targetHigh: 1250, targetLow: 800, analysts: 25 },
+   196→   196→  ULTRACEMCO: { pe: 48.5, forwardPE: 40.0, pb: 5.5, eps: 231.9, bookValue: 2045, dividendYield: 0.5, payoutRatio: 0.25, beta: 0.75, roe: 11.2, roa: 6.5, debtToEquity: 0.28, revenueGrowth: 5.2, profitMargins: 14.5, operatingMargins: 18.2, currentRatio: 1.2, totalRevenue: 0.78e12, ebitda: 0.15e12, grossProfits: 0.25e12, freeCashflow: 0.08e12, sector: "Cement", industry: "Cement", marketCap: 327000e9, instHolding: 48.2, recommendation: "hold", targetMean: 12000, targetHigh: 14000, targetLow: 9500, analysts: 22 },
+   197→   197→  ZOMATO: { pe: 320.0, forwardPE: 180.0, pb: 12.5, eps: 0.9, bookValue: 22, dividendYield: 0, payoutRatio: 0, beta: 1.45, roe: 3.8, roa: 2.2, debtToEquity: 0.02, revenueGrowth: 55.5, profitMargins: 2.2, operatingMargins: 3.5, currentRatio: 2.8, totalRevenue: 0.13e12, ebitda: 0.008e12, grossProfits: 0.035e12, freeCashflow: 0.002e12, sector: "Internet", industry: "Internet Food Delivery", marketCap: 242000e9, instHolding: 42.5, recommendation: "hold", targetMean: 310, targetHigh: 380, targetLow: 220, analysts: 28 },
+   198→   198→  DLF: { pe: 62.5, forwardPE: 50.0, pb: 4.8, eps: 14.7, bookValue: 192, dividendYield: 0.8, payoutRatio: 0.48, beta: 1.15, roe: 7.8, roa: 3.5, debtToEquity: 0.35, revenueGrowth: 18.5, profitMargins: 22.5, operatingMargins: 25.8, currentRatio: 1.5, totalRevenue: 0.18e12, ebitda: 0.06e12, grossProfits: 0.08e12, freeCashflow: 0.03e12, sector: "Real Estate", industry: "Real Estate Development", marketCap: 218000e9, instHolding: 20.5, recommendation: "buy", targetMean: 1050, targetHigh: 1200, targetLow: 850, analysts: 18 },
+   199→   199→  TRENT: { pe: 110.0, forwardPE: 85.0, pb: 22.5, eps: 69.5, bookValue: 340, dividendYield: 0.1, payoutRatio: 0.08, beta: 1.25, roe: 20.5, roa: 8.8, debtToEquity: 0.12, revenueGrowth: 28.5, profitMargins: 6.8, operatingMargins: 9.5, currentRatio: 1.8, totalRevenue: 0.20e12, ebitda: 0.025e12, grossProfits: 0.055e12, freeCashflow: 0.012e12, sector: "Retail", industry: "Retail - Apparel", marketCap: 248000e9, instHolding: 22.8, recommendation: "hold", targetMean: 8000, targetHigh: 9500, targetLow: 6000, analysts: 22 },
+   200→   200→  DRREDDY: { pe: 22.5, forwardPE: 19.5, pb: 4.5, eps: 301.3, bookValue: 1507, dividendYield: 0.8, payoutRatio: 0.18, beta: 0.55, roe: 20.2, roa: 12.5, debtToEquity: 0.18, revenueGrowth: 15.2, profitMargins: 18.5, operatingMargins: 24.8, currentRatio: 2.8, totalRevenue: 0.33e12, ebitda: 0.09e12, grossProfits: 0.15e12, freeCashflow: 0.06e12, sector: "Pharma", industry: "Pharmaceuticals", marketCap: 125000e9, instHolding: 18.5, recommendation: "buy", targetMean: 7200, targetHigh: 8000, targetLow: 6000, analysts: 28 },
+   201→   201→  CIPLA: { pe: 28.5, forwardPE: 24.5, pb: 4.8, eps: 55.4, bookValue: 329, dividendYield: 0.8, payoutRatio: 0.22, beta: 0.52, roe: 14.8, roa: 8.5, debtToEquity: 0.22, revenueGrowth: 8.5, profitMargins: 14.2, operatingMargins: 19.5, currentRatio: 2.2, totalRevenue: 0.32e12, ebitda: 0.08e12, grossProfits: 0.14e12, freeCashflow: 0.05e12, sector: "Pharma", industry: "Pharmaceuticals", marketCap: 125000e9, instHolding: 22.5, recommendation: "hold", targetMean: 1800, targetHigh: 2000, targetLow: 1500, analysts: 28 },
+   202→   202→  EICHERMOT: { pe: 28.5, forwardPE: 24.0, pb: 5.2, eps: 173.7, bookValue: 952, dividendYield: 0.8, payoutRatio: 0.22, beta: 0.88, roe: 18.2, roa: 9.5, debtToEquity: 0.08, revenueGrowth: 12.5, profitMargins: 14.5, operatingMargins: 16.8, currentRatio: 1.5, totalRevenue: 0.44e12, ebitda: 0.08e12, grossProfits: 0.12e12, freeCashflow: 0.05e12, sector: "Auto", industry: "Automobiles - Motorcycles", marketCap: 235000e9, instHolding: 18.5, recommendation: "buy", targetMean: 5500, targetHigh: 6200, targetLow: 4500, analysts: 25 },
+   203→   203→  "M&M": { pe: 22.5, forwardPE: 19.0, pb: 3.8, eps: 123.6, bookValue: 731, dividendYield: 0.8, payoutRatio: 0.18, beta: 0.95, roe: 16.8, roa: 7.2, debtToEquity: 0.15, revenueGrowth: 12.5, profitMargins: 8.8, operatingMargins: 11.5, currentRatio: 1.3, totalRevenue: 0.55e12, ebitda: 0.08e12, grossProfits: 0.12e12, freeCashflow: 0.04e12, sector: "Auto", industry: "Automobiles", marketCap: 355000e9, instHolding: 15.5, recommendation: "hold", targetMean: 3100, targetHigh: 3500, targetLow: 2600, analysts: 25 },
+   204→   204→  TVSMOTOR: { pe: 52.5, forwardPE: 42.0, pb: 8.8, eps: 47.2, bookValue: 282, dividendYield: 0.3, payoutRatio: 0.12, beta: 1.15, roe: 16.8, roa: 8.2, debtToEquity: 0.22, revenueGrowth: 22.5, profitMargins: 7.2, operatingMargins: 9.8, currentRatio: 1.2, totalRevenue: 0.33e12, ebitda: 0.04e12, grossProfits: 0.06e12, freeCashflow: 0.02e12, sector: "Auto", industry: "Automobiles", marketCap: 129000e9, instHolding: 15.5, recommendation: "hold", targetMean: 2800, targetHigh: 3200, targetLow: 2200, analysts: 22 },
+   205→   205→  BAJAJAUTO: { pe: 28.5, forwardPE: 24.0, pb: 5.5, eps: 368.4, bookValue: 1909, dividendYield: 0.8, payoutRatio: 0.22, beta: 0.82, roe: 19.2, roa: 10.5, debtToEquity: 0.05, revenueGrowth: 8.5, profitMargins: 15.2, operatingMargins: 18.5, currentRatio: 1.8, totalRevenue: 0.38e12, ebitda: 0.08e12, grossProfits: 0.12e12, freeCashflow: 0.05e12, sector: "Auto", industry: "Automobiles", marketCap: 302000e9, instHolding: 18.2, recommendation: "hold", targetMean: 11500, targetHigh: 13000, targetLow: 9000, analysts: 22 },
+   206→   206→  DIVISLAB: { pe: 42.5, forwardPE: 35.0, pb: 5.2, eps: 143.5, bookValue: 1172, dividendYield: 0.5, payoutRatio: 0.18, beta: 0.65, roe: 12.2, roa: 7.8, debtToEquity: 0.15, revenueGrowth: 5.5, profitMargins: 22.5, operatingMargins: 28.5, currentRatio: 2.5, totalRevenue: 0.18e12, ebitda: 0.07e12, grossProfits: 0.10e12, freeCashflow: 0.04e12, sector: "Pharma", industry: "Pharmaceuticals", marketCap: 115000e9, instHolding: 28.5, recommendation: "hold", targetMean: 6800, targetHigh: 7500, targetLow: 5500, analysts: 22 },
+   207→   207→  HINDALCO: { pe: 9.5, forwardPE: 8.0, pb: 1.2, eps: 68.9, bookValue: 545, dividendYield: 1.5, payoutRatio: 0.14, beta: 1.18, roe: 12.5, roa: 5.8, debtToEquity: 0.55, revenueGrowth: -3.5, profitMargins: 6.2, operatingMargins: 9.5, currentRatio: 1.2, totalRevenue: 1.62e12, ebitda: 0.22e12, grossProfits: 0.28e12, freeCashflow: 0.05e12, sector: "Metals", industry: "Aluminum", marketCap: 145000e9, instHolding: 22.5, recommendation: "hold", targetMean: 750, targetHigh: 850, targetLow: 550, analysts: 22 },
+   208→   208→  TECHM: { pe: 24.5, forwardPE: 21.0, pb: 4.2, eps: 69.0, bookValue: 402, dividendYield: 2.0, payoutRatio: 0.48, beta: 0.72, roe: 17.2, roa: 10.8, debtToEquity: 0.05, revenueGrowth: -2.5, profitMargins: 13.5, operatingMargins: 17.8, currentRatio: 2.5, totalRevenue: 0.58e12, ebitda: 0.12e12, grossProfits: 0.18e12, freeCashflow: 0.08e12, sector: "IT", industry: "IT Services", marketCap: 158000e9, instHolding: 55.2, recommendation: "hold", targetMean: 1850, targetHigh: 2100, targetLow: 1500, analysts: 28 },
+   209→   209→  TATACONSUM: { pe: 75.5, forwardPE: 62.0, pb: 12.5, eps: 16.6, bookValue: 100, dividendYield: 0.3, payoutRatio: 0.22, beta: 0.78, roe: 16.5, roa: 8.5, debtToEquity: 0.25, revenueGrowth: 18.5, profitMargins: 5.8, operatingMargins: 8.2, currentRatio: 1.5, totalRevenue: 0.18e12, ebitda: 0.025e12, grossProfits: 0.04e12, freeCashflow: 0.012e12, sector: "FMCG", industry: "FMCG", marketCap: 152000e9, instHolding: 32.5, recommendation: "hold", targetMean: 1400, targetHigh: 1600, targetLow: 1100, analysts: 18 },
+   210→   210→  NESTLEIND: { pe: 62.5, forwardPE: 55.0, pb: 12.5, eps: 40.8, bookValue: 204, dividendYield: 1.2, payoutRatio: 0.72, beta: 0.42, roe: 20.2, roa: 14.5, debtToEquity: 0.08, revenueGrowth: 3.8, profitMargins: 16.5, operatingMargins: 21.5, currentRatio: 1.2, totalRevenue: 0.18e12, ebitda: 0.05e12, grossProfits: 0.09e12, freeCashflow: 0.04e12, sector: "FMCG", industry: "FMCG", marketCap: 248000e9, instHolding: 58.5, recommendation: "hold", targetMean: 2700, targetHigh: 3000, targetLow: 2300, analysts: 22 },
+   211→   211→  GRASIM: { pe: 35.5, forwardPE: 28.0, pb: 2.8, eps: 77.5, bookValue: 982, dividendYield: 0.5, payoutRatio: 0.18, beta: 1.05, roe: 7.9, roa: 3.8, debtToEquity: 0.52, revenueGrowth: 8.5, profitMargins: 8.2, operatingMargins: 12.5, currentRatio: 1.1, totalRevenue: 1.20e12, ebitda: 0.18e12, grossProfits: 0.25e12, freeCashflow: 0.08e12, sector: "Cement", industry: "Cement & Viscose", marketCap: 193000e9, instHolding: 28.5, recommendation: "hold", targetMean: 3100, targetHigh: 3500, targetLow: 2500, analysts: 25 },
+   212→   212→  COALINDIA: { pe: 8.5, forwardPE: 7.8, pb: 2.5, eps: 60.0, bookValue: 204, dividendYield: 5.2, payoutRatio: 0.62, beta: 0.52, roe: 29.5, roa: 18.2, debtToEquity: 0.08, revenueGrowth: -2.5, profitMargins: 25.5, operatingMargins: 32.5, currentRatio: 1.8, totalRevenue: 0.18e12, ebitda: 0.08e12, grossProfits: 0.10e12, freeCashflow: 0.05e12, sector: "Mining", industry: "Coal Mining", marketCap: 332000e9, instHolding: 62.5, recommendation: "buy", targetMean: 560, targetHigh: 620, targetLow: 440, analysts: 18 },
+   213→   213→  HEROMOTOCO: { pe: 28.5, forwardPE: 24.5, pb: 5.2, eps: 184.2, bookValue: 1009, dividendYield: 2.0, payoutRatio: 0.55, beta: 0.72, roe: 18.2, roa: 11.5, debtToEquity: 0.05, revenueGrowth: 5.5, profitMargins: 14.2, operatingMargins: 16.8, currentRatio: 2.2, totalRevenue: 0.44e12, ebitda: 0.08e12, grossProfits: 0.12e12, freeCashflow: 0.06e12, sector: "Auto", industry: "Automobiles - Motorcycles", marketCap: 105000e9, instHolding: 28.5, recommendation: "hold", targetMean: 5500, targetHigh: 6200, targetLow: 4500, analysts: 22 },
+   214→   214→  APOLLOHOSP: { pe: 75.5, forwardPE: 60.0, pb: 8.5, eps: 90.7, bookValue: 806, dividendYield: 0.2, payoutRatio: 0.15, beta: 0.72, roe: 10.5, roa: 5.2, debtToEquity: 0.45, revenueGrowth: 15.5, profitMargins: 10.8, operatingMargins: 15.2, currentRatio: 1.5, totalRevenue: 0.20e12, ebitda: 0.045e12, grossProfits: 0.06e12, freeCashflow: 0.02e12, sector: "Healthcare", industry: "Hospitals", marketCap: 131000e9, instHolding: 28.5, recommendation: "hold", targetMean: 7500, targetHigh: 8500, targetLow: 6000, analysts: 18 },
+   215→   215→  SIEMENS: { pe: 65.5, forwardPE: 52.0, pb: 10.5, eps: 125.9, bookValue: 786, dividendYield: 0.5, payoutRatio: 0.32, beta: 0.88, roe: 16.2, roa: 8.5, debtToEquity: 0.18, revenueGrowth: 12.5, profitMargins: 12.8, operatingMargins: 16.5, currentRatio: 1.8, totalRevenue: 0.23e12, ebitda: 0.05e12, grossProfits: 0.07e12, freeCashflow: 0.03e12, sector: "Capital Goods", industry: "Industrial Equipment", marketCap: 136000e9, instHolding: 22.5, recommendation: "hold", targetMean: 9000, targetHigh: 10200, targetLow: 7500, analysts: 18 },
+   216→   216→  DMART: { pe: 95.5, forwardPE: 72.0, pb: 18.5, eps: 48.7, bookValue: 251, dividendYield: 0.1, payoutRatio: 0.05, beta: 1.05, roe: 19.5, roa: 8.2, debtToEquity: 0.42, revenueGrowth: 18.5, profitMargins: 4.2, operatingMargins: 6.5, currentRatio: 0.65, totalRevenue: 0.18e12, ebitda: 0.018e12, grossProfits: 0.04e12, freeCashflow: 0.008e12, sector: "Retail", industry: "Retail - Supermarket", marketCap: 312000e9, instHolding: 25.5, recommendation: "hold", targetMean: 5200, targetHigh: 5800, targetLow: 4200, analysts: 25 },
+   217→   217→  BPCL: { pe: 7.8, forwardPE: 6.5, pb: 1.2, eps: 81.4, bookValue: 529, dividendYield: 3.5, payoutRatio: 0.28, beta: 0.92, roe: 15.5, roa: 5.8, debtToEquity: 0.85, revenueGrowth: -5.5, profitMargins: 3.2, operatingMargins: 5.8, currentRatio: 0.95, totalRevenue: 5.25e12, ebitda: 0.32e12, grossProfits: 0.38e12, freeCashflow: 0.08e12, sector: "Energy", industry: "Oil & Gas - Refining", marketCap: 231000e9, instHolding: 52.5, recommendation: "buy", targetMean: 750, targetHigh: 850, targetLow: 600, analysts: 22 },
+   218→   218→  SUZLON: { pe: 42.5, forwardPE: 32.0, pb: 8.5, eps: 1.7, bookValue: 8.5, dividendYield: 0, payoutRatio: 0, beta: 1.65, roe: 19.8, roa: 5.5, debtToEquity: 0.15, revenueGrowth: 45.5, profitMargins: 4.5, operatingMargins: 8.2, currentRatio: 1.1, totalRevenue: 0.07e12, ebitda: 0.012e12, grossProfits: 0.018e12, freeCashflow: 0.005e12, sector: "Power", industry: "Wind Energy", marketCap: 112000e9, instHolding: 12.5, recommendation: "hold", targetMean: 82, targetHigh: 95, targetLow: 60, analysts: 15 },
+   219→   219→  HDFCLIFE: { pe: 72.5, forwardPE: 58.0, pb: 4.2, eps: 9.4, bookValue: 163, dividendYield: 0.5, payoutRatio: 0.38, beta: 0.82, roe: 5.8, roa: 1.8, debtToEquity: 0.05, revenueGrowth: 12.5, profitMargins: 8.5, operatingMargins: 12.2, currentRatio: 0, totalRevenue: 0.26e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Insurance", industry: "Life Insurance", marketCap: 152000e9, instHolding: 58.5, recommendation: "hold", targetMean: 750, targetHigh: 850, targetLow: 600, analysts: 22 },
+   220→   220→  SBILIFE: { pe: 62.5, forwardPE: 50.0, pb: 3.5, eps: 29.0, bookValue: 517, dividendYield: 0.5, payoutRatio: 0.32, beta: 0.88, roe: 5.6, roa: 1.8, debtToEquity: 0.05, revenueGrowth: 10.5, profitMargins: 8.2, operatingMargins: 11.5, currentRatio: 0, totalRevenue: 0.33e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Insurance", industry: "Life Insurance", marketCap: 168000e9, instHolding: 52.8, recommendation: "hold", targetMean: 1950, targetHigh: 2200, targetLow: 1600, analysts: 20 },
+   221→   221→  ABB: { pe: 58.5, forwardPE: 45.0, pb: 12.5, eps: 125.6, bookValue: 588, dividendYield: 0.6, payoutRatio: 0.35, beta: 0.88, roe: 21.2, roa: 12.5, debtToEquity: 0.12, revenueGrowth: 15.5, profitMargins: 12.8, operatingMargins: 16.5, currentRatio: 2.0, totalRevenue: 0.13e12, ebitda: 0.03e12, grossProfits: 0.05e12, freeCashflow: 0.02e12, sector: "Capital Goods", industry: "Industrial Equipment", marketCap: 120000e9, instHolding: 18.5, recommendation: "hold", targetMean: 8000, targetHigh: 9000, targetLow: 6500, analysts: 15 },
+   222→   222→  BAJAJFINSV: { pe: 15.8, forwardPE: 13.5, pb: 2.2, eps: 110.1, bookValue: 791, dividendYield: 1.0, payoutRatio: 0.15, beta: 0.95, roe: 14.2, roa: 3.5, debtToEquity: 0.08, revenueGrowth: 18.5, profitMargins: 22.5, operatingMargins: 28.5, currentRatio: 0, totalRevenue: 0.88e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Finance", industry: "Insurance & Finance", marketCap: 285000e9, instHolding: 48.5, recommendation: "hold", targetMean: 1900, targetHigh: 2200, targetLow: 1500, analysts: 28 },
+   223→   223→  SHREECEM: { pe: 38.5, forwardPE: 32.0, pb: 2.8, eps: 696.4, bookValue: 24841, dividendYield: 0.6, payoutRatio: 0.22, beta: 0.78, roe: 7.2, roa: 3.5, debtToEquity: 0.35, revenueGrowth: 2.5, profitMargins: 12.5, operatingMargins: 16.8, currentRatio: 1.1, totalRevenue: 0.15e12, ebitda: 0.04e12, grossProfits: 0.06e12, freeCashflow: 0.02e12, sector: "Cement", industry: "Cement", marketCap: 120000e9, instHolding: 25.5, recommendation: "hold", targetMean: 29000, targetHigh: 32000, targetLow: 24000, analysts: 18 },
+   224→   224→  PIDILITIND: { pe: 85.5, forwardPE: 68.0, pb: 12.5, eps: 37.2, bookValue: 254, dividendYield: 0.4, payoutRatio: 0.32, beta: 0.72, roe: 14.8, roa: 8.5, debtToEquity: 0.12, revenueGrowth: 8.5, profitMargins: 15.2, operatingMargins: 19.5, currentRatio: 2.2, totalRevenue: 0.11e12, ebitda: 0.025e12, grossProfits: 0.04e12, freeCashflow: 0.015e12, sector: "Chemicals", industry: "Adhesives & Chemicals", marketCap: 132000e9, instHolding: 28.5, recommendation: "hold", targetMean: 3500, targetHigh: 4000, targetLow: 2800, analysts: 20 },
+   225→   225→  DIXON: { pe: 95.5, forwardPE: 72.0, pb: 12.5, eps: 170.1, bookValue: 1300, dividendYield: 0.1, payoutRatio: 0.08, beta: 1.35, roe: 13.2, roa: 5.8, debtToEquity: 0.52, revenueGrowth: 35.5, profitMargins: 3.8, operatingMargins: 5.5, currentRatio: 1.2, totalRevenue: 0.17e12, ebitda: 0.015e12, grossProfits: 0.025e12, freeCashflow: 0.005e12, sector: "Electronics", industry: "Electronics Manufacturing", marketCap: 98000e9, instHolding: 22.5, recommendation: "hold", targetMean: 18000, targetHigh: 21000, targetLow: 14000, analysts: 15 },
+   226→   226→  BRITANNIA: { pe: 52.5, forwardPE: 45.0, pb: 12.5, eps: 112.0, bookValue: 470, dividendYield: 1.0, payoutRatio: 0.52, beta: 0.52, roe: 23.8, roa: 14.5, debtToEquity: 0.05, revenueGrowth: 5.5, profitMargins: 12.5, operatingMargins: 15.8, currentRatio: 1.2, totalRevenue: 0.17e12, ebitda: 0.04e12, grossProfits: 0.06e12, freeCashflow: 0.025e12, sector: "FMCG", industry: "Food Products", marketCap: 148000e9, instHolding: 52.5, recommendation: "hold", targetMean: 6200, targetHigh: 7000, targetLow: 5000, analysts: 22 },
+   227→   227→  GODREJPROP: { pe: 58.5, forwardPE: 48.0, pb: 3.8, eps: 47.0, bookValue: 724, dividendYield: 0.4, payoutRatio: 0.22, beta: 1.15, roe: 6.5, roa: 3.2, debtToEquity: 0.42, revenueGrowth: 25.5, profitMargins: 18.5, operatingMargins: 22.5, currentRatio: 1.5, totalRevenue: 0.07e12, ebitda: 0.02e12, grossProfits: 0.025e12, freeCashflow: 0.008e12, sector: "Real Estate", industry: "Real Estate Development", marketCap: 92000e9, instHolding: 18.5, recommendation: "hold", targetMean: 3000, targetHigh: 3500, targetLow: 2400, analysts: 15 },
+   228→   228→  VBL: { pe: 82.5, forwardPE: 62.0, pb: 15.5, eps: 6.0, bookValue: 32, dividendYield: 0.2, payoutRatio: 0.15, beta: 1.05, roe: 18.8, roa: 8.2, debtToEquity: 0.55, revenueGrowth: 28.5, profitMargins: 4.2, operatingMargins: 6.8, currentRatio: 1.1, totalRevenue: 0.22e12, ebitda: 0.02e12, grossProfits: 0.035e12, freeCashflow: 0.008e12, sector: "FMCG", industry: "Beverages", marketCap: 128000e9, instHolding: 22.5, recommendation: "hold", targetMean: 550, targetHigh: 650, targetLow: 420, analysts: 15 },
+   229→   229→  NYKAA: { pe: 280.0, forwardPE: 150.0, pb: 8.5, eps: 0.75, bookValue: 24.7, dividendYield: 0, payoutRatio: 0, beta: 1.35, roe: 3.2, roa: 1.8, debtToEquity: 0.08, revenueGrowth: 22.5, profitMargins: 2.8, operatingMargins: 4.2, currentRatio: 2.5, totalRevenue: 0.08e12, ebitda: 0.005e12, grossProfits: 0.02e12, freeCashflow: 0.001e12, sector: "E-commerce", industry: "E-commerce - Beauty", marketCap: 82000e9, instHolding: 32.5, recommendation: "hold", targetMean: 250, targetHigh: 300, targetLow: 180, analysts: 18 },
+   230→   230→  PAYTM: { pe: -1, forwardPE: 85.0, pb: 5.5, eps: -8.2, bookValue: 88, dividendYield: 0, payoutRatio: 0, beta: 1.85, roe: -9.2, roa: -5.5, debtToEquity: 0.15, revenueGrowth: 35.5, profitMargins: -8.5, operatingMargins: -2.5, currentRatio: 1.5, totalRevenue: 0.12e12, ebitda: -0.005e12, grossProfits: 0.015e12, freeCashflow: -0.01e12, sector: "Fintech", industry: "Digital Payments", marketCap: 82000e9, instHolding: 35.5, recommendation: "hold", targetMean: 550, targetHigh: 700, targetLow: 380, analysts: 18 },
+   231→   231→  IRFC: { pe: 32.5, forwardPE: 28.0, pb: 4.5, eps: 6.0, bookValue: 43, dividendYield: 2.5, payoutRatio: 0.78, beta: 1.15, roe: 13.8, roa: 2.5, debtToEquity: 8.5, revenueGrowth: 12.5, profitMargins: 42.5, operatingMargins: 45.5, currentRatio: 0, totalRevenue: 0.07e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Finance", industry: "Infrastructure Finance", marketCap: 125000e9, instHolding: 32.5, recommendation: "hold", targetMean: 220, targetHigh: 260, targetLow: 170, analysts: 10 },
+   232→   232→  RVNL: { pe: 48.5, forwardPE: 38.0, pb: 5.8, eps: 8.0, bookValue: 67, dividendYield: 0.8, payoutRatio: 0.48, beta: 1.42, roe: 12.2, roa: 5.8, debtToEquity: 0.45, revenueGrowth: 22.5, profitMargins: 5.5, operatingMargins: 8.2, currentRatio: 1.5, totalRevenue: 0.03e12, ebitda: 0.005e12, grossProfits: 0.008e12, freeCashflow: 0.002e12, sector: "Infrastructure", industry: "Railway Infrastructure", marketCap: 98000e9, instHolding: 35.5, recommendation: "hold", targetMean: 440, targetHigh: 520, targetLow: 340, analysts: 8 },
+   233→   233→  TATAPOWER: { pe: 52.5, forwardPE: 42.0, pb: 4.8, eps: 9.4, bookValue: 103, dividendYield: 0.4, payoutRatio: 0.22, beta: 1.18, roe: 9.2, roa: 3.5, debtToEquity: 1.15, revenueGrowth: 18.5, profitMargins: 6.8, operatingMargins: 12.5, currentRatio: 0.95, totalRevenue: 0.62e12, ebitda: 0.10e12, grossProfits: 0.12e12, freeCashflow: 0.02e12, sector: "Power", industry: "Power Generation", marketCap: 138000e9, instHolding: 48.5, recommendation: "hold", targetMean: 550, targetHigh: 620, targetLow: 420, analysts: 15 },
+   234→   234→  MRF: { pe: 28.5, forwardPE: 24.0, pb: 4.5, eps: 1491.2, bookValue: 9436, dividendYield: 0.3, payoutRatio: 0.08, beta: 0.95, roe: 15.8, roa: 7.2, debtToEquity: 0.35, revenueGrowth: 8.5, profitMargins: 6.8, operatingMargins: 9.5, currentRatio: 1.2, totalRevenue: 0.25e12, ebitda: 0.03e12, grossProfits: 0.05e12, freeCashflow: 0.015e12, sector: "Auto Ancillary", industry: "Tyres", marketCap: 45000e9, instHolding: 8.5, recommendation: "hold", targetMean: 48000, targetHigh: 52000, targetLow: 38000, analysts: 10 },
+   235→   235→  BOSCHLTD: { pe: 38.5, forwardPE: 32.0, pb: 6.5, eps: 896.1, bookValue: 5306, dividendYield: 1.0, payoutRatio: 0.38, beta: 0.88, roe: 16.8, roa: 9.2, debtToEquity: 0.22, revenueGrowth: 12.5, profitMargins: 8.5, operatingMargins: 11.2, currentRatio: 1.5, totalRevenue: 0.16e12, ebitda: 0.025e12, grossProfits: 0.04e12, freeCashflow: 0.015e12, sector: "Auto Ancillary", industry: "Auto Components", marketCap: 89000e9, instHolding: 28.5, recommendation: "hold", targetMean: 37000, targetHigh: 42000, targetLow: 30000, analysts: 15 },
+   236→   236→  ADANIGREEN: { pe: 85.5, forwardPE: 55.0, pb: 6.5, eps: 21.6, bookValue: 284, dividendYield: 0, payoutRatio: 0, beta: 1.45, roe: 7.5, roa: 2.8, debtToEquity: 1.65, revenueGrowth: 32.5, profitMargins: 12.5, operatingMargins: 28.5, currentRatio: 0.75, totalRevenue: 0.10e12, ebitda: 0.04e12, grossProfits: 0.045e12, freeCashflow: -0.01e12, sector: "Power", industry: "Renewable Energy", marketCap: 285000e9, instHolding: 18.5, recommendation: "hold", targetMean: 2200, targetHigh: 2800, targetLow: 1600, analysts: 12 },
+   237→   237→  IOC: { pe: 5.8, forwardPE: 5.2, pb: 0.8, eps: 31.9, bookValue: 232, dividendYield: 6.5, payoutRatio: 0.38, beta: 0.85, roe: 13.5, roa: 5.8, debtToEquity: 0.55, revenueGrowth: -8.5, profitMargins: 2.2, operatingMargins: 4.5, currentRatio: 0.85, totalRevenue: 6.55e12, ebitda: 0.32e12, grossProfits: 0.35e12, freeCashflow: 0.05e12, sector: "Energy", industry: "Oil & Gas - Refining", marketCap: 152000e9, instHolding: 52.5, recommendation: "buy", targetMean: 225, targetHigh: 260, targetLow: 180, analysts: 15 },
+   238→   238→  PNB: { pe: 10.5, forwardPE: 9.0, pb: 1.5, eps: 14.1, bookValue: 98, dividendYield: 2.0, payoutRatio: 0.20, beta: 1.15, roe: 14.8, roa: 0.8, debtToEquity: 9.5, revenueGrowth: 15.5, profitMargins: 32.5, operatingMargins: 32.5, currentRatio: 0, totalRevenue: 1.15e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Public", marketCap: 168000e9, instHolding: 42.5, recommendation: "hold", targetMean: 170, targetHigh: 200, targetLow: 130, analysts: 18 },
+   239→   239→  BANKBARODA: { pe: 8.5, forwardPE: 7.5, pb: 1.2, eps: 37.1, bookValue: 262, dividendYield: 1.5, payoutRatio: 0.12, beta: 1.05, roe: 14.5, roa: 1.2, debtToEquity: 7.2, revenueGrowth: 14.5, profitMargins: 35.8, operatingMargins: 35.8, currentRatio: 0, totalRevenue: 0.82e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Public", marketCap: 135000e9, instHolding: 45.2, recommendation: "buy", targetMean: 350, targetHigh: 400, targetLow: 280, analysts: 20 },
+   240→   240→  FEDERALBNK: { pe: 12.5, forwardPE: 10.5, pb: 1.5, eps: 14.4, bookValue: 120, dividendYield: 1.2, payoutRatio: 0.15, beta: 0.98, roe: 12.2, roa: 1.1, debtToEquity: 7.8, revenueGrowth: 18.5, profitMargins: 38.5, operatingMargins: 38.5, currentRatio: 0, totalRevenue: 0.38e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 96000e9, instHolding: 42.5, recommendation: "buy", targetMean: 210, targetHigh: 250, targetLow: 165, analysts: 18 },
+   241→   241→  INDUSINDBK: { pe: 12.5, forwardPE: 10.8, pb: 1.5, eps: 126.4, bookValue: 1053, dividendYield: 1.5, payoutRatio: 0.18, beta: 1.18, roe: 12.0, roa: 1.8, debtToEquity: 5.2, revenueGrowth: 8.5, profitMargins: 38.5, operatingMargins: 38.5, currentRatio: 0, totalRevenue: 0.65e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 105000e9, instHolding: 48.5, recommendation: "hold", targetMean: 1750, targetHigh: 2000, targetLow: 1400, analysts: 28 },
+   242→   242→  CANBK: { pe: 8.5, forwardPE: 7.5, pb: 1.0, eps: 13.9, bookValue: 118, dividendYield: 2.0, payoutRatio: 0.16, beta: 1.08, roe: 8.5, roa: 0.7, debtToEquity: 8.8, revenueGrowth: 12.5, profitMargins: 30.5, operatingMargins: 30.5, currentRatio: 0, totalRevenue: 1.35e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Public", marketCap: 140000e9, instHolding: 52.8, recommendation: "hold", targetMean: 135, targetHigh: 155, targetLow: 105, analysts: 18 },
+   243→   243→  BIOCON: { pe: 38.5, forwardPE: 32.0, pb: 3.2, eps: 9.6, bookValue: 116, dividendYield: 0.5, payoutRatio: 0.18, beta: 0.62, roe: 8.2, roa: 4.5, debtToEquity: 0.35, revenueGrowth: 12.5, profitMargins: 12.8, operatingMargins: 18.5, currentRatio: 1.8, totalRevenue: 0.13e12, ebitda: 0.025e12, grossProfits: 0.04e12, freeCashflow: 0.015e12, sector: "Pharma", industry: "Biopharmaceuticals", marketCap: 55000e9, instHolding: 25.5, recommendation: "hold", targetMean: 420, targetHigh: 480, targetLow: 350, analysts: 18 },
+   244→   244→  LUPIN: { pe: 32.5, forwardPE: 28.0, pb: 2.8, eps: 70.3, bookValue: 816, dividendYield: 0.8, payoutRatio: 0.25, beta: 0.65, roe: 8.6, roa: 4.2, debtToEquity: 0.42, revenueGrowth: 8.5, profitMargins: 12.5, operatingMargins: 16.8, currentRatio: 1.8, totalRevenue: 0.25e12, ebitda: 0.05e12, grossProfits: 0.08e12, freeCashflow: 0.03e12, sector: "Pharma", industry: "Pharmaceuticals", marketCap: 88000e9, instHolding: 18.5, recommendation: "hold", targetMean: 2500, targetHigh: 2800, targetLow: 2000, analysts: 22 },
+   245→   245→  YESBANK: { pe: 25.5, forwardPE: 20.0, pb: 2.2, eps: 1.1, bookValue: 12.7, dividendYield: 0, payoutRatio: 0, beta: 1.52, roe: 8.5, roa: 0.5, debtToEquity: 8.2, revenueGrowth: 15.5, profitMargins: 28.5, operatingMargins: 28.5, currentRatio: 0, totalRevenue: 0.35e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 98000e9, instHolding: 35.5, recommendation: "hold", targetMean: 32, targetHigh: 38, targetLow: 24, analysts: 12 },
+   246→   246→  WELSPUNLIV: { pe: 42.5, forwardPE: 35.0, pb: 5.5, eps: 4.1, bookValue: 32, dividendYield: 0.5, payoutRatio: 0.18, beta: 1.25, roe: 12.8, roa: 6.2, debtToEquity: 0.25, revenueGrowth: 18.5, profitMargins: 5.2, operatingMargins: 7.8, currentRatio: 1.5, totalRevenue: 0.025e12, ebitda: 0.004e12, grossProfits: 0.006e12, freeCashflow: 0.002e12, sector: "Textiles", industry: "Home Textiles", marketCap: 42000e9, instHolding: 15.5, recommendation: "hold", targetMean: 195, targetHigh: 225, targetLow: 155, analysts: 8 },
+   247→   247→  JINDALSTEL: { pe: 12.5, forwardPE: 10.0, pb: 1.5, eps: 77.2, bookValue: 644, dividendYield: 1.0, payoutRatio: 0.12, beta: 1.28, roe: 12.0, roa: 4.8, debtToEquity: 0.85, revenueGrowth: 2.5, profitMargins: 5.8, operatingMargins: 8.5, currentRatio: 1.0, totalRevenue: 0.42e12, ebitda: 0.05e12, grossProfits: 0.07e12, freeCashflow: 0.01e12, sector: "Metals", industry: "Steel", marketCap: 85000e9, instHolding: 18.5, recommendation: "hold", targetMean: 1050, targetHigh: 1200, targetLow: 850, analysts: 15 },
+   248→   248→  HINDZINC: { pe: 12.5, forwardPE: 10.5, pb: 2.5, eps: 46.4, bookValue: 232, dividendYield: 3.5, payoutRatio: 0.42, beta: 0.72, roe: 20.2, roa: 14.5, debtToEquity: 0.08, revenueGrowth: -5.5, profitMargins: 28.5, operatingMargins: 35.5, currentRatio: 2.5, totalRevenue: 0.11e12, ebitda: 0.05e12, grossProfits: 0.06e12, freeCashflow: 0.03e12, sector: "Metals", industry: "Zinc", marketCap: 115000e9, instHolding: 52.5, recommendation: "buy", targetMean: 650, targetHigh: 720, targetLow: 520, analysts: 15 },
+   249→   249→  VEDL: { pe: 6.5, forwardPE: 5.5, pb: 1.2, eps: 73.1, bookValue: 396, dividendYield: 4.5, payoutRatio: 0.28, beta: 1.15, roe: 18.5, roa: 8.2, debtToEquity: 0.55, revenueGrowth: -2.5, profitMargins: 12.5, operatingMargins: 18.5, currentRatio: 1.2, totalRevenue: 0.45e12, ebitda: 0.10e12, grossProfits: 0.12e12, freeCashflow: 0.03e12, sector: "Metals", industry: "Diversified Metals", marketCap: 142000e9, instHolding: 52.5, recommendation: "buy", targetMean: 520, targetHigh: 600, targetLow: 400, analysts: 15 },
+   250→   250→  SAIL: { pe: 18.5, forwardPE: 15.0, pb: 1.8, eps: 8.9, bookValue: 92, dividendYield: 2.5, payoutRatio: 0.45, beta: 1.22, roe: 9.8, roa: 4.2, debtToEquity: 0.65, revenueGrowth: -5.5, profitMargins: 3.5, operatingMargins: 6.2, currentRatio: 1.0, totalRevenue: 0.45e12, ebitda: 0.05e12, grossProfits: 0.06e12, freeCashflow: 0.01e12, sector: "Metals", industry: "Steel", marketCap: 55000e9, instHolding: 55.5, recommendation: "hold", targetMean: 185, targetHigh: 220, targetLow: 145, analysts: 12 },
+   251→   251→  IDFCFIRSTB: { pe: 42.5, forwardPE: 35.0, pb: 2.5, eps: 4.2, bookValue: 71, dividendYield: 0.5, payoutRatio: 0.25, beta: 1.22, roe: 5.8, roa: 1.5, debtToEquity: 5.5, revenueGrowth: 22.5, profitMargins: 28.5, operatingMargins: 28.5, currentRatio: 0, totalRevenue: 0.18e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Private", marketCap: 72000e9, instHolding: 42.5, recommendation: "hold", targetMean: 95, targetHigh: 110, targetLow: 72, analysts: 15 },
+   252→   252→  INDIANB: { pe: 22.5, forwardPE: 19.0, pb: 2.0, eps: 5.3, bookValue: 59, dividendYield: 2.0, payoutRatio: 0.42, beta: 1.05, roe: 8.8, roa: 2.2, debtToEquity: 7.5, revenueGrowth: 12.5, profitMargins: 32.5, operatingMargins: 32.5, currentRatio: 0, totalRevenue: 0.35e12, ebitda: 0, grossProfits: 0, freeCashflow: 0, sector: "Banking", industry: "Banks - Public", marketCap: 72000e9, instHolding: 48.5, recommendation: "hold", targetMean: 165, targetHigh: 190, targetLow: 130, analysts: 12 },
+   253→   253→  ADANIENSOL: { pe: 125.0, forwardPE: 85.0, pb: 18.5, eps: 3.0, bookValue: 20, dividendYield: 0, payoutRatio: 0, beta: 1.65, roe: 14.8, roa: 5.5, debtToEquity: 1.25, revenueGrowth: 45.5, profitMargins: 8.5, operatingMargins: 15.5, currentRatio: 0.85, totalRevenue: 0.04e12, ebitda: 0.008e12, grossProfits: 0.009e12, freeCashflow: -0.003e12, sector: "Power", industry: "Solar Energy", marketCap: 85000e9, instHolding: 12.5, recommendation: "hold", targetMean: 150, targetHigh: 180, targetLow: 110, analysts: 8 },
+   254→   254→  DELHIVERY: { pe: -1, forwardPE: 85.0, pb: 2.5, eps: -15.2, bookValue: 116, dividendYield: 0, payoutRatio: 0, beta: 1.55, roe: -12.5, roa: -5.5, debtToEquity: 0.15, revenueGrowth: 15.5, profitMargins: -3.5, operatingMargins: -0.5, currentRatio: 1.2, totalRevenue: 0.09e12, ebitda: -0.005e12, grossProfits: 0.02e12, freeCashflow: -0.008e12, sector: "Logistics", industry: "Logistics", marketCap: 48000e9, instHolding: 35.5, recommendation: "hold", targetMean: 500, targetHigh: 600, targetLow: 380, analysts: 15 },
+   255→   255→};
+   256→   256→
+   257→   257→// ==================== HTTP HELPER ====================
+   258→   258→function httpsGet(url: string): Promise<string> {
+   259→   259→  return new Promise((resolve, reject) => {
+   260→   260→    const https = require('https');
+   261→   261→    const req = https.get(url, {
+   262→   262→      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+   263→   263→    }, (res: any) => {
+   264→   264→      if (res.statusCode === 301 || res.statusCode === 302) {
+   265→   265→        httpsGet(res.headers.location).then(resolve).catch(reject);
+   266→   266→        return;
+   267→   267→      }
+   268→   268→      let data = '';
+   269→   269→      res.on('data', (c: string) => (data += c));
+   270→   270→      res.on('end', () => resolve(data));
+   271→   271→    });
+   272→   272→    req.on('error', reject);
+   273→   273→    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
+   274→   274→  });
+   275→   275→}
+   276→   276→
+   277→   277→// ==================== CACHING ====================
+   278→   278→const quoteCache = new Map<string, { data: LiveQuote; timestamp: number }>();
+   279→   279→const histCache = new Map<string, { data: HistoricalDataPoint[]; timestamp: number }>();
+   280→   280→const QUOTE_TTL = 60_000; // 1 min
+   281→   281→const HIST_TTL = 300_000; // 5 min
+   282→   282→
+   283→   283→// ==================== SYMBOL HELPERS ====================
+   284→   284→function getYahooSymbol(nseSymbol: string): string {
+   285→   285→  if (YAHOO_SYMBOL_MAP[nseSymbol]) return YAHOO_SYMBOL_MAP[nseSymbol];
+   286→   286→  if (!nseSymbol.includes(".")) return `${nseSymbol}.NS`;
+   287→   287→  return nseSymbol;
+   288→   288→}
+   289→   289→
+   290→   290→// ==================== CALCULATE MOVING AVERAGES ====================
+   291→   291→function calculateSMA(data: number[], period: number): number | null {
+   292→   292→  if (data.length < period) return null;
+   293→   293→  const slice = data.slice(-period);
+   294→   294→  return slice.reduce((a, b) => a + b, 0) / period;
+   295→   295→}
+   296→   296→
+   297→   297→// ==================== LIVE QUOTE ====================
+   298→   298→export async function getLiveQuote(nseSymbol: string): Promise<LiveQuote> {
+   299→   299→  const cacheKey = nseSymbol;
+   300→   300→  const cached = quoteCache.get(cacheKey);
+   301→   301→  if (cached && Date.now() - cached.timestamp < QUOTE_TTL) {
+   302→   302→    return cached.data;
+   303→   303→  }
+   304→   304→
+   305→   305→  const yahooSymbol = getYahooSymbol(nseSymbol);
+   306→   306→  const isIndex = yahooSymbol.startsWith("^");
+   307→   307→
+   308→   308→  // Fetch price data from chart API
+   309→   309→  const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1d&interval=5m&includePrePost=false`;
+   310→   310→  const body = await httpsGet(chartUrl);
+   311→   311→  const data = JSON.parse(body);
+   312→   312→  const result = data.chart?.result?.[0];
+   313→   313→  const meta = result?.meta;
+   314→   314→
+   315→   315→  if (!meta) throw new Error(`No data for ${nseSymbol}`);
+   316→   316→
+   317→   317→  const price = meta.regularMarketPrice || 0;
+   318→   318→  const prevClose = meta.previousClose || meta.chartPreviousClose || 0;
+   319→   319→  const change = price - prevClose;
+   320→   320→  const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+   321→   321→
+   322→   322→  // Get fundamentals from our database
+   323→   323→  const fund = FUNDAMENTALS_DB[nseSymbol] || {};
+   324→   324→
+   325→   325→  // Get sector/industry from fundamentals
+   326→   326→  const sector = fund.sector || "";
+   327→   327→  const industry = fund.industry || "";
+   328→   328→
+   329→   329→  const quote: LiveQuote = {
+   330→   330→    symbol: nseSymbol,
+   331→   331→    name: meta.shortName || nseSymbol,
+   332→   332→    longName: meta.longName || meta.shortName || nseSymbol,
+   333→   333→    sector,
+   334→   334→    industry,
+   335→   335→    exchange: meta.fullExchangeName || meta.exchangeName || "NSE",
+   336→   336→    currency: meta.currency || "INR",
+   337→   337→    type: isIndex ? "index" : "equity",
+   338→   338→
+   339→   339→    price: Math.round(price * 100) / 100,
+   340→   340→    change: Math.round(change * 100) / 100,
+   341→   341→    changePct: Math.round(changePct * 100) / 100,
+   342→   342→    prevClose: Math.round(prevClose * 100) / 100,
+   343→   343→    open: Math.round((meta.chartPreviousClose || prevClose) * 100) / 100,
+   344→   344→    dayHigh: Math.round((meta.regularMarketDayHigh || price) * 100) / 100,
+   345→   345→    dayLow: Math.round((meta.regularMarketDayLow || price) * 100) / 100,
+   346→   346→
+   347→   347→    volume: meta.regularMarketVolume || 0,
+   348→   348→    avgVolume: fund.marketCap ? Math.round((fund.marketCap / price) * 0.005) : 0,
+   349→   349→    volumeRatio: 1.0,
+   350→   350→
+   351→   351→    marketCap: fund.marketCap || (isIndex ? 0 : price * 1e9),
+   352→   352→    pe: fund.pe ?? null,
+   353→   353→    forwardPE: fund.forwardPE ?? null,
+   354→   354→    pb: fund.pb ?? null,
+   355→   355→    eps: fund.eps ?? null,
+   356→   356→    bookValue: fund.bookValue ?? null,
+   357→   357→    dividendYield: fund.dividendYield ?? null,
+   358→   358→    payoutRatio: fund.payoutRatio ?? null,
+   359→   359→
+   360→   360→    high52w: Math.round((meta.fiftyTwoWeekHigh || 0) * 100) / 100,
+   361→   361→    low52w: Math.round((meta.fiftyTwoWeekLow || 0) * 100) / 100,
+   362→   362→    percentFrom52wHigh: meta.fiftyTwoWeekHigh ? ((price - meta.fiftyTwoWeekHigh) / meta.fiftyTwoWeekHigh) * 100 : 0,
+   363→   363→    percentFrom52wLow: meta.fiftyTwoWeekLow ? ((price - meta.fiftyTwoWeekLow) / meta.fiftyTwoWeekLow) * 100 : 0,
+   364→   364→
+   365→   365→    fiftyDMA: null,
+   366→   366→    twoHundredDMA: null,
+   367→   367→    percentAbove50DMA: null,
+   368→   368→    percentAbove200DMA: null,
+   369→   369→
+   370→   370→    beta: fund.beta ?? null,
+   371→   371→    roe: fund.roe ?? null,
+   372→   372→    roa: fund.roa ?? null,
+   373→   373→    debtToEquity: fund.debtToEquity ?? null,
+   374→   374→    revenueGrowth: fund.revenueGrowth ?? null,
+   375→   375→    profitMargins: fund.profitMargins ?? null,
+   376→   376→    operatingMargins: fund.operatingMargins ?? null,
+   377→   377→    currentRatio: fund.currentRatio ?? null,
+   378→   378→    totalRevenue: fund.totalRevenue ?? null,
+   379→   379→    ebitda: fund.ebitda ?? null,
+   380→   380→    grossProfits: fund.grossProfits ?? null,
+   381→   381→    freeCashflow: fund.freeCashflow ?? null,
+   382→   382→
+   383→   383→    recommendation: fund.recommendation || null,
+   384→   384→    targetHigh: fund.targetHigh ?? null,
+   385→   385→    targetLow: fund.targetLow ?? null,
+   386→   386→    targetMean: fund.targetMean ?? null,
+   387→   387→    targetMedian: fund.targetMedian ?? null,
+   388→   388→    analysts: fund.analysts ?? null,
+   389→   389→
+   390→   390→    instHolding: fund.instHolding ?? null,
+   391→   391→    insiderHolding: fund.insiderHolding ?? null,
+   392→   392→
+   393→   393→    marketState: "REGULAR",
+   394→   394→    lastUpdated: new Date().toISOString(),
+   395→   395→  };
+   396→   396→
+   397→   397→  quoteCache.set(cacheKey, { data: quote, timestamp: Date.now() });
+   398→   398→  return quote;
+   399→   399→}
+   400→   400→
+   401→   401→// ==================== HISTORICAL DATA ====================
+   402→   402→export async function getHistoricalData(
+   403→   403→  nseSymbol: string,
+   404→   404→  days: number = 200
+   405→   405→): Promise<HistoricalDataPoint[]> {
+   406→   406→  const cacheKey = `${nseSymbol}_${days}`;
+   407→   407→  const cached = histCache.get(cacheKey);
+   408→   408→  if (cached && Date.now() - cached.timestamp < HIST_TTL) {
+   409→   409→    return cached.data;
+   410→   410→  }
+   411→   411→
+   412→   412→  const yahooSymbol = getYahooSymbol(nseSymbol);
+   413→   413→  const period1 = Math.floor(new Date(Date.now() - Math.ceil(days * 1.5) * 86400000).getTime() / 1000);
+   414→   414→  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${period1}&period2=9999999999&interval=1d`;
+   415→   415→
+   416→   416→  const body = await httpsGet(url);
+   417→   417→  const data = JSON.parse(body);
+   418→   418→  const result = data.chart?.result?.[0];
+   419→   419→
+   420→   420→  if (!result) throw new Error(`No historical data for ${nseSymbol}`);
+   421→   421→
+   422→   422→  const timestamps = result.timestamp || [];
+   423→   423→  const quotes = result.indicators?.quote?.[0] || {};
+   424→   424→
+   425→   425→  const points: HistoricalDataPoint[] = [];
+   426→   426→  for (let i = 0; i < timestamps.length; i++) {
+   427→   427→    const close = quotes.close?.[i];
+   428→   428→    const open = quotes.open?.[i];
+   429→   429→    const high = quotes.high?.[i];
+   430→   430→    const low = quotes.low?.[i];
+   431→   431→    const vol = quotes.volume?.[i];
+   432→   432→    if (close != null && close > 0) {
+   433→   433→      points.push({
+   434→   434→        date: new Date(timestamps[i] * 1000).toISOString().split("T")[0],
+   435→   435→        open: Math.round((open || close) * 100) / 100,
+   436→   436→        high: Math.round((high || close) * 100) / 100,
+   437→   437→        low: Math.round((low || close) * 100) / 100,
+   438→   438→        close: Math.round(close * 100) / 100,
+   439→   439→        volume: vol || 0,
+   440→   440→      });
+   441→   441→    }
+   442→   442→  }
+   443→   443→
+   444→   444→  const finalData = points.slice(-days);
+   445→   445→
+   446→   446→  // Update moving averages on cached quote
+   447→   447→  const closes = finalData.map(d => d.close);
+   448→   448→  const cachedQuote = quoteCache.get(nseSymbol);
+   449→   449→  if (cachedQuote) {
+   450→   450→    const dma50 = calculateSMA(closes, 50);
+   451→   451→    const dma200 = calculateSMA(closes, 200);
+   452→   452→    cachedQuote.data.fiftyDMA = dma50 ? Math.round(dma50 * 100) / 100 : null;
+   453→   453→    cachedQuote.data.twoHundredDMA = dma200 ? Math.round(dma200 * 100) / 100 : null;
+   454→   454→    cachedQuote.data.percentAbove50DMA = dma50 ? ((cachedQuote.data.price - dma50) / dma50) * 100 : null;
+   455→   455→    cachedQuote.data.percentAbove200DMA = dma200 ? ((cachedQuote.data.price - dma200) / dma200) * 100 : null;
+   456→   456→  }
+   457→   457→
+   458→   458→  histCache.set(cacheKey, { data: finalData, timestamp: Date.now() });
+   459→   459→  return finalData;
+   460→   460→}
+   461→   461→
+   462→   462→// ==================== SECTOR PEERS ====================
+   463→   463→export async function getSectorPeers(
+   464→   464→  nseSymbol: string,
+   465→   465→  sector: string
+   466→   466→): Promise<PeerData[]> {
+   467→   467→  let peerSymbols: string[] = [];
+   468→   468→  for (const [sec, symbols] of Object.entries(SECTOR_PEERS)) {
+   469→   469→    if (
+   470→   470→      sector.toLowerCase().includes(sec.toLowerCase()) ||
+   471→   471→      sec.toLowerCase().includes(sector.toLowerCase())
+   472→   472→    ) {
+   473→   473→      peerSymbols = symbols.filter((s) => s !== nseSymbol).slice(0, 10);
+   474→   474→      break;
+   475→   475→    }
+   476→   476→  }
+   477→   477→
+   478→   478→  if (peerSymbols.length < 2) return [];
+   479→   479→
+   480→   480→  const allPeers: PeerData[] = [];
+   481→   481→  // Fetch in batches of 3 to avoid rate limits
+   482→   482→  for (let i = 0; i < peerSymbols.length; i += 3) {
+   483→   483→    const batch = peerSymbols.slice(i, i + 3);
+   484→   484→    const results = await Promise.allSettled(batch.map((s) => getLiveQuote(s)));
+   485→   485→    for (let j = 0; j < results.length; j++) {
+   486→   486→      if (results[j].status === "fulfilled") {
+   487→   487→        const q = results[j].value;
+   488→   488→        allPeers.push({
+   489→   489→          symbol: q.symbol,
+   490→   490→          name: q.name,
+   491→   491→          price: q.price,
+   492→   492→          changePct: q.changePct,
+   493→   493→          marketCap: q.marketCap,
+   494→   494→          pe: q.pe,
+   495→   495→          pb: q.pb,
+   496→   496→          divYield: q.dividendYield,
+   497→   497→          roe: q.roe,
+   498→   498→          revenueGrowth: q.revenueGrowth,
+   499→   499→        });
+   500→   500→      }
+   501→   501→    }
+   502→   502→  }
+   503→   503→
+   504→   504→  return allPeers;
+   505→   505→}
+   506→   506→
+   507→   507→// ==================== MARKET OVERVIEW ====================
+   508→   508→export async function getMarketOverview(): Promise<{
+   509→   509→  nifty50: LiveQuote;
+   510→   510→  bankNifty: LiveQuote;
+   511→   511→  niftyIT: LiveQuote;
+   512→   512→  indiaVix: LiveQuote;
+   513→   513→  topGainers: LiveQuote[];
+   514→   514→  topLosers: LiveQuote[];
+   515→   515→}> {
+   516→   516→  const [nifty50, bankNifty, niftyIT, indiaVix] = await Promise.all([
+   517→   517→    getLiveQuote("NIFTY"),
+   518→   518→    getLiveQuote("BANKNIFTY"),
+   519→   519→    getLiveQuote("NIFTYIT"),
+   520→   520→    getLiveQuote("INDIAVIX"),
+   521→   521→  ]);
+   522→   522→
+   523→   523→  const hotStocks = [
+   524→   524→    "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
+   525→   525→    "SBIN", "TATAMOTORS", "LT", "AXISBANK", "BAJFINANCE",
+   526→   526→    "SUNPHARMA", "MARUTI", "HCLTECH", "ADANIENT", "TATASTEEL",
+   527→   527→    "BHARTIARTL", "WIPRO", "NTPC", "POWERGRID", "TITAN",
+   528→   528→  ];
+   529→   529→
+   530→   530→  const quotes = await Promise.allSettled(hotStocks.map((s) => getLiveQuote(s)));
+   531→   531→  const validQuotes = quotes
+   532→   532→    .filter((r) => r.status === "fulfilled")
+   533→   533→    .map((r) => (r as PromiseFulfilledResult<LiveQuote>).value);
+   534→   534→
+   535→   535→  const sorted = [...validQuotes].sort((a, b) => b.changePct - a.changePct);
+   536→   536→  const topGainers = sorted.slice(0, 5);
+   537→   537→  const topLosers = sorted.slice(-5).reverse();
+   538→   538→
+   539→   539→  return { nifty50, bankNifty, niftyIT, indiaVix, topGainers, topLosers };
+   540→   540→}

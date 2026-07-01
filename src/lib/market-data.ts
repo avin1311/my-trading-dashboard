@@ -255,14 +255,15 @@ const FUNDAMENTALS_DB: Record<string, {
 };
 
 // ==================== HTTP HELPER ====================
+import https from 'https';
+
 function httpsGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const https = require('https');
     const req = https.get(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-    }, (res: any) => {
+    }, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
-        httpsGet(res.headers.location).then(resolve).catch(reject);
+        httpsGet(res.headers.location || '').then(resolve).catch(reject);
         return;
       }
       let data = '';

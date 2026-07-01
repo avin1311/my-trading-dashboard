@@ -46,13 +46,13 @@ interface RealtimeQuote {
 // Cache to avoid hammering Yahoo Finance
 const quoteCache = new Map<string, { data: RealtimeQuote; timestamp: number }>();
 const CACHE_TTL = 60_000; // 1 minute cache
+import https from 'https';
 
 function httpsGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const https = require('https');
     https.get(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    }, (res: any) => {
+    }, (res) => {
       let data = '';
       res.on('data', (c: string) => (data += c));
       res.on('end', () => resolve(data));
