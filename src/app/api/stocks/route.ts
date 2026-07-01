@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import stockData from "@/lib/stock-list.json";
 
 // GET /api/stocks?type=equity|index|option
@@ -49,5 +49,5 @@ export async function GET(request: NextRequest) {
     stats: { totalEquities: stockData.equities.length, totalIndices: stockData.indices.length, optionUnderlyings: stockData.optionUnderlyings.length },
     sectors: [...new Set(stockData.equities.map(s => s.sec))].sort(),
   });
-}---
+}
 

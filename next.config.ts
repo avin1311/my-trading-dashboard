@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
+  turbopack: {},
 };
 
 export default nextConfig;

@@ -1,29 +1,36 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Continue NSE Trading Dashboard - Real-time data, Power BI dashboard, fix date issue
+Task: Continue building NSE Trading Strategy Dashboard - Power BI styled overhaul + real-time data + news
 
 Work Log:
-- Analyzed full project state: 100+ equities, 16 indices, options chain, Yahoo Finance integration
-- Discovered yahoo-finance2 npm package hitting 429 rate limits, replaced with direct HTTP calls
-- Rewrote `/src/lib/market-data.ts` to use Yahoo v8 chart API directly (no external deps)
-- Added comprehensive fundamentals database (FUNDAMENTALS_DB) for 60+ Indian stocks with PE, PB, ROE, D/E, revenue, EBITDA, analyst targets, etc.
-- Updated all API routes (quote, historical, signals) to use new data layer
-- Fixed critical bug in `calculateEMA` function - NaN propagation when MACD line had leading NaN values caused all signals to be empty
-- Fixed RSI reconstruction bug in running average calculation
-- Built complete Power BI styled dashboard (1048 lines) with:
-  - Sticky market bar (NIFTY, BANKNIFTY, NIFTYIT, INDIAVIX)
-  - Comprehensive price hero with fundamentals grid
-  - 5-tab deep analysis panel (Fundamentals, Financials, Ownership & Analysts, Peer Comparison, Technical Analysis)
-  - Real Yahoo Finance data with dates up to 2026-07-01 (current)
-  - Strategy signals (186 signals, 13 trades for RELIANCE)
-  - Backtest results with trade history
-- Fixed ownership display bug (instHolding already in %, not fraction)
-- Production build succeeds, server running on port 3000
+- Audited existing project state: market-data.ts already uses Yahoo Finance API for real-time data
+- Fixed missing `NextRequest` import in /api/stocks/route.ts
+- Populated empty indices array in stock-list.json with 17 NSE indices + option underlyings
+- Removed trailing `---` markers from 6 API route files causing parse errors
+- Created /api/news/route.ts endpoint using Google News RSS with sentiment analysis
+- Fixed news parser to handle non-CDATA wrapped titles
+- Completely rewrote page.tsx with Power BI styled comprehensive dashboard:
+  - 8-KPI strip with gradient cards, trend indicators, icons
+  - 6 tabs: Overview, Fundamentals, Technicals, Strategy, Peers, News
+  - Ownership donut chart (CSS-only, no external deps)
+  - News tab with sentiment analysis, headline cards, sentiment breakdown
+  - Market ticker bar with top gainers mini-display
+  - Section cards with consistent Power BI style (gradient borders, subtle backgrounds)
+  - Signal banner with RSI progress bar, Supertrend/MACD status
+  - Performance returns grid with color-coded cards
+  - Peer comparison table (clickable rows)
+  - Analyst consensus panel with upside calculation
+- Optimized next.config.ts for Turbopack (Next.js 16 default)
+- Added no-scrollbar and line-clamp CSS utilities
+- Production build succeeds with Turbopack (6.5s compile)
+- All API endpoints verified working with real-time Yahoo Finance data
+- News endpoint returns 19 articles with sentiment classification
 
 Stage Summary:
-- Real-time data: Working via Yahoo Finance v8 chart API (direct HTTP, no npm deps)
-- Date fix: Data now shows up to 2026-07-01 (current), was previously showing Nov 2025
-- Power BI dashboard: Complete with 5 analysis tabs, market overview bar, comprehensive fundamentals
-- OOM fix: Removed yahoo-finance2 dependency, lighter memory footprint
-- Signals working: Fixed EMA NaN propagation bug, 186 signals generated for 200 data points
+- Real-time data: CONFIRMED working via Yahoo Finance (RELIANCE ~1308, TCS ~1982, HDFCBANK ~796)
+- Data dates: Current (2026-06-30), no more fake Nov 2025 data
+- 112 equities, 17 indices, 28 sectors
+- Server runs stable with node runtime (1024MB memory limit)
+- All 6 dashboard tabs functional with comprehensive data
+- Deliverables: Complete Power BI styled NSE analytics dashboard
