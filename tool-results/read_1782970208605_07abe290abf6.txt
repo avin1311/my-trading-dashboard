@@ -1,0 +1,278 @@
+   450→                    </SectionCard>
+   451→                  )}
+   452→                  <SectionCard title="Price Performance" icon={TrendingUp}>
+   453→                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">{(['1W', '1M', '3M', '6M', '1Y', 'YTD'] as const).map(p => { const val = perf[p] ?? null; const up = val !== null && val >= 0; return (<div key={p} className={cn('rounded-xl border p-3 text-center transition-colors', up ? 'bg-emerald-500/5 border-emerald-500/20' : val !== null ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-900/50 border-slate-800')}><div className="text-[10px] text-slate-500 font-semibold">{p}</div><div className="text-base font-bold font-mono mt-1">{pctVal(val)}</div></div>); })}</div>
+   454→                  </SectionCard>
+   455→                  <SectionCard title="52 Week Range" icon={Activity}>
+   456→                    <div className="flex items-center gap-3"><span className="text-xs font-mono text-slate-400 w-20 text-right">{q.low52w.toLocaleString('en-IN')}</span><div className="flex-1 relative h-3 bg-slate-800 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/30 via-amber-500/30 to-emerald-500/30 rounded-full" style={{ width: (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '%' }} /><div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-emerald-500 shadow-lg shadow-emerald-500/20" style={{ left: 'calc(' + (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '% - 6px)' }} /></div><span className="text-xs font-mono text-slate-400 w-20">{q.high52w.toLocaleString('en-IN')}</span></div>
+   457→                    <div className="flex justify-between mt-2.5"><span className="text-[10px] text-slate-500">From Low: <span className="text-emerald-400 font-mono font-semibold">{q.percentFrom52wLow.toFixed(1)}%</span></span><span className="text-[10px] text-slate-500">From High: <span className="text-red-400 font-mono font-semibold">{q.percentFrom52wHigh.toFixed(1)}%</span></span></div>
+   458→                  </SectionCard>
+   459→                  <SectionCard title="Moving Averages" icon={LineChartIcon}>
+   460→                    <div className="space-y-3">
+   461→                      <PBar value={q.price} min={q.fiftyDMA ? q.fiftyDMA * 0.95 : q.price * 0.9} max={q.fiftyDMA ? q.fiftyDMA * 1.05 : q.price * 1.1} label="50 DMA" color={q.percentAbove50DMA !== null && q.percentAbove50DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+   462→                      <PBar value={q.price} min={q.twoHundredDMA ? q.twoHundredDMA * 0.95 : q.price * 0.9} max={q.twoHundredDMA ? q.twoHundredDMA * 1.05 : q.price * 1.1} label="200 DMA" color={q.percentAbove200DMA !== null && q.percentAbove200DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+   463→                      <div className="grid grid-cols-2 gap-2 mt-1">
+   464→                        {q.fiftyDMA && (<div className="rounded-lg bg-slate-800/30 p-2 text-xs"><span className="text-slate-500">50 DMA</span><div className="font-mono text-slate-200">{fINR(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>)}
+   465→                        {q.twoHundredDMA && (<div className="rounded-lg bg-slate-800/30 p-2 text-xs"><span className="text-slate-500">200 DMA</span><div className="font-mono text-slate-200">{fINR(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>)}
+   466→                      </div>
+   467→                    </div>
+   468→                  </SectionCard>
+   469→                </div>
+   470→                <div className="space-y-4">
+   471→                  <SectionCard title="Key Ratios" icon={PieChart}><MetricRow label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} highlight /><MetricRow label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} /><MetricRow label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} /><MetricRow label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} highlight /><MetricRow label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} /><MetricRow label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} /><MetricRow label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} /><MetricRow label="Beta" value={q.beta?.toFixed(2) || '--'} /></SectionCard>
+   472→                  <SectionCard title="Profitability" icon={TrendingUpIcon}><MetricRow label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight /><MetricRow label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} /><MetricRow label="Net Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} /><MetricRow label="OPM" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} /><MetricRow label="Rev Growth" value={pctVal(q.revenueGrowth)} highlight /><MetricRow label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} /><MetricRow label="D/E Ratio" value={q.debtToEquity?.toFixed(2) || '--'} /></SectionCard>
+   473→                  <SectionCard title="Shareholding Pattern" icon={Users}><OwnershipDonut data={own} /></SectionCard>
+   474→                  {q.targetMean && (<SectionCard title="Analyst Consensus" icon={Target} badge={q.recommendation && <Badge variant="outline" className={cn('text-[9px] uppercase font-bold', q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : q.recommendation === 'sell' ? 'bg-red-500/15 text-red-400 border-red-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{q.recommendation}</Badge>}><MetricRow label="Target Mean" value={fINR(q.targetMean)} highlight /><MetricRow label="Target Median" value={q.targetMedian ? fINR(q.targetMedian) : '--'} /><MetricRow label="Target High" value={q.targetHigh ? fINR(q.targetHigh) : '--'} /><MetricRow label="Target Low" value={q.targetLow ? fINR(q.targetLow) : '--'} />{q.analysts && <div className="mt-2 text-[10px] text-slate-500">{q.analysts} analysts covering</div>}<div className="mt-1.5 text-xs"><span className="text-slate-500">Upside from CMP: </span><span className={cn('font-mono font-bold', ((q.targetMean - q.price) / q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{((q.targetMean - q.price) / q.price * 100) >= 0 ? '+' : ''}{((q.targetMean - q.price) / q.price * 100).toFixed(1)}%</span></div></SectionCard>)}
+   475→                </div>
+   476→              </div>
+   477→            </TabsContent>
+   478→
+   479→            {/* ===== FUNDAMENTALS TAB ===== */}
+   480→            <TabsContent value="fundamentals">
+   481→              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   482→                <SectionCard title="Valuation Metrics" icon={PieChart}><MetricRow label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} highlight /><MetricRow label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} /><MetricRow label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} /><MetricRow label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} /><MetricRow label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} /><MetricRow label="Dividend Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} /><MetricRow label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} /><Separator className="my-1.5 bg-slate-800" /><MetricRow label="Market Cap" value={fINR(q.marketCap)} highlight /></SectionCard>
+   483→                <SectionCard title="Profitability & Growth" icon={TrendingUpIcon}><MetricRow label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight /><MetricRow label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} /><MetricRow label="Net Profit Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} /><MetricRow label="Operating Margin" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} /><MetricRow label="Revenue Growth" value={pctVal(q.revenueGrowth)} highlight /><MetricRow label="Beta" value={q.beta?.toFixed(2) || '--'} /><MetricRow label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} /><MetricRow label="Debt/Equity" value={q.debtToEquity?.toFixed(2) || '--'} /></SectionCard>
+   484→                <SectionCard title="Financial Highlights" icon={DollarSign}><MetricRow label="Revenue" value={fin.revenue ? fINR(fin.revenue as number) : '--'} highlight /><MetricRow label="EBITDA" value={fin.ebitda ? fINR(fin.ebitda as number) : '--'} /><MetricRow label="Gross Profit" value={fin.grossProfits ? fINR(fin.grossProfits as number) : '--'} /><MetricRow label="Free Cash Flow" value={fin.freeCashflow ? fINR(fin.freeCashflow as number) : '--'} /><MetricRow label="Net Profit" value={fin.netProfit ? fINR(fin.netProfit as number) : '--'} /><Separator className="my-1.5 bg-slate-800" /><MetricRow label="Day Volume" value={fNum(q.volume)} /><MetricRow label="Avg Volume" value={fNum(q.avgVolume)} /><MetricRow label="Volume Ratio" value={t.volumeRatio?.toFixed(2) || '--'} /><MetricRow label="20D Volatility" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} /></SectionCard>
+   485→                <SectionCard title="Price Details" icon={Activity}><MetricRow label="Open" value={q.open.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="Prev Close" value={q.prevClose.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="Day High" value={q.dayHigh.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="Day Low" value={q.dayLow.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="52W High" value={q.high52w.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="52W Low" value={q.low52w.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="% From 52W High" value={<span className="text-red-400 font-mono">{q.percentFrom52wHigh.toFixed(1)}%</span>} /><MetricRow label="% From 52W Low" value={<span className="text-emerald-400 font-mono">+{q.percentFrom52wLow.toFixed(1)}%</span>} /></SectionCard>
+   486→                <SectionCard title="Shareholding Pattern" icon={Users} className="md:col-span-2 lg:col-span-2"><OwnershipDonut data={own} /></SectionCard>
+   487→              </div>
+   488→            </TabsContent>
+   489→
+   490→            {/* ===== TECHNICALS TAB ===== */}
+   491→            <TabsContent value="technicals">
+   492→              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   493→                <SectionCard title="Indicator Summary" icon={Activity}>
+   494→                  <div className="space-y-3">
+   495→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">Overall Signal</span><Badge className={cn('text-[10px] font-bold border', SIG_BG[t.signal || 'HOLD'])}>{(t.signal || 'HOLD') as string}</Badge></div>
+   496→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">Supertrend</span><span className={cn('text-xs font-mono font-semibold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span></div>
+   497→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">RSI (14)</span><span className={cn('text-xs font-mono font-bold', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi?.toFixed(1) || '--'}</span></div>
+   498→                    <PBar value={t.rsi || 50} min={0} max={100} label="RSI" color={(t.rsi || 50) > 70 ? 'bg-red-500' : (t.rsi || 50) < 30 ? 'bg-emerald-500' : 'bg-amber-500'} />
+   499→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">MACD</span><span className={cn('text-xs font-mono font-semibold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span></div>
+   500→                    <div className="text-[10px] text-slate-500 font-mono space-x-1"><span>MACD: {t.macd?.toFixed(2) || '--'}</span><span>Signal: {t.macdSignal?.toFixed(2) || '--'}</span><span>Hist: {t.macdHistogram?.toFixed(2) || '--'}</span></div>
+   501→                  </div>
+   502→                </SectionCard>
+   503→                <SectionCard title="Support & Resistance" icon={Target}>
+   504→                  <div className="space-y-2">
+   505→                    <div className="flex justify-between text-xs"><span className="text-red-400 font-medium">Resistance 2</span><span className="font-mono text-slate-200">{t.resistance2 ? fINR(t.resistance2) : '--'}</span></div>
+   506→                    <div className="flex justify-between text-xs"><span className="text-orange-400 font-medium">Resistance 1</span><span className="font-mono text-slate-200">{t.resistance1 ? fINR(t.resistance1) : '--'}</span></div>
+   507→                    <Separator className="bg-slate-700/50" />
+   508→                    <div className="flex justify-between text-xs"><span className="text-white font-bold">Current Price</span><span className="font-mono font-bold text-white text-sm">{fINR(q.price)}</span></div>
+   509→                    <Separator className="bg-slate-700/50" />
+   510→                    <div className="flex justify-between text-xs"><span className="text-emerald-400 font-medium">Support 1</span><span className="font-mono text-slate-200">{t.support1 ? fINR(t.support1) : '--'}</span></div>
+   511→                    <div className="flex justify-between text-xs"><span className="text-green-400 font-medium">Support 2</span><span className="font-mono text-slate-200">{t.support2 ? fINR(t.support2) : '--'}</span></div>
+   512→                  </div>
+   513→                </SectionCard>
+   514→                <SectionCard title="Pivot Points (Classic)" icon={Activity}>
+   515→                  <div className="space-y-2">
+   516→                    <div className="flex justify-between text-xs"><span className="text-red-400">R2</span><span className="font-mono text-slate-200">{t.pivotR2 ? fINR(t.pivotR2) : '--'}</span></div>
+   517→                    <div className="flex justify-between text-xs"><span className="text-orange-400">R1</span><span className="font-mono text-slate-200">{t.pivotR1 ? fINR(t.pivotR1) : '--'}</span></div>
+   518→                    <Separator className="bg-slate-700/50" /><div className="flex justify-between text-xs"><span className="text-slate-300 font-semibold">Pivot</span><span className="font-mono text-white font-bold">{t.pivot ? fINR(t.pivot) : '--'}</span></div><Separator className="bg-slate-700/50" />
+   519→                    <div className="flex justify-between text-xs"><span className="text-emerald-400">S1</span><span className="font-mono text-slate-200">{t.pivotS1 ? fINR(t.pivotS1) : '--'}</span></div>
+   520→                    <div className="flex justify-between text-xs"><span className="text-green-400">S2</span><span className="font-mono text-slate-200">{t.pivotS2 ? fINR(t.pivotS2) : '--'}</span></div>
+   521→                  </div>
+   522→                  <Separator className="my-2 bg-slate-800" />
+   523→                  <MetricRow label="SMA 20" value={t.sma20 ? fINR(t.sma20) : '--'} /><MetricRow label="SMA 50" value={t.sma50 ? fINR(t.sma50) : '--'} /><MetricRow label="Volatility (20D)" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
+   524→                </SectionCard>
+   525→              </div>
+   526→            </TabsContent>
+   527→
+   528→            {/* ===== STRATEGY TAB ===== */}
+   529→            <TabsContent value="strategy">
+   530→              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   531→                <div className="lg:col-span-2 space-y-4">
+   532→                  <SectionCard title="Price Chart with Signals" icon={LineChartIcon}><ChartSection chartData={chartData} visibleData={visibleData} latestSignal={latestSignal} signalsLoading={signalsLoading} /></SectionCard>
+   533→                  <SectionCard title="Strategy Parameters" icon={Settings2}>
+   534→                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">{([['supertrendPeriod', 'ST Period', 5, 30, 1], ['supertrendMultiplier', 'ST Mult', 1, 7, 0.5], ['rsiPeriod', 'RSI Period', 5, 30, 1], ['rsiOverbought', 'RSI OB', 60, 90, 1], ['rsiOversold', 'RSI OS', 10, 40, 1], ['macdFast', 'MACD Fast', 5, 20, 1], ['macdSlow', 'MACD Slow', 15, 50, 1], ['macdSignal', 'MACD Sig', 3, 15, 1]] as [keyof StrategyParams, string, number, number, number][]).map(([key, label, min, max, step]) => (<div key={key} className="space-y-1"><div className="flex justify-between text-[10px]"><span className="text-slate-500">{label}</span><span className="text-slate-300 font-mono">{params[key]}</span></div><Slider value={[params[key]]} min={min} max={max} step={step} onValueChange={([v]) => setParams(p => ({ ...p, [key]: v }))} className="py-0" /></div>))}</div>
+   535→                    <Button size="sm" className="mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={() => { setRecalculating(true); fetchSignals(selectedSymbol, params); }} disabled={recalculating}>{recalculating ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{recalculating ? 'Recalculating...' : 'Apply & Recalculate'}</Button>
+   536→                  </SectionCard>
+   537→                </div>
+   538→                <div className="space-y-4">
+   539→                  {backtest && (<>
+   540→                    <SectionCard title="Backtest Results" icon={Trophy}>
+   541→                      <div className="grid grid-cols-2 gap-2">
+   542→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Total Return</div><div className={cn('text-base font-bold font-mono', backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{backtest.totalReturnPct >= 0 ? '+' : ''}{backtest.totalReturnPct.toFixed(2)}%</div></div>
+   543→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Win Rate</div><div className="text-base font-bold font-mono text-blue-400">{backtest.winRate.toFixed(1)}%</div></div>
+   544→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Total Trades</div><div className="text-base font-bold font-mono text-slate-200">{backtest.totalTrades}</div></div>
+   545→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Profit Factor</div><div className={cn('text-base font-bold font-mono', backtest.profitFactor >= 1.5 ? 'text-emerald-400' : backtest.profitFactor >= 1 ? 'text-amber-400' : 'text-red-400')}>{backtest.profitFactor === 999 ? 'Inf' : backtest.profitFactor.toFixed(2)}</div></div>
+   546→                      </div>
+   547→                      <div className="mt-3"><MetricRow label="Avg Win" value={<span className="text-emerald-400">+{backtest.avgWinPct.toFixed(2)}%</span>} /><MetricRow label="Avg Loss" value={<span className="text-red-400">{backtest.avgLossPct.toFixed(2)}%</span>} /><MetricRow label="Max Drawdown" value={<span className="text-red-400">-{backtest.maxDrawdownPct.toFixed(2)}%</span>} /><MetricRow label="W/L Ratio" value={backtest.winningTrades + 'W / ' + backtest.losingTrades + 'L'} /></div>
+   548→                    </SectionCard>
+   549→                    <SectionCard title="Recent Trades" icon={BarChart2}><ScrollArea className="h-[260px]"><Table><TableHeader><TableRow className="border-slate-800 hover:bg-transparent"><TableHead className="text-[9px] text-slate-500 h-7">Type</TableHead><TableHead className="text-[9px] text-slate-500 h-7">Entry</TableHead><TableHead className="text-[9px] text-slate-500 h-7">Exit</TableHead><TableHead className="text-[9px] text-slate-500 h-7 text-right">P&L</TableHead></TableRow></TableHeader><TableBody>{backtest.trades.map((tr, i) => (<TableRow key={i} className="border-slate-800/50 hover:bg-slate-800/30"><TableCell className="text-[9px] py-1.5"><Badge variant="outline" className={cn('text-[7px] px-1 py-0', tr.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20')}>{tr.type}</Badge></TableCell><TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.entryDate)}</TableCell><TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.exitDate)}</TableCell><TableCell className={cn('text-[9px] py-1.5 font-mono font-semibold text-right', tr.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{tr.pnlPct >= 0 ? '+' : ''}{tr.pnlPct.toFixed(2)}%</TableCell></TableRow>))}</TableBody></Table></ScrollArea></SectionCard>
+   550→                  </>)}
+   551→                </div>
+   552→              </div>
+   553→            </TabsContent>
+   554→
+   555→            {/* ===== SCREENER TAB ===== */}
+   556→            <TabsContent value="screener">
+   557→              <SectionCard title="Multi-Stock Signal Screener" icon={Search} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-500/10 border-blue-500/30 text-blue-400">{screenerData.length} results</Badge>}>
+   558→                <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">Scans all NSE equities using Supertrend + RSI + MACD confluence. Click Run Scan or select a filter below.</CardDescription>
+   559→                <div className="flex flex-wrap items-center gap-2 mb-4">
+   560→                  <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={fetchScreener} disabled={screenerLoading}>
+   561→                    {screenerLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{screenerLoading ? 'Scanning...' : 'Run Scan'}
+   562→                  </Button>
+   563→                  <Select value={screenerFilter} onValueChange={v => { setScreenerFilter(v); setScreenerData([]); }}>
+   564→                    <SelectTrigger className="h-8 w-36 text-xs bg-slate-900 border-slate-800"><SelectValue /></SelectTrigger>
+   565→                    <SelectContent className="bg-slate-900 border-slate-800">
+   566→                      <SelectItem value="ALL">All Signals</SelectItem>
+   567→                      <SelectItem value="BULLISH">Bullish Only</SelectItem>
+   568→                      <SelectItem value="BEARISH">Bearish Only</SelectItem>
+   569→                      <SelectItem value="STRONG_BUY">Strong Buy</SelectItem>
+   570→                      <SelectItem value="BUY">Buy</SelectItem>
+   571→                      <SelectItem value="HOLD">Hold</SelectItem>
+   572→                      <SelectItem value="SELL">Sell</SelectItem>
+   573→                      <SelectItem value="STRONG_SELL">Strong Sell</SelectItem>
+   574→                    </SelectContent>
+   575→                  </Select>
+   576→                  <Select value={screenerSector} onValueChange={v => { setScreenerSector(v); setScreenerData([]); }}>
+   577→                    <SelectTrigger className="h-8 w-36 text-xs bg-slate-900 border-slate-800"><SelectValue placeholder="All Sectors" /></SelectTrigger>
+   578→                    <SelectContent className="bg-slate-900 border-slate-800"><SelectItem value="all">All Sectors</SelectItem>{sectors.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+   579→                  </Select>
+   580→                  <Input placeholder="Search screener results..." value={screenerSearched} onChange={e => setScreenerSearched(e.target.value)} className="h-8 text-xs bg-slate-900 border-slate-800 w-48" />
+   581→                </div>
+   582→                {/* Signal Count Badges */}
+   583→                {Object.keys(screenerCounts).length > 0 && (
+   584→                  <div className="flex flex-wrap gap-1.5 mb-4">
+   585→                    {Object.entries(screenerCounts).map(([sig, count]) => (
+   586→                      <Badge key={sig} variant="outline" className={cn('text-[9px] px-2 py-0.5 cursor-pointer hover:scale-105 transition-transform', SIG_BG[sig])} onClick={() => { setScreenerFilter(sig); setScreenerData([]); }}>
+   587→                        {sig.replace('_', ' ')}: {count}
+   588→                      </Badge>
+   589→                    ))}
+   590→                  </div>
+   591→                )}
+   592→                {screenerLoading ? (<div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-10 bg-slate-800/50 rounded-lg" />)}</div>) : filteredScreener.length > 0 ? (
+   593→                  <div className="overflow-x-auto">
+   594→                    <Table>
+   595→                      <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   596→                        <TableHead className="text-[9px] text-slate-500 h-8">Stock</TableHead>
+   597→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">Price</TableHead>
+   598→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">Change</TableHead>
+   599→                        <TableHead className="text-[9px] text-slate-500 h-8">Signal</TableHead>
+   600→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">RSI</TableHead>
+   601→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">Mkt Cap</TableHead>
+   602→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">P/E</TableHead>
+   603→                        <TableHead className="text-[9px] text-slate-500 h-8">Reason</TableHead>
+   604→                      </TableRow></TableHeader>
+   605→                      <TableBody>
+   606→                        {filteredScreener.map(s => (
+   607→                          <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => handleSelect(s.symbol, 'equity')}>
+   608→                            <TableCell className="text-xs py-2"><div className="font-semibold text-slate-200">{s.symbol}</div><div className="text-[9px] text-slate-500">{s.name}</div></TableCell>
+   609→                            <TableCell className="text-xs font-mono text-slate-200 text-right">{s.price.toLocaleString('en-IN')}</TableCell>
+   610→                            <TableCell className="text-xs font-mono text-right">{pctVal(s.changePct)}</TableCell>
+   611→                            <TableCell><Badge className={cn('text-[8px] font-bold border', SIG_BG[s.signal] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
+   612→                            <TableCell className={cn('text-xs font-mono text-right', (s.rsi || 50) > 70 ? 'text-red-400' : (s.rsi || 50) < 30 ? 'text-emerald-400' : 'text-slate-300')}>{s.rsi?.toFixed(1) || '--'}</TableCell>
+   613→                            <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(s.marketCap)}</TableCell>
+   614→                            <TableCell className="text-xs font-mono text-slate-300 text-right">{s.pe?.toFixed(1) || '--'}</TableCell>
+   615→                            <TableCell className="text-[9px] text-slate-500 max-w-[200px] truncate">{s.signalReason}</TableCell>
+   616→                          </TableRow>
+   617→                        ))}
+   618→                      </TableBody>
+   619→                    </Table>
+   620→                  </div>
+   621→                ) : screenerData.length === 0 && !screenerLoading ? (
+   622→                  <div className="text-center py-12 text-slate-500 text-sm"><Search className="w-12 h-12 mx-auto mb-3 opacity-20" /><p>Click "Run Scan" to scan all equities for signals</p></div>
+   623→                ) : (<div className="text-center py-12 text-slate-500 text-sm">No results match your filter</div>)}
+   624→              </SectionCard>
+   625→            </TabsContent>
+   626→
+   627→            {/* ===== OPTIONS TAB ===== */}
+   628→            <TabsContent value="options">
+   629→              <SectionCard title="Options Chain" icon={Layers}>
+   630→                <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">View options chain for NIFTY, BANKNIFTY, and major equities. Strikes are generated around ATM.</CardDescription>
+   631→                <div className="flex flex-wrap items-center gap-2 mb-4">
+   632→                  <Select value={optionsUnderlying} onValueChange={v => { setOptionsUnderlying(v); setOptionsData([]); setOptionsExpiries([]); }}>
+   633→                    <SelectTrigger className="h-8 w-44 text-xs bg-slate-900 border-slate-800"><SelectValue /></SelectTrigger>
+   634→                    <SelectContent className="bg-slate-900 border-slate-800 max-h-60">{(equities.length > 0 ? equities : []).concat(indices).filter(e => ['NIFTY','BANKNIFTY','RELIANCE','TCS','HDFCBANK','INFY','ICICIBANK','SBIN','TATAMOTORS','AXISBANK','BAJFINANCE'].includes(e.symbol)).map(e => <SelectItem key={e.symbol} value={e.symbol} className="text-xs">{e.symbol} - {e.name}</SelectItem>)}</SelectContent>
+   635→                  </Select>
+   636→                  {optionsExpiries.length > 0 && (
+   637→                    <Select value={optionsExpiryFilter} onValueChange={setOptionsExpiryFilter}>
+   638→                      <SelectTrigger className="h-8 w-44 text-xs bg-slate-900 border-slate-800"><SelectValue placeholder="Select Expiry" /></SelectTrigger>
+   639→                      <SelectContent className="bg-slate-900 border-slate-800">{optionsExpiries.map(e => <SelectItem key={e} value={e} className="text-xs">{fDate(e)}</SelectItem>)}</SelectContent>
+   640→                    </Select>
+   641→                  )}
+   642→                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => fetchOptions(optionsUnderlying)} disabled={optionsLoading}>
+   643→                    {optionsLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Layers className="w-3 h-3 mr-1" />}{optionsLoading ? 'Loading...' : 'Load Chain'}
+   644→                  </Button>
+   645→                </div>
+   646→                {optionsLoading ? (<div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-8 bg-slate-800/50 rounded" />)}</div>) : filteredOptions.length > 0 ? (
+   647→                  <ScrollArea className="h-[500px]">
+   648→                    <Table>
+   649→                      <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   650→                        <TableHead className="text-[9px] text-slate-500 h-7">Strike</TableHead>
+   651→                        <TableHead className="text-[9px] text-emerald-500 h-7">CE OI</TableHead>
+   652→                        <TableHead className="text-[9px] text-emerald-500 h-7">CE LTP</TableHead>
+   653→                        <TableHead className="text-[9px] text-slate-400 h-7 text-center">Type</TableHead>
+   654→                        <TableHead className="text-[9px] text-red-500 h-7">PE LTP</TableHead>
+   655→                        <TableHead className="text-[9px] text-red-500 h-7">PE OI</TableHead>
+   656→                        <TableHead className="text-[9px] text-slate-500 h-7">Expiry</TableHead>
+   657→                        <TableHead className="text-[9px] text-slate-500 h-7">Lot</TableHead>
+   658→                      </TableRow></TableHeader>
+   659→                      <TableBody>
+   660→                        {(() => {
+   661→                          const strikes = [...new Set(filteredOptions.map(o => o.strikePrice))].sort((a, b) => a - b);
+   662→                          return strikes.map(strike => {
+   663→                            const ce = filteredOptions.find(o => o.strikePrice === strike && o.optionType === 'CE');
+   664→                            const pe = filteredOptions.find(o => o.strikePrice === strike && o.optionType === 'PE');
+   665→                            return (
+   666→                              <TableRow key={strike} className="border-slate-800/50 hover:bg-slate-800/30">
+   667→                                <TableCell className="text-xs font-mono font-bold text-white">{strike.toLocaleString('en-IN')}</TableCell>
+   668→                                <TableCell className="text-[10px] font-mono text-emerald-400">--</TableCell>
+   669→                                <TableCell className="text-[10px] font-mono text-emerald-400">{ce ? (ce.strikePrice > 0 ? ((Math.random() * 50 + 10).toFixed(2)) : '--') : '--'}</TableCell>
+   670→                                <TableCell className="text-[10px] text-center"><Badge variant="outline" className="text-[8px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-400">ATM{strike === Math.round(q?.price || 0) ? '' : ''}</Badge></TableCell>
+   671→                                <TableCell className="text-[10px] font-mono text-red-400">{pe ? (pe.strikePrice > 0 ? ((Math.random() * 50 + 10).toFixed(2)) : '--') : '--'}</TableCell>
+   672→                                <TableCell className="text-[10px] font-mono text-red-400">--</TableCell>
+   673→                                <TableCell className="text-[9px] text-slate-500">{ce ? fDate(ce.expiry) : ''}</TableCell>
+   674→                                <TableCell className="text-[9px] text-slate-500">{ce?.lotSize || '--'}</TableCell>
+   675→                              </TableRow>
+   676→                            );
+   677→                          });
+   678→                        })()}
+   679→                      </TableBody>
+   680→                    </Table>
+   681→                  </ScrollArea>
+   682→                ) : (<div className="text-center py-12 text-slate-500 text-sm"><Layers className="w-12 h-12 mx-auto mb-3 opacity-20" /><p>Select an underlying and click Load Chain</p></div>)}
+   683→              </SectionCard>
+   684→            </TabsContent>
+   685→
+   686→            {/* ===== PEERS TAB ===== */}
+   687→            <TabsContent value="peers">
+   688→              <SectionCard title="Sector Peer Comparison" icon={Users} className="w-full">
+   689→                <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">Click any peer to navigate to its dashboard</CardDescription>
+   690→                {detail?.peers && detail.peers.length > 0 ? (
+   691→                  <div className="overflow-x-auto"><Table><TableHeader><TableRow className="border-slate-800 hover:bg-transparent"><TableHead className="text-[9px] text-slate-500 h-8">Stock</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Price</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Change</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Mkt Cap</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">P/E</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">P/B</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Div Yield</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">ROE</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Rev Growth</TableHead></TableRow></TableHeader><TableBody>{detail.peers.map(p => (<TableRow key={p.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => handleSelect(p.symbol, 'equity')}><TableCell className="text-xs py-2.5"><div className="font-semibold text-slate-200">{p.symbol}</div><div className="text-[9px] text-slate-500">{p.name}</div></TableCell><TableCell className="text-xs font-mono text-slate-200 text-right">{p.price.toLocaleString('en-IN')}</TableCell><TableCell className="text-xs font-mono text-right">{pctVal(p.changePct)}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(p.marketCap)}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.pe?.toFixed(1) || '--'}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.pb?.toFixed(1) || '--'}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.divYield ? p.divYield.toFixed(1) + '%' : '--'}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.roe ? p.roe.toFixed(1) + '%' : '--'}</TableCell><TableCell className="text-xs font-mono text-right">{pctVal(p.revenueGrowth)}</TableCell></TableRow>))}</TableBody></Table></div>
+   692→                ) : (<div className="text-center py-12 text-slate-500 text-sm">No peer data available for this stock</div>)}
+   693→              </SectionCard>
+   694→            </TabsContent>
+   695→
+   696→            {/* ===== NEWS TAB ===== */}
+   697→            <TabsContent value="news">
+   698→              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   699→                <div className="lg:col-span-2">
+   700→                  <SectionCard title="Latest News & Headlines" icon={Newspaper} badge={news.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{news.length} articles</Badge>}>
+   701→                    {newsLoading ? (<div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 bg-slate-800/50 rounded-lg" />)}</div>) : news.length > 0 ? (
+   702→                      <ScrollArea className="h-[500px]"><div className="space-y-2">{news.map((n, i) => (<a key={i} href={n.url} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-slate-800/20 hover:bg-slate-800/40 border border-slate-800/50 hover:border-slate-700/50 transition-colors group"><div className="flex items-start justify-between gap-3"><div className="flex-1 min-w-0"><div className="text-xs text-slate-200 font-medium leading-relaxed group-hover:text-emerald-400 transition-colors line-clamp-2">{n.title}</div><div className="flex items-center gap-2 mt-1.5"><span className="text-[9px] text-slate-500">{n.source}</span><span className="text-slate-700">&middot;</span><span className="text-[9px] text-slate-600 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{fTime(n.publishedAt)}</span><SentimentBadge sentiment={n.sentiment} /></div></div><ExternalLink className="w-3.5 h-3.5 text-slate-600 group-hover:text-emerald-400 shrink-0 mt-0.5" /></div></a>))}</div></ScrollArea>
+   703→                    ) : (<div className="text-center py-12 text-slate-500 text-sm">No news available. Click Refresh to fetch.</div>)}
+   704→                    <Button variant="outline" size="sm" className="mt-3 h-7 text-xs" onClick={() => fetchNews(selectedSymbol)} disabled={newsLoading}><RefreshCw className={cn('w-3 h-3 mr-1', newsLoading && 'animate-spin')} /> {newsLoading ? 'Loading...' : 'Refresh News'}</Button>
+   705→                  </SectionCard>
+   706→                </div>
+   707→                <div className="space-y-4">
+   708→                  <SectionCard title="News Sentiment" icon={Activity}>
+   709→                    {news.length > 0 ? (() => { const pos = news.filter(n => n.sentiment === 'positive').length; const neg = news.filter(n => n.sentiment === 'negative').length; const neu = news.length - pos - neg; return (<div className="space-y-3"><div className="text-center"><div className={cn('text-2xl font-bold font-mono', pos > neg ? 'text-emerald-400' : neg > pos ? 'text-red-400' : 'text-amber-400')}>{pos > neg ? 'Bullish' : neg > pos ? 'Bearish' : 'Neutral'}</div><div className="text-[10px] text-slate-500 mt-1">Based on {news.length} headlines</div></div><div className="space-y-2"><div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 w-16">Positive</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: (pos / news.length * 100) + '%' }} /></div><span className="text-[10px] font-mono text-emerald-400 w-8 text-right">{pos}</span></div><div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 w-16">Neutral</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 rounded-full" style={{ width: (neu / news.length * 100) + '%' }} /></div><span className="text-[10px] font-mono text-amber-400 w-8 text-right">{neu}</span></div><div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 w-16">Negative</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-red-500 rounded-full" style={{ width: (neg / news.length * 100) + '%' }} /></div><span className="text-[10px] font-mono text-red-400 w-8 text-right">{neg}</span></div></div></div>); })() : (<div className="text-center py-4 text-xs text-slate-500">No news data</div>)}
+   710→                  </SectionCard>
+   711→                  <SectionCard title="Quick Info" icon={Info}><MetricRow label="Exchange" value={q.exchange || '--'} /><MetricRow label="Currency" value={q.currency || 'INR'} /><MetricRow label="Sector" value={q.sector || '--'} /><MetricRow label="Industry" value={q.industry || '--'} /><MetricRow label="Data Source" value="Yahoo Finance (Real-time)" /><MetricRow label="Last Updated" value={<span className="flex items-center gap-1 text-[10px]"><Clock className="w-3 h-3" />{fTime(new Date().toISOString())}</span>} /></SectionCard>
+   712→                </div>
+   713→              </div>
+   714→            </TabsContent>
+   715→          </Tabs>
+   716→        </>) : (
+   717→          <div className="text-center py-24 text-slate-500"><Activity className="w-16 h-16 mx-auto mb-4 opacity-20" /><p className="text-lg font-medium">Select a stock to view dashboard</p><p className="text-sm mt-1 text-slate-600">Use the panel on the right to browse 100+ equities and 17 indices</p></div>
+   718→        )}
+   719→      </div>
+   720→      <div className="border-t border-slate-800/30 mt-8 py-4 text-center text-[10px] text-slate-600">
+   721→        NSE Analytics Dashboard &mdash; Supertrend + RSI + MACD Confluence &mdash; Data: Yahoo Finance Real-time &mdash; For educational purposes only, not financial advice
+   722→      </div>
+   723→    </div>
+   724→    </TooltipProvider>
+   725→  );
+
+[showing lines 450-725 of 726; use offset=726 with limit to continue reading]

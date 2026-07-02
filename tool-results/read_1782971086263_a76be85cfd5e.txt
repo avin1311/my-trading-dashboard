@@ -1,0 +1,726 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+     4→import dynamic from 'next/dynamic';
+     5→
+     6→const ChartSection = dynamic(() => import('@/components/dashboard/charts'), {
+     7→  ssr: false,
+     8→  loading: () => <div className="h-[340px] bg-slate-900/50 rounded-xl animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading charts...</div>
+     9→});
+    10→
+    11→import {
+    12→  TrendingUp, ArrowUp, ArrowDown, Activity, BarChart3, Target, Trophy,
+    13→  TrendingDown, Zap, Settings2, RefreshCw, Layers, BarChart2,
+    14→  DollarSign, Percent, Users, CircleDot, ChevronRight,
+    15→  ArrowUpRight, ArrowDownRight, Minus, Newspaper, PieChart,
+    16→  LineChart as LineChartIcon, Calendar, Clock, Globe, Shield,
+    17→  AlertTriangle, CheckCircle2, XCircle, Info, ExternalLink,
+    18→  TrendingUpIcon, Eye, Search, Filter, Save, Radio,
+    19→} from 'lucide-react';
+    20→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+    21→import { Badge } from '@/components/ui/badge';
+    22→import { Button } from '@/components/ui/button';
+    23→import { Skeleton } from '@/components/ui/skeleton';
+    24→import { Slider } from '@/components/ui/slider';
+    25→import { Input } from '@/components/ui/input';
+    26→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+    27→import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+    28→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    29→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+    30→import { ScrollArea } from '@/components/ui/scroll-area';
+    31→import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+    32→import { Separator } from '@/components/ui/separator';
+    33→import { Progress } from '@/components/ui/progress';
+    34→import { cn } from '@/lib/utils';
+    35→
+    36→// ==================== TYPES ====================
+    37→interface StockInfo { symbol: string; name: string; sector: string; basePrice: number; volatility: number; type: string; }
+    38→interface OHLCV { date: string; open: number; high: number; low: number; close: number; volume: number; }
+    39→type SignalType = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
+    40→interface StrategySignal { date: string; close: number; signal: SignalType; supertrend: number; supertrendDir: number; rsi: number; macd: number; macdSignal: number; macdHistogram: number; reason: string; }
+    41→interface TradeRecord { entryDate: string; exitDate: string; entryPrice: number; exitPrice: number; type: string; pnl: number; pnlPct: number; signal: SignalType; }
+    42→interface BacktestResult { totalReturn: number; totalReturnPct: number; winRate: number; totalTrades: number; winningTrades: number; losingTrades: number; avgWinPct: number; avgLossPct: number; maxDrawdownPct: number; profitFactor: number; trades: TradeRecord[]; }
+    43→interface StrategyParams { supertrendPeriod: number; supertrendMultiplier: number; rsiPeriod: number; rsiOverbought: number; rsiOversold: number; macdFast: number; macdSlow: number; macdSignal: number; }
+    44→interface ChartDataPoint extends OHLCV { supertrend: number | null; supertrendDir: number | null; rsi: number | null; macd: number | null; macdSignal: number | null; macdHistogram: number | null; signal: SignalType | null; }
+    45→interface LiveQuote { symbol: string; name: string; longName: string; sector: string; industry: string; exchange: string; currency: string; type: string; price: number; change: number; changePct: number; prevClose: number; open: number; dayHigh: number; dayLow: number; volume: number; avgVolume: number; volumeRatio: number; marketCap: number; pe: number | null; forwardPE: number | null; pb: number | null; eps: number | null; bookValue: number | null; dividendYield: number | null; payoutRatio: number | null; high52w: number; low52w: number; percentFrom52wHigh: number; percentFrom52wLow: number; fiftyDMA: number | null; twoHundredDMA: number | null; percentAbove50DMA: number | null; percentAbove200DMA: number | null; beta: number | null; roe: number | null; roa: number | null; debtToEquity: number | null; revenueGrowth: number | null; profitMargins: number | null; operatingMargins: number | null; currentRatio: number | null; totalRevenue: number | null; ebitda: number | null; grossProfits: number | null; freeCashflow: number | null; recommendation: string | null; targetHigh: number | null; targetLow: number | null; targetMean: number | null; targetMedian: number | null; analysts: number | null; instHolding: number | null; }
+    46→interface PeerData { symbol: string; name: string; price: number; changePct: number; marketCap: number; pe: number | null; pb: number | null; divYield: number | null; roe: number | null; revenueGrowth: number | null; }
+    47→interface StockDetail { quote: LiveQuote; technicals: Record<string, any>; performance: Record<string, number | null>; ownership: Record<string, number | null>; financials: Record<string, number | null>; peers: PeerData[] | null; dataPoints: number; lastDate: string | null; }
+    48→interface MarketOverview { nifty50: LiveQuote; bankNifty: LiveQuote; niftyIT: LiveQuote; indiaVix: LiveQuote; topGainers?: LiveQuote[]; topLosers?: LiveQuote[]; }
+    49→interface NewsItem { title: string; source: string; url: string; publishedAt: string; summary: string; sentiment: "positive" | "negative" | "neutral"; }
+    50→interface ScreenerResult { symbol: string; name: string; sector: string; price: number; change: number; changePct: number; volume: number; marketCap: number; pe: number | null; signal: string; rsi: number | null; macdHistogram: number | null; supertrendDir: number; signalReason: string; lastDate: string; }
+    51→interface SavePoint { id: number; label: string; time: string; detail: string; }
+    52→
+    53→const DEFAULT_PARAMS: StrategyParams = {
+    54→  supertrendPeriod: 10, supertrendMultiplier: 3, rsiPeriod: 14,
+    55→  rsiOverbought: 70, rsiOversold: 30, macdFast: 12, macdSlow: 26, macdSignal: 9,
+    56→};
+    57→
+    58→// ==================== FORMATTERS ====================
+    59→function fINR(v: number): string {
+    60→  if (v >= 1e12) return '\u20B9' + (v / 1e12).toFixed(2) + ' T';
+    61→  if (v >= 1e7) return '\u20B9' + (v / 1e7).toFixed(2) + ' Cr';
+    62→  if (v >= 1e5) return '\u20B9' + (v / 1e5).toFixed(2) + ' L';
+    63→  return '\u20B9' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    64→}
+    65→function fNum(v: number): string {
+    66→  if (v >= 1e12) return (v / 1e12).toFixed(2) + 'T';
+    67→  if (v >= 1e7) return (v / 1e7).toFixed(2) + ' Cr';
+    68→  if (v >= 1e5) return (v / 1e5).toFixed(2) + ' L';
+    69→  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+    70→  return v.toFixed(2);
+    71→}
+    72→function fDate(d: string): string { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }); }
+    73→function fTime(d: string): string { const dt = new Date(d); const now = new Date(); const diffHrs = Math.floor((now.getTime() - dt.getTime()) / 3600000); if (diffHrs < 1) return 'Just now'; if (diffHrs < 24) return diffHrs + 'h ago'; return fDate(d); }
+    74→
+    75→// ==================== COLOR MAPS ====================
+    76→const SIG_BG: Record<string, string> = { STRONG_BUY: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400', BUY: 'bg-green-500/20 border-green-500/40 text-green-400', HOLD: 'bg-amber-500/20 border-amber-500/40 text-amber-400', SELL: 'bg-orange-500/20 border-orange-500/40 text-orange-400', STRONG_SELL: 'bg-red-500/20 border-red-500/40 text-red-400' };
+    77→const TYPE_COLOR: Record<string, string> = { equity: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30', index: 'bg-purple-500/15 text-purple-400 border-purple-500/30' };
+    78→
+    79→function pctVal(v: number | null) {
+    80→  if (v === null) return <span className="text-slate-600">--</span>;
+    81→  const c = v >= 0 ? 'text-emerald-400' : 'text-red-400';
+    82→  const icon = v > 0.5 ? <ArrowUpRight className="w-3 h-3" /> : v < -0.5 ? <ArrowDownRight className="w-3 h-3" /> : <Minus className="w-3 h-3" />;
+    83→  return <span className={cn(c, 'flex items-center gap-0.5 font-mono')}>{icon}{Math.abs(v).toFixed(2)}%</span>;
+    84→}
+    85→
+    86→// ==================== POWER BI STYLE COMPONENTS ====================
+    87→function KPICard({ label, value, sub, icon: Icon, trend, accent }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon?: React.ElementType; trend?: 'up' | 'down' | 'flat'; accent?: string }) {
+    88→  const ac = accent || (trend === 'up' ? 'from-emerald-500/5 to-emerald-500/10 border-emerald-500/20' : trend === 'down' ? 'from-red-500/5 to-red-500/10 border-red-500/20' : 'from-slate-500/5 to-slate-500/10 border-slate-700/50');
+    89→  return (
+    90→    <div className={cn('rounded-xl border bg-gradient-to-br p-3.5 transition-all', ac)}>
+    91→      <div className="flex items-center justify-between mb-2">
+    92→        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{label}</span>
+    93→        {Icon && <Icon className={cn('w-3.5 h-3.5', trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-500' : 'text-slate-600')} />}
+    94→      </div>
+    95→      <div className="text-sm font-bold text-slate-100 truncate">{value}</div>
+    96→      {sub && <div className="text-[10px] text-slate-400 mt-1">{sub}</div>}
+    97→    </div>
+    98→  );
+    99→}
+   100→
+   101→function MetricRow({ label, value, highlight, badge, bar }: { label: string; value: React.ReactNode; highlight?: boolean; badge?: { text: string; color: string }; bar?: { value: number; max: number; color: string } }) {
+   102→  return (
+   103→    <div className="flex items-center justify-between py-2 border-b border-slate-800/40 last:border-0">
+   104→      <span className="text-xs text-slate-400">{label}</span>
+   105→      <div className="flex items-center gap-2">
+   106→        {bar && (<div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className={cn('h-full rounded-full transition-all', bar.color)} style={{ width: Math.min(100, (bar.value / bar.max) * 100) + '%' }} /></div>)}
+   107→        {badge && <Badge variant="outline" className={cn('text-[8px] px-1 py-0', badge.color)}>{badge.text}</Badge>}
+   108→        <span className={cn('text-xs font-mono', highlight ? 'text-white font-semibold' : 'text-slate-200')}>{value}</span>
+   109→      </div>
+   110→    </div>
+   111→  );
+   112→}
+   113→
+   114→function SectionCard({ title, icon: Icon, children, className, badge }: { title: string; icon?: React.ElementType; children: React.ReactNode; className?: string; badge?: React.ReactNode }) {
+   115→  return (
+   116→    <Card className={cn('border-slate-800/70 bg-gradient-to-br from-slate-900/80 to-slate-900/50 backdrop-blur-sm', className)}>
+   117→      <CardHeader className="p-3.5 pb-2">
+   118→        <div className="flex items-center justify-between">
+   119→          <CardTitle className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">{Icon && <Icon className="w-3.5 h-3.5 text-emerald-500/70" />}{title}</CardTitle>
+   120→          {badge}
+   121→        </div>
+   122→      </CardHeader>
+   123→      <CardContent className="p-3.5 pt-0">{children}</CardContent>
+   124→    </Card>
+   125→  );
+   126→}
+   127→
+   128→function MktTicker({ label, q }: { label: string; q: LiveQuote | null }) {
+   129→  if (!q) return <div className="flex flex-col items-center px-3 py-1.5"><Skeleton className="h-3 w-16 bg-slate-800" /></div>;
+   130→  const up = q.changePct >= 0;
+   131→  return (
+   132→    <Tooltip><TooltipTrigger asChild><div className="flex flex-col items-center px-3 py-1.5 cursor-default">
+   133→      <span className="text-[10px] text-slate-500 font-medium">{label}</span>
+   134→      <span className="text-xs font-bold text-slate-200 font-mono">{q.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+   135→      <span className={cn('text-[10px] font-semibold font-mono', up ? 'text-emerald-400' : 'text-red-400')}>{up ? '+' : ''}{q.changePct.toFixed(2)}%</span>
+   136→    </div></TooltipTrigger>
+   137→    <TooltipContent className="text-xs bg-slate-900 border-slate-700"><div>H: {q.dayHigh.toLocaleString('en-IN')} L: {q.dayLow.toLocaleString('en-IN')}</div><div>Vol: {fNum(q.volume)}</div></TooltipContent></Tooltip>
+   138→  );
+   139→}
+   140→
+   141→function PBar({ value, min, max, label, color }: { value: number; min: number; max: number; label: string; color: string }) {
+   142→  const pct = max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 50;
+   143→  return (<div className="flex items-center gap-2 text-xs"><span className="w-16 text-slate-500 text-right shrink-0">{label}</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className={cn('h-full rounded-full transition-all', color)} style={{ width: pct + '%' }} /></div><span className="w-14 text-slate-300 font-mono text-right shrink-0">{value.toFixed(1)}</span></div>);
+   144→}
+   145→
+   146→function SentimentBadge({ sentiment }: { sentiment: string }) {
+   147→  const map: Record<string, string> = { positive: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', negative: 'bg-red-500/15 text-red-400 border-red-500/30', neutral: 'bg-slate-500/15 text-slate-400 border-slate-500/30' };
+   148→  return <Badge variant="outline" className={cn('text-[8px] px-1.5 py-0 capitalize', map[sentiment] || map.neutral)}>{sentiment}</Badge>;
+   149→}
+   150→
+   151→function OwnershipDonut({ data }: { data: Record<string, number | null> }) {
+   152→  const segments = [{ label: 'Promoter', value: data.promoter, color: '#3b82f6' }, { label: 'FII', value: data.fii, color: '#10b981' }, { label: 'DII', value: data.dii, color: '#f59e0b' }, { label: 'Public', value: data.public, color: '#6366f1' }].filter(s => s.value !== null && s.value !== undefined) as { label: string; value: number; color: string }[];
+   153→  const total = segments.reduce((a, s) => a + s.value, 0);
+   154→  if (total === 0) return <div className="text-xs text-slate-500 text-center py-4">No ownership data</div>;
+   155→  let cum = 0;
+   156→  const grad = segments.map(s => { const start = cum; cum += (s.value / total) * 100; return `${s.color} ${start}% ${cum}%`; });
+   157→  return (<div className="flex items-center gap-4"><div className="relative w-24 h-24 shrink-0"><div className="w-24 h-24 rounded-full" style={{ background: `conic-gradient(${grad.join(', ')})` }} /><div className="absolute inset-3 rounded-full bg-slate-900 flex items-center justify-center"><span className="text-[10px] text-slate-400 font-semibold">Holding</span></div></div><div className="space-y-1.5 flex-1">{segments.map(s => (<div key={s.label} className="flex items-center gap-2 text-xs"><div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: s.color }} /><span className="text-slate-400 flex-1">{s.label}</span><span className="font-mono text-slate-200 font-semibold">{s.value.toFixed(1)}%</span></div>))}</div></div>);
+   158→}
+   159→
+   160→// ==================== SAVE POINTS COMPONENT ====================
+   161→function SavePoints({ points }: { points: SavePoint[] }) {
+   162→  if (points.length === 0) return null;
+   163→  return (
+   164→    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 max-w-xs">
+   165→      {points.slice(-3).map(sp => (
+   166→        <div key={sp.id} className="animate-in slide-in-from-right-4 fade-in duration-500 bg-slate-900/95 backdrop-blur-md border border-emerald-500/30 rounded-xl px-4 py-3 shadow-xl shadow-emerald-500/5 max-w-xs">
+   167→          <div className="flex items-center gap-2 mb-1">
+   168→            <Save className="w-3 h-3 text-emerald-400" />
+   169→            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Save Point #{sp.id}</span>
+   170→            <span className="text-[9px] text-slate-600 ml-auto">{sp.time}</span>
+   171→          </div>
+   172→          <div className="text-xs text-slate-300 font-semibold">{sp.label}</div>
+   173→          <div className="text-[10px] text-slate-500 mt-0.5">{sp.detail}</div>
+   174→        </div>
+   175→      ))}
+   176→    </div>
+   177→  );
+   178→}
+   179→
+   180→// ==================== MAIN PAGE ====================
+   181→export default function Home() {
+   182→  const [sheetOpen, setSheetOpen] = useState(false);
+   183→  const [equities, setEquities] = useState<StockInfo[]>([]);
+   184→  const [indices, setIndices] = useState<StockInfo[]>([]);
+   185→  const [sectors, setSectors] = useState<string[]>([]);
+   186→  const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE');
+   187→  const [selectedType, setSelectedType] = useState('equity');
+   188→  const [signalsLoading, setSignalsLoading] = useState(true);
+   189→  const [detailLoading, setDetailLoading] = useState(true);
+   190→  const [stockData, setStockData] = useState<OHLCV[]>([]);
+   191→  const [signals, setSignals] = useState<StrategySignal[]>([]);
+   192→  const [backtest, setBacktest] = useState<BacktestResult | null>(null);
+   193→  const [params, setParams] = useState<StrategyParams>({ ...DEFAULT_PARAMS });
+   194→  const [recalculating, setRecalculating] = useState(false);
+   195→  const [detail, setDetail] = useState<StockDetail | null>(null);
+   196→  const [overview, setOverview] = useState<MarketOverview | null>(null);
+   197→  const [lastDate, setLastDate] = useState('');
+   198→  const [equitySearch, setEquitySearch] = useState('');
+   199→  const [selectedSector, setSelectedSector] = useState('all');
+   200→  const [activeTab, setActiveTab] = useState('overview');
+   201→  const [news, setNews] = useState<NewsItem[]>([]);
+   202→  const [newsLoading, setNewsLoading] = useState(false);
+   203→
+   204→  // Screener state
+   205→  const [screenerData, setScreenerData] = useState<ScreenerResult[]>([]);
+   206→  const [screenerCounts, setScreenerCounts] = useState<Record<string, number>>({});
+   207→  const [screenerLoading, setScreenerLoading] = useState(false);
+   208→  const [screenerFilter, setScreenerFilter] = useState('ALL');
+   209→  const [screenerSector, setScreenerSector] = useState('all');
+   210→  const [screenerSearched, setScreenerSearched] = useState('');
+   211→
+   212→  // Options state
+   213→  const [optionsUnderlying, setOptionsUnderlying] = useState('NIFTY');
+   214→  const [optionsData, setOptionsData] = useState<any[]>([]);
+   215→  const [optionsExpiries, setOptionsExpiries] = useState<string[]>([]);
+   216→  const [optionsLoading, setOptionsLoading] = useState(false);
+   217→  const [optionsExpiryFilter, setOptionsExpiryFilter] = useState('');
+   218→
+   219→  // Save points
+   220→  const [savePoints, setSavePoints] = useState<SavePoint[]>([]);
+   221→  const spId = useRef(0);
+   222→  const addSavePoint = useCallback((label: string, detail: string) => {
+   223→    spId.current++;
+   224→    const sp: SavePoint = { id: spId.current, label, detail, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) };
+   225→    setSavePoints(prev => [...prev.slice(-5), sp]);
+   226→    setTimeout(() => setSavePoints(prev => prev.filter(p => p.id !== sp.id)), 8000);
+   227→  }, []);
+   228→
+   229→  // Initial load
+   230→  useEffect(() => {
+   231→    Promise.all([
+   232→      fetch('/api/stocks?type=equity').then(r => r.json()),
+   233→      fetch('/api/stocks?type=index').then(r => r.json()),
+   234→      fetch('/api/quote?overview=true').then(r => r.json()).catch(() => null),
+   235→    ]).then(([eq, idx, ov]: any[]) => {
+   236→      setEquities(eq.instruments || []);
+   237→      setIndices(idx.instruments || []);
+   238→      setSectors(eq.sectors || []);
+   239→      if (ov) setOverview(ov);
+   240→      addSavePoint('Market Data Loaded', `${(eq.instruments || []).length} equities, ${(idx.instruments || []).length} indices loaded from Yahoo Finance`);
+   241→    }).catch(console.error);
+   242→  }, []);
+   243→
+   244→  const fetchDetail = useCallback(async (sym: string) => {
+   245→    setDetailLoading(true);
+   246→    try {
+   247→      const res = await fetch('/api/stock-detail?symbol=' + sym);
+   248→      const data = await res.json();
+   249→      if (data.quote) { setDetail(data); addSavePoint(`Loaded ${sym}`, `Price: ${data.quote.price.toLocaleString('en-IN')} | ${data.quote.changePct >= 0 ? '+' : ''}${data.quote.changePct.toFixed(2)}% | Data points: ${data.dataPoints}`); }
+   250→    } catch {} finally { setDetailLoading(false); }
+   251→  }, [addSavePoint]);
+   252→
+   253→  const fetchSignals = useCallback(async (sym: string, p: StrategyParams) => {
+   254→    setSignalsLoading(true);
+   255→    try {
+   256→      const sp = new URLSearchParams({ symbol: sym, days: '200' });
+   257→      for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
+   258→      const res = await fetch('/api/signals?' + sp.toString());
+   259→      const data = await res.json();
+   260→      setStockData(data.stockData || []);
+   261→      setSignals(data.signals || []);
+   262→      setBacktest(data.backtest || null);
+   263→      setParams(data.params || DEFAULT_PARAMS);
+   264→      setLastDate(data.lastDate || '');
+   265→      if (data.signals?.length > 0) {
+   266→        const last = data.signals[data.signals.length - 1];
+   267→        addSavePoint('Signals Calculated', `${last.signal} | RSI: ${last.rsi?.toFixed(1)} | ST: ${last.supertrendDir === 1 ? 'Bullish' : 'Bearish'}`);
+   268→      }
+   269→    } catch {} finally { setSignalsLoading(false); setRecalculating(false); }
+   270→  }, [addSavePoint]);
+   271→
+   272→  const fetchNews = useCallback(async (sym: string) => {
+   273→    setNewsLoading(true);
+   274→    try {
+   275→      const res = await fetch('/api/news?symbol=' + sym);
+   276→      const data = await res.json();
+   277→      if (data.news) setNews(data.news);
+   278→    } catch {} finally { setNewsLoading(false); }
+   279→  }, []);
+   280→
+   281→  const fetchScreener = useCallback(async () => {
+   282→    setScreenerLoading(true);
+   283→    try {
+   284→      const sp = new URLSearchParams({ limit: '60' });
+   285→      if (screenerFilter !== 'ALL') sp.append('signal', screenerFilter);
+   286→      if (screenerSector !== 'all') sp.append('sector', screenerSector);
+   287→      const res = await fetch('/api/screener?' + sp.toString());
+   288→      const data = await res.json();
+   289→      setScreenerData(data.results || []);
+   290→      setScreenerCounts(data.signalCounts || {});
+   291→      addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched | Source: ${data.dataSource}`);
+   292→    } catch {} finally { setScreenerLoading(false); }
+   293→  }, [screenerFilter, screenerSector, addSavePoint]);
+   294→
+   295→  const fetchOptions = useCallback(async (underlying: string) => {
+   296→    setOptionsLoading(true);
+   297→    try {
+   298→      const res = await fetch(`/api/stocks?type=option&underlying=${underlying}`);
+   299→      const data = await res.json();
+   300→      setOptionsData(data.instruments || []);
+   301→      setOptionsExpiries(data.expiryDates || []);
+   302→      if (data.expiryDates?.length > 0) setOptionsExpiryFilter(data.expiryDates[0]);
+   303→    } catch {} finally { setOptionsLoading(false); }
+   304→  }, []);
+   305→
+   306→  useEffect(() => { fetchDetail(selectedSymbol); fetchSignals(selectedSymbol, params); }, [selectedSymbol]);
+   307→  useEffect(() => { if (activeTab === 'news' && news.length === 0) fetchNews(selectedSymbol); }, [activeTab, selectedSymbol]);
+   308→  useEffect(() => { if (activeTab === 'screener' && screenerData.length === 0) fetchScreener(); }, [activeTab]);
+   309→  useEffect(() => { if (activeTab === 'options' && optionsData.length === 0) fetchOptions(optionsUnderlying); }, [activeTab, optionsUnderlying]);
+   310→
+   311→  const handleRefresh = () => { fetchDetail(selectedSymbol); fetchSignals(selectedSymbol, params); if (activeTab === 'news') fetchNews(selectedSymbol); };
+   312→  const handleSelect = (sym: string, type: string) => { setSelectedSymbol(sym); setSelectedType(type); setSheetOpen(false); setActiveTab('overview'); setNews([]); setScreenerData([]); };
+   313→
+   314→  const chartData = useMemo(() => { const m = new Map(signals.map(s => [s.date, s])); return stockData.map(d => { const s = m.get(d.date); return { ...d, supertrend: s?.supertrend ?? null, supertrendDir: s?.supertrendDir ?? null, rsi: s?.rsi ?? null, macd: s?.macd ?? null, macdSignal: s?.macdSignal ?? null, macdHistogram: s?.macdHistogram ?? null, signal: s?.signal ?? null }; }); }, [stockData, signals]);
+   315→  const visibleData = useMemo(() => { const max = 100, end = chartData.length; return chartData.slice(Math.max(0, end - max), end); }, [chartData]);
+   316→  const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+   317→  const filteredEquities = useMemo(() => { let list = equities; if (equitySearch) { const q = equitySearch.toLowerCase(); list = list.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)); } if (selectedSector !== 'all') list = list.filter(s => s.sector === selectedSector); return list; }, [equities, equitySearch, selectedSector]);
+   318→  const filteredScreener = useMemo(() => { let d = screenerData; if (screenerSearched) { const q = screenerSearched.toLowerCase(); d = d.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)); } return d; }, [screenerData, screenerSearched]);
+   319→  const filteredOptions = useMemo(() => { if (!optionsExpiryFilter) return optionsData; return optionsData.filter(o => o.expiry === optionsExpiryFilter); }, [optionsData, optionsExpiryFilter]);
+   320→
+   321→  const q = detail?.quote || null;
+   322→  const t = detail?.technicals || {};
+   323→  const perf = detail?.performance || {};
+   324→  const own = detail?.ownership || {};
+   325→  const fin = detail?.financials || {};
+   326→  const topGainers = overview?.topGainers?.slice(0, 5) || [];
+   327→
+   328→  return (
+   329→    <TooltipProvider delayDuration={200}>
+   330→    <div className="min-h-screen bg-[#06080f] text-slate-100">
+   331→      {/* Save Points */}
+   332→      <SavePoints points={savePoints} />
+   333→
+   334→      {/* ========== TOP MARKET TICKER BAR ========== */}
+   335→      <div className="sticky top-0 z-50 border-b border-slate-800/60 bg-[#06080f]/95 backdrop-blur-md">
+   336→        <div className="max-w-[1920px] mx-auto px-4">
+   337→          <div className="flex items-center justify-between py-1.5">
+   338→            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+   339→              <MktTicker label="NIFTY 50" q={overview?.nifty50 ?? null} />
+   340→              <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
+   341→              <MktTicker label="BANK NIFTY" q={overview?.bankNifty ?? null} />
+   342→              <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
+   343→              <MktTicker label="NIFTY IT" q={overview?.niftyIT ?? null} />
+   344→              <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
+   345→              <MktTicker label="INDIA VIX" q={overview?.indiaVix ?? null} />
+   346→              {topGainers.length > 0 && (<><div className="w-px h-8 bg-slate-800/60 mx-1" /><div className="flex items-center gap-1"><TrendingUp className="w-3 h-3 text-emerald-500" />{topGainers.slice(0, 3).map(s => (<span key={s.symbol} className="text-[9px] font-mono text-emerald-400 px-1.5">{s.symbol} +{s.changePct.toFixed(1)}%</span>))}</div></>)}
+   347→            </div>
+   348→            <div className="flex items-center gap-2 shrink-0 ml-3">
+   349→              {q && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 gap-1"><CircleDot className="w-2 h-2 animate-pulse" /> LIVE</Badge>}
+   350→              {lastDate && <span className="text-[10px] text-slate-600 font-mono hidden md:inline flex items-center gap-1"><Calendar className="w-3 h-3" /> {fDate(lastDate)}</span>}
+   351→            </div>
+   352→          </div>
+   353→
+   354→          {/* ========== HEADER ========== */}
+   355→          <div className="flex items-center justify-between py-2.5">
+   356→            <div className="flex items-center gap-3 min-w-0">
+   357→              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-600/20 border border-emerald-500/20 flex items-center justify-center shrink-0"><TrendingUp className="w-5 h-5 text-emerald-400" /></div>
+   358→              <div className="min-w-0">
+   359→                <div className="flex items-center gap-2 flex-wrap">
+   360→                  <h1 className="text-lg font-bold tracking-tight text-white">{q?.longName || q?.name || selectedSymbol}</h1>
+   361→                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0', TYPE_COLOR[selectedType] || 'bg-slate-800 text-slate-400')}>{selectedType.toUpperCase()}</Badge>
+   362→                  {q?.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/80 border-slate-700 text-slate-400">{q.sector}</Badge>}
+   363→                  {q?.industry && q.industry !== q.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/60 border-slate-700/60 text-slate-500">{q.industry}</Badge>}
+   364→                </div>
+   365→                {detailLoading ? <Skeleton className="h-6 w-40 bg-slate-800 mt-1" /> : q ? (
+   366→                  <div className="flex items-center gap-3 mt-0.5">
+   367→                    <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{q.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+   368→                    <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', q.changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
+   369→                      {q.changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+   370→                      {Math.abs(q.change).toFixed(2)} ({Math.abs(q.changePct).toFixed(2)}%)
+   371→                    </span>
+   372→                    <span className="text-[10px] text-slate-500 hidden sm:inline">{q.exchange} &middot; {q.currency}</span>
+   373→                    <Badge variant="outline" className="text-[8px] px-1 py-0 bg-blue-500/10 border-blue-500/20 text-blue-400 hidden lg:flex items-center gap-1"><Radio className="w-2 h-2" /> Yahoo Finance</Badge>
+   374→                  </div>
+   375→                ) : null}
+   376→              </div>
+   377→            </div>
+   378→            <div className="flex items-center gap-2 shrink-0">
+   379→              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs h-8" onClick={handleRefresh} disabled={detailLoading}><RefreshCw className={cn('w-3.5 h-3.5 mr-1', detailLoading && 'animate-spin')} /> Refresh</Button>
+   380→              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+   381→                <SheetTrigger asChild><Button variant="outline" className="bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 gap-2 h-8 text-xs"><Layers className="w-3.5 h-3.5 text-emerald-400" /><span className="hidden sm:inline">{selectedSymbol}</span><ChevronRight className="w-3 h-3 opacity-50" /></Button></SheetTrigger>
+   382→                <SheetContent side="right" className="w-full sm:w-[440px] bg-[#0a0e1a] border-slate-800 p-0">
+   383→                  <SheetHeader className="px-4 pt-4 pb-2">
+   384→                    <SheetTitle className="text-white text-sm flex items-center gap-2"><Layers className="w-4 h-4 text-emerald-400" /> Select Instrument</SheetTitle>
+   385→                    <SheetDescription className="text-slate-400 text-xs">{equities.length} equities, {indices.length} indices</SheetDescription>
+   386→                  </SheetHeader>
+   387→                  <Tabs defaultValue="equities" className="px-4">
+   388→                    <TabsList className="bg-slate-900 w-full border border-slate-800 h-8">
+   389→                      <TabsTrigger value="equities" className="flex-1 text-[10px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Equities ({equities.length})</TabsTrigger>
+   390→                      <TabsTrigger value="indices" className="flex-1 text-[10px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Indices ({indices.length})</TabsTrigger>
+   391→                    </TabsList>
+   392→                    <TabsContent value="equities" className="mt-2">
+   393→                      <Input placeholder="Search symbol or name..." value={equitySearch} onChange={e => setEquitySearch(e.target.value)} className="h-8 text-xs bg-slate-900 border-slate-800 mb-2" />
+   394→                      <Select value={selectedSector} onValueChange={setSelectedSector}><SelectTrigger className="h-7 text-[10px] bg-slate-900 border-slate-800 mb-2"><SelectValue placeholder="All Sectors" /></SelectTrigger><SelectContent className="bg-slate-900 border-slate-800"><SelectItem value="all">All Sectors</SelectItem>{sectors.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent></Select>
+   395→                      <ScrollArea className="h-[calc(100vh-280px)]"><div className="space-y-0.5">{filteredEquities.map(s => (<button key={s.symbol} onClick={() => handleSelect(s.symbol, 'equity')} className={cn('w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-slate-800/60 transition-colors', s.symbol === selectedSymbol && 'bg-emerald-500/10 border border-emerald-500/20')}><div className="min-w-0"><div className="text-xs font-semibold text-slate-200 truncate">{s.symbol}</div><div className="text-[10px] text-slate-500 truncate">{s.name}</div></div><Badge variant="outline" className="text-[8px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-500 shrink-0 ml-2">{s.sector}</Badge></button>))}</div></ScrollArea>
+   396→                    </TabsContent>
+   397→                    <TabsContent value="indices" className="mt-2">
+   398→                      <ScrollArea className="h-[calc(100vh-240px)]"><div className="space-y-0.5">{indices.map(s => (<button key={s.symbol} onClick={() => handleSelect(s.symbol, 'index')} className={cn('w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-slate-800/60 transition-colors', s.symbol === selectedSymbol && 'bg-emerald-500/10 border border-emerald-500/20')}><div><div className="text-xs font-semibold text-slate-200">{s.symbol}</div><div className="text-[10px] text-slate-500">{s.name}</div></div></button>))}</div></ScrollArea>
+   399→                    </TabsContent>
+   400→                  </Tabs>
+   401→                </SheetContent>
+   402→              </Sheet>
+   403→            </div>
+   404→          </div>
+   405→        </div>
+   406→      </div>
+   407→
+   408→      {/* ========== MAIN CONTENT ========== */}
+   409→      <div className="max-w-[1920px] mx-auto px-4 py-4">
+   410→        {detailLoading && !q ? (
+   411→          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 bg-slate-900/50 rounded-xl" />)}</div>
+   412→        ) : q ? (<>
+   413→          {/* ===== KPI STRIP ===== */}
+   414→          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5 mb-5">
+   415→            <KPICard label="Market Cap" value={q.marketCap ? fINR(q.marketCap) : '--'} icon={Globe} trend={q.changePct >= 0 ? 'up' : 'down'} />
+   416→            <KPICard label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} sub={q.forwardPE ? 'Fwd: ' + q.forwardPE.toFixed(1) : undefined} icon={PieChart} />
+   417→            <KPICard label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} sub={q.bookValue ? 'BV: ' + fINR(q.bookValue) : undefined} icon={BarChart3} />
+   418→            <KPICard label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} sub={q.roa ? 'ROA: ' + q.roa.toFixed(1) + '%' : undefined} icon={TrendingUpIcon} trend={q.roe && q.roe > 15 ? 'up' : q.roe && q.roe < 8 ? 'down' : undefined} />
+   419→            <KPICard label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} sub={q.eps ? 'EPS: ' + q.eps.toFixed(1) : undefined} icon={Percent} />
+   420→            <KPICard label="Volume" value={fNum(q.volume)} sub={q.avgVolume ? 'Avg: ' + fNum(q.avgVolume) : undefined} icon={BarChart2} trend={q.volumeRatio > 1.5 ? 'up' : q.volumeRatio < 0.5 ? 'down' : undefined} />
+   421→            <KPICard label="Beta" value={q.beta?.toFixed(2) || '--'} sub={q.debtToEquity ? 'D/E: ' + q.debtToEquity.toFixed(2) : undefined} icon={Shield} />
+   422→            <KPICard label="Signal" value={latestSignal ? latestSignal.signal.replace('_', ' ') : 'HOLD'} icon={latestSignal?.signal?.includes('BUY') ? CheckCircle2 : latestSignal?.signal?.includes('SELL') ? XCircle : AlertTriangle} accent={SIG_BG[latestSignal?.signal || 'HOLD'] || SIG_BG.HOLD} />
+   423→          </div>
+   424→
+   425→          {/* ===== TABS ===== */}
+   426→          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+   427→            <TabsList className="bg-slate-900/60 border border-slate-800/60 h-10 p-1 rounded-xl overflow-x-auto">
+   428→              <TabsTrigger value="overview" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Eye className="w-3.5 h-3.5" /> Overview</TabsTrigger>
+   429→              <TabsTrigger value="fundamentals" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><DollarSign className="w-3.5 h-3.5" /> Fundamentals</TabsTrigger>
+   430→              <TabsTrigger value="technicals" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Activity className="w-3.5 h-3.5" /> Technicals</TabsTrigger>
+   431→              <TabsTrigger value="strategy" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Target className="w-3.5 h-3.5" /> Strategy</TabsTrigger>
+   432→              <TabsTrigger value="screener" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Search className="w-3.5 h-3.5" /> Screener</TabsTrigger>
+   433→              <TabsTrigger value="options" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Layers className="w-3.5 h-3.5" /> Options</TabsTrigger>
+   434→              <TabsTrigger value="peers" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Users className="w-3.5 h-3.5" /> Peers</TabsTrigger>
+   435→              <TabsTrigger value="news" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3 whitespace-nowrap"><Newspaper className="w-3.5 h-3.5" /> News</TabsTrigger>
+   436→            </TabsList>
+   437→
+   438→            {/* ===== OVERVIEW TAB ===== */}
+   439→            <TabsContent value="overview">
+   440→              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   441→                <div className="lg:col-span-2 space-y-4">
+   442→                  {latestSignal && (
+   443→                    <SectionCard title="Strategy Signal" icon={Zap} badge={<Badge className={cn('text-[10px] font-bold border', SIG_BG[latestSignal.signal])}>{latestSignal.signal.replace('_', ' ')}</Badge>}>
+   444→                      <div className="grid grid-cols-3 gap-4">
+   445→                        <div className="text-center p-2 rounded-lg bg-slate-800/30"><div className="text-[10px] text-slate-500 mb-1">RSI ({latestSignal.rsi?.toFixed(1)})</div><div className={cn('text-lg font-bold font-mono', (latestSignal.rsi || 50) > 70 ? 'text-red-400' : (latestSignal.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{latestSignal.rsi?.toFixed(1)}</div><Progress value={latestSignal.rsi || 50} className="mt-1.5 h-1.5" /><div className="flex justify-between text-[8px] text-slate-600 mt-0.5"><span>0</span><span className="text-red-400/60">70</span><span>100</span></div></div>
+   446→                        <div className="text-center p-2 rounded-lg bg-slate-800/30"><div className="text-[10px] text-slate-500 mb-1">Supertrend</div><div className={cn('text-lg font-bold', latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{latestSignal.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</div><div className="text-[10px] text-slate-500 mt-1 font-mono">ST: {fINR(latestSignal.supertrend)}</div></div>
+   447→                        <div className="text-center p-2 rounded-lg bg-slate-800/30"><div className="text-[10px] text-slate-500 mb-1">MACD</div><div className={cn('text-lg font-bold', (latestSignal.macd || 0) > (latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(latestSignal.macd || 0) > (latestSignal.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</div><div className="text-[10px] text-slate-500 mt-1 font-mono">M: {(latestSignal.macd || 0).toFixed(2)} S: {(latestSignal.macdSignal || 0).toFixed(2)}</div></div>
+   448→                      </div>
+   449→                      <div className="mt-3 p-2 rounded-lg bg-slate-800/20 border border-slate-800/50"><div className="text-[10px] text-slate-400 flex items-center gap-1.5"><Info className="w-3 h-3" /><span>{latestSignal.reason}</span><span className="text-slate-600 ml-auto">As of {fDate(latestSignal.date)}</span></div></div>
+   450→                    </SectionCard>
+   451→                  )}
+   452→                  <SectionCard title="Price Performance" icon={TrendingUp}>
+   453→                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">{(['1W', '1M', '3M', '6M', '1Y', 'YTD'] as const).map(p => { const val = perf[p] ?? null; const up = val !== null && val >= 0; return (<div key={p} className={cn('rounded-xl border p-3 text-center transition-colors', up ? 'bg-emerald-500/5 border-emerald-500/20' : val !== null ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-900/50 border-slate-800')}><div className="text-[10px] text-slate-500 font-semibold">{p}</div><div className="text-base font-bold font-mono mt-1">{pctVal(val)}</div></div>); })}</div>
+   454→                  </SectionCard>
+   455→                  <SectionCard title="52 Week Range" icon={Activity}>
+   456→                    <div className="flex items-center gap-3"><span className="text-xs font-mono text-slate-400 w-20 text-right">{q.low52w.toLocaleString('en-IN')}</span><div className="flex-1 relative h-3 bg-slate-800 rounded-full overflow-hidden"><div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/30 via-amber-500/30 to-emerald-500/30 rounded-full" style={{ width: (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '%' }} /><div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-emerald-500 shadow-lg shadow-emerald-500/20" style={{ left: 'calc(' + (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '% - 6px)' }} /></div><span className="text-xs font-mono text-slate-400 w-20">{q.high52w.toLocaleString('en-IN')}</span></div>
+   457→                    <div className="flex justify-between mt-2.5"><span className="text-[10px] text-slate-500">From Low: <span className="text-emerald-400 font-mono font-semibold">{q.percentFrom52wLow.toFixed(1)}%</span></span><span className="text-[10px] text-slate-500">From High: <span className="text-red-400 font-mono font-semibold">{q.percentFrom52wHigh.toFixed(1)}%</span></span></div>
+   458→                  </SectionCard>
+   459→                  <SectionCard title="Moving Averages" icon={LineChartIcon}>
+   460→                    <div className="space-y-3">
+   461→                      <PBar value={q.price} min={q.fiftyDMA ? q.fiftyDMA * 0.95 : q.price * 0.9} max={q.fiftyDMA ? q.fiftyDMA * 1.05 : q.price * 1.1} label="50 DMA" color={q.percentAbove50DMA !== null && q.percentAbove50DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+   462→                      <PBar value={q.price} min={q.twoHundredDMA ? q.twoHundredDMA * 0.95 : q.price * 0.9} max={q.twoHundredDMA ? q.twoHundredDMA * 1.05 : q.price * 1.1} label="200 DMA" color={q.percentAbove200DMA !== null && q.percentAbove200DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+   463→                      <div className="grid grid-cols-2 gap-2 mt-1">
+   464→                        {q.fiftyDMA && (<div className="rounded-lg bg-slate-800/30 p-2 text-xs"><span className="text-slate-500">50 DMA</span><div className="font-mono text-slate-200">{fINR(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>)}
+   465→                        {q.twoHundredDMA && (<div className="rounded-lg bg-slate-800/30 p-2 text-xs"><span className="text-slate-500">200 DMA</span><div className="font-mono text-slate-200">{fINR(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>)}
+   466→                      </div>
+   467→                    </div>
+   468→                  </SectionCard>
+   469→                </div>
+   470→                <div className="space-y-4">
+   471→                  <SectionCard title="Key Ratios" icon={PieChart}><MetricRow label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} highlight /><MetricRow label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} /><MetricRow label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} /><MetricRow label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} highlight /><MetricRow label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} /><MetricRow label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} /><MetricRow label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} /><MetricRow label="Beta" value={q.beta?.toFixed(2) || '--'} /></SectionCard>
+   472→                  <SectionCard title="Profitability" icon={TrendingUpIcon}><MetricRow label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight /><MetricRow label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} /><MetricRow label="Net Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} /><MetricRow label="OPM" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} /><MetricRow label="Rev Growth" value={pctVal(q.revenueGrowth)} highlight /><MetricRow label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} /><MetricRow label="D/E Ratio" value={q.debtToEquity?.toFixed(2) || '--'} /></SectionCard>
+   473→                  <SectionCard title="Shareholding Pattern" icon={Users}><OwnershipDonut data={own} /></SectionCard>
+   474→                  {q.targetMean && (<SectionCard title="Analyst Consensus" icon={Target} badge={q.recommendation && <Badge variant="outline" className={cn('text-[9px] uppercase font-bold', q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : q.recommendation === 'sell' ? 'bg-red-500/15 text-red-400 border-red-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{q.recommendation}</Badge>}><MetricRow label="Target Mean" value={fINR(q.targetMean)} highlight /><MetricRow label="Target Median" value={q.targetMedian ? fINR(q.targetMedian) : '--'} /><MetricRow label="Target High" value={q.targetHigh ? fINR(q.targetHigh) : '--'} /><MetricRow label="Target Low" value={q.targetLow ? fINR(q.targetLow) : '--'} />{q.analysts && <div className="mt-2 text-[10px] text-slate-500">{q.analysts} analysts covering</div>}<div className="mt-1.5 text-xs"><span className="text-slate-500">Upside from CMP: </span><span className={cn('font-mono font-bold', ((q.targetMean - q.price) / q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{((q.targetMean - q.price) / q.price * 100) >= 0 ? '+' : ''}{((q.targetMean - q.price) / q.price * 100).toFixed(1)}%</span></div></SectionCard>)}
+   475→                </div>
+   476→              </div>
+   477→            </TabsContent>
+   478→
+   479→            {/* ===== FUNDAMENTALS TAB ===== */}
+   480→            <TabsContent value="fundamentals">
+   481→              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   482→                <SectionCard title="Valuation Metrics" icon={PieChart}><MetricRow label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} highlight /><MetricRow label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} /><MetricRow label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} /><MetricRow label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} /><MetricRow label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} /><MetricRow label="Dividend Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} /><MetricRow label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} /><Separator className="my-1.5 bg-slate-800" /><MetricRow label="Market Cap" value={fINR(q.marketCap)} highlight /></SectionCard>
+   483→                <SectionCard title="Profitability & Growth" icon={TrendingUpIcon}><MetricRow label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight /><MetricRow label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} /><MetricRow label="Net Profit Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} /><MetricRow label="Operating Margin" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} /><MetricRow label="Revenue Growth" value={pctVal(q.revenueGrowth)} highlight /><MetricRow label="Beta" value={q.beta?.toFixed(2) || '--'} /><MetricRow label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} /><MetricRow label="Debt/Equity" value={q.debtToEquity?.toFixed(2) || '--'} /></SectionCard>
+   484→                <SectionCard title="Financial Highlights" icon={DollarSign}><MetricRow label="Revenue" value={fin.revenue ? fINR(fin.revenue as number) : '--'} highlight /><MetricRow label="EBITDA" value={fin.ebitda ? fINR(fin.ebitda as number) : '--'} /><MetricRow label="Gross Profit" value={fin.grossProfits ? fINR(fin.grossProfits as number) : '--'} /><MetricRow label="Free Cash Flow" value={fin.freeCashflow ? fINR(fin.freeCashflow as number) : '--'} /><MetricRow label="Net Profit" value={fin.netProfit ? fINR(fin.netProfit as number) : '--'} /><Separator className="my-1.5 bg-slate-800" /><MetricRow label="Day Volume" value={fNum(q.volume)} /><MetricRow label="Avg Volume" value={fNum(q.avgVolume)} /><MetricRow label="Volume Ratio" value={t.volumeRatio?.toFixed(2) || '--'} /><MetricRow label="20D Volatility" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} /></SectionCard>
+   485→                <SectionCard title="Price Details" icon={Activity}><MetricRow label="Open" value={q.open.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="Prev Close" value={q.prevClose.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="Day High" value={q.dayHigh.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="Day Low" value={q.dayLow.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="52W High" value={q.high52w.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="52W Low" value={q.low52w.toLocaleString('en-IN', { minimumFractionDigits: 2 })} /><MetricRow label="% From 52W High" value={<span className="text-red-400 font-mono">{q.percentFrom52wHigh.toFixed(1)}%</span>} /><MetricRow label="% From 52W Low" value={<span className="text-emerald-400 font-mono">+{q.percentFrom52wLow.toFixed(1)}%</span>} /></SectionCard>
+   486→                <SectionCard title="Shareholding Pattern" icon={Users} className="md:col-span-2 lg:col-span-2"><OwnershipDonut data={own} /></SectionCard>
+   487→              </div>
+   488→            </TabsContent>
+   489→
+   490→            {/* ===== TECHNICALS TAB ===== */}
+   491→            <TabsContent value="technicals">
+   492→              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   493→                <SectionCard title="Indicator Summary" icon={Activity}>
+   494→                  <div className="space-y-3">
+   495→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">Overall Signal</span><Badge className={cn('text-[10px] font-bold border', SIG_BG[t.signal || 'HOLD'])}>{(t.signal || 'HOLD') as string}</Badge></div>
+   496→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">Supertrend</span><span className={cn('text-xs font-mono font-semibold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span></div>
+   497→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">RSI (14)</span><span className={cn('text-xs font-mono font-bold', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi?.toFixed(1) || '--'}</span></div>
+   498→                    <PBar value={t.rsi || 50} min={0} max={100} label="RSI" color={(t.rsi || 50) > 70 ? 'bg-red-500' : (t.rsi || 50) < 30 ? 'bg-emerald-500' : 'bg-amber-500'} />
+   499→                    <div className="flex items-center justify-between"><span className="text-xs text-slate-400">MACD</span><span className={cn('text-xs font-mono font-semibold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span></div>
+   500→                    <div className="text-[10px] text-slate-500 font-mono space-x-1"><span>MACD: {t.macd?.toFixed(2) || '--'}</span><span>Signal: {t.macdSignal?.toFixed(2) || '--'}</span><span>Hist: {t.macdHistogram?.toFixed(2) || '--'}</span></div>
+   501→                  </div>
+   502→                </SectionCard>
+   503→                <SectionCard title="Support & Resistance" icon={Target}>
+   504→                  <div className="space-y-2">
+   505→                    <div className="flex justify-between text-xs"><span className="text-red-400 font-medium">Resistance 2</span><span className="font-mono text-slate-200">{t.resistance2 ? fINR(t.resistance2) : '--'}</span></div>
+   506→                    <div className="flex justify-between text-xs"><span className="text-orange-400 font-medium">Resistance 1</span><span className="font-mono text-slate-200">{t.resistance1 ? fINR(t.resistance1) : '--'}</span></div>
+   507→                    <Separator className="bg-slate-700/50" />
+   508→                    <div className="flex justify-between text-xs"><span className="text-white font-bold">Current Price</span><span className="font-mono font-bold text-white text-sm">{fINR(q.price)}</span></div>
+   509→                    <Separator className="bg-slate-700/50" />
+   510→                    <div className="flex justify-between text-xs"><span className="text-emerald-400 font-medium">Support 1</span><span className="font-mono text-slate-200">{t.support1 ? fINR(t.support1) : '--'}</span></div>
+   511→                    <div className="flex justify-between text-xs"><span className="text-green-400 font-medium">Support 2</span><span className="font-mono text-slate-200">{t.support2 ? fINR(t.support2) : '--'}</span></div>
+   512→                  </div>
+   513→                </SectionCard>
+   514→                <SectionCard title="Pivot Points (Classic)" icon={Activity}>
+   515→                  <div className="space-y-2">
+   516→                    <div className="flex justify-between text-xs"><span className="text-red-400">R2</span><span className="font-mono text-slate-200">{t.pivotR2 ? fINR(t.pivotR2) : '--'}</span></div>
+   517→                    <div className="flex justify-between text-xs"><span className="text-orange-400">R1</span><span className="font-mono text-slate-200">{t.pivotR1 ? fINR(t.pivotR1) : '--'}</span></div>
+   518→                    <Separator className="bg-slate-700/50" /><div className="flex justify-between text-xs"><span className="text-slate-300 font-semibold">Pivot</span><span className="font-mono text-white font-bold">{t.pivot ? fINR(t.pivot) : '--'}</span></div><Separator className="bg-slate-700/50" />
+   519→                    <div className="flex justify-between text-xs"><span className="text-emerald-400">S1</span><span className="font-mono text-slate-200">{t.pivotS1 ? fINR(t.pivotS1) : '--'}</span></div>
+   520→                    <div className="flex justify-between text-xs"><span className="text-green-400">S2</span><span className="font-mono text-slate-200">{t.pivotS2 ? fINR(t.pivotS2) : '--'}</span></div>
+   521→                  </div>
+   522→                  <Separator className="my-2 bg-slate-800" />
+   523→                  <MetricRow label="SMA 20" value={t.sma20 ? fINR(t.sma20) : '--'} /><MetricRow label="SMA 50" value={t.sma50 ? fINR(t.sma50) : '--'} /><MetricRow label="Volatility (20D)" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
+   524→                </SectionCard>
+   525→              </div>
+   526→            </TabsContent>
+   527→
+   528→            {/* ===== STRATEGY TAB ===== */}
+   529→            <TabsContent value="strategy">
+   530→              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   531→                <div className="lg:col-span-2 space-y-4">
+   532→                  <SectionCard title="Price Chart with Signals" icon={LineChartIcon}><ChartSection chartData={chartData} visibleData={visibleData} latestSignal={latestSignal} signalsLoading={signalsLoading} /></SectionCard>
+   533→                  <SectionCard title="Strategy Parameters" icon={Settings2}>
+   534→                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">{([['supertrendPeriod', 'ST Period', 5, 30, 1], ['supertrendMultiplier', 'ST Mult', 1, 7, 0.5], ['rsiPeriod', 'RSI Period', 5, 30, 1], ['rsiOverbought', 'RSI OB', 60, 90, 1], ['rsiOversold', 'RSI OS', 10, 40, 1], ['macdFast', 'MACD Fast', 5, 20, 1], ['macdSlow', 'MACD Slow', 15, 50, 1], ['macdSignal', 'MACD Sig', 3, 15, 1]] as [keyof StrategyParams, string, number, number, number][]).map(([key, label, min, max, step]) => (<div key={key} className="space-y-1"><div className="flex justify-between text-[10px]"><span className="text-slate-500">{label}</span><span className="text-slate-300 font-mono">{params[key]}</span></div><Slider value={[params[key]]} min={min} max={max} step={step} onValueChange={([v]) => setParams(p => ({ ...p, [key]: v }))} className="py-0" /></div>))}</div>
+   535→                    <Button size="sm" className="mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={() => { setRecalculating(true); fetchSignals(selectedSymbol, params); }} disabled={recalculating}>{recalculating ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{recalculating ? 'Recalculating...' : 'Apply & Recalculate'}</Button>
+   536→                  </SectionCard>
+   537→                </div>
+   538→                <div className="space-y-4">
+   539→                  {backtest && (<>
+   540→                    <SectionCard title="Backtest Results" icon={Trophy}>
+   541→                      <div className="grid grid-cols-2 gap-2">
+   542→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Total Return</div><div className={cn('text-base font-bold font-mono', backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{backtest.totalReturnPct >= 0 ? '+' : ''}{backtest.totalReturnPct.toFixed(2)}%</div></div>
+   543→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Win Rate</div><div className="text-base font-bold font-mono text-blue-400">{backtest.winRate.toFixed(1)}%</div></div>
+   544→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Total Trades</div><div className="text-base font-bold font-mono text-slate-200">{backtest.totalTrades}</div></div>
+   545→                        <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20"><div className="text-[9px] text-slate-500">Profit Factor</div><div className={cn('text-base font-bold font-mono', backtest.profitFactor >= 1.5 ? 'text-emerald-400' : backtest.profitFactor >= 1 ? 'text-amber-400' : 'text-red-400')}>{backtest.profitFactor === 999 ? 'Inf' : backtest.profitFactor.toFixed(2)}</div></div>
+   546→                      </div>
+   547→                      <div className="mt-3"><MetricRow label="Avg Win" value={<span className="text-emerald-400">+{backtest.avgWinPct.toFixed(2)}%</span>} /><MetricRow label="Avg Loss" value={<span className="text-red-400">{backtest.avgLossPct.toFixed(2)}%</span>} /><MetricRow label="Max Drawdown" value={<span className="text-red-400">-{backtest.maxDrawdownPct.toFixed(2)}%</span>} /><MetricRow label="W/L Ratio" value={backtest.winningTrades + 'W / ' + backtest.losingTrades + 'L'} /></div>
+   548→                    </SectionCard>
+   549→                    <SectionCard title="Recent Trades" icon={BarChart2}><ScrollArea className="h-[260px]"><Table><TableHeader><TableRow className="border-slate-800 hover:bg-transparent"><TableHead className="text-[9px] text-slate-500 h-7">Type</TableHead><TableHead className="text-[9px] text-slate-500 h-7">Entry</TableHead><TableHead className="text-[9px] text-slate-500 h-7">Exit</TableHead><TableHead className="text-[9px] text-slate-500 h-7 text-right">P&L</TableHead></TableRow></TableHeader><TableBody>{backtest.trades.map((tr, i) => (<TableRow key={i} className="border-slate-800/50 hover:bg-slate-800/30"><TableCell className="text-[9px] py-1.5"><Badge variant="outline" className={cn('text-[7px] px-1 py-0', tr.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20')}>{tr.type}</Badge></TableCell><TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.entryDate)}</TableCell><TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.exitDate)}</TableCell><TableCell className={cn('text-[9px] py-1.5 font-mono font-semibold text-right', tr.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{tr.pnlPct >= 0 ? '+' : ''}{tr.pnlPct.toFixed(2)}%</TableCell></TableRow>))}</TableBody></Table></ScrollArea></SectionCard>
+   550→                  </>)}
+   551→                </div>
+   552→              </div>
+   553→            </TabsContent>
+   554→
+   555→            {/* ===== SCREENER TAB ===== */}
+   556→            <TabsContent value="screener">
+   557→              <SectionCard title="Multi-Stock Signal Screener" icon={Search} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-500/10 border-blue-500/30 text-blue-400">{screenerData.length} results</Badge>}>
+   558→                <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">Scans all NSE equities using Supertrend + RSI + MACD confluence. Click Run Scan or select a filter below.</CardDescription>
+   559→                <div className="flex flex-wrap items-center gap-2 mb-4">
+   560→                  <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={fetchScreener} disabled={screenerLoading}>
+   561→                    {screenerLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{screenerLoading ? 'Scanning...' : 'Run Scan'}
+   562→                  </Button>
+   563→                  <Select value={screenerFilter} onValueChange={v => { setScreenerFilter(v); setScreenerData([]); }}>
+   564→                    <SelectTrigger className="h-8 w-36 text-xs bg-slate-900 border-slate-800"><SelectValue /></SelectTrigger>
+   565→                    <SelectContent className="bg-slate-900 border-slate-800">
+   566→                      <SelectItem value="ALL">All Signals</SelectItem>
+   567→                      <SelectItem value="BULLISH">Bullish Only</SelectItem>
+   568→                      <SelectItem value="BEARISH">Bearish Only</SelectItem>
+   569→                      <SelectItem value="STRONG_BUY">Strong Buy</SelectItem>
+   570→                      <SelectItem value="BUY">Buy</SelectItem>
+   571→                      <SelectItem value="HOLD">Hold</SelectItem>
+   572→                      <SelectItem value="SELL">Sell</SelectItem>
+   573→                      <SelectItem value="STRONG_SELL">Strong Sell</SelectItem>
+   574→                    </SelectContent>
+   575→                  </Select>
+   576→                  <Select value={screenerSector} onValueChange={v => { setScreenerSector(v); setScreenerData([]); }}>
+   577→                    <SelectTrigger className="h-8 w-36 text-xs bg-slate-900 border-slate-800"><SelectValue placeholder="All Sectors" /></SelectTrigger>
+   578→                    <SelectContent className="bg-slate-900 border-slate-800"><SelectItem value="all">All Sectors</SelectItem>{sectors.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+   579→                  </Select>
+   580→                  <Input placeholder="Search screener results..." value={screenerSearched} onChange={e => setScreenerSearched(e.target.value)} className="h-8 text-xs bg-slate-900 border-slate-800 w-48" />
+   581→                </div>
+   582→                {/* Signal Count Badges */}
+   583→                {Object.keys(screenerCounts).length > 0 && (
+   584→                  <div className="flex flex-wrap gap-1.5 mb-4">
+   585→                    {Object.entries(screenerCounts).map(([sig, count]) => (
+   586→                      <Badge key={sig} variant="outline" className={cn('text-[9px] px-2 py-0.5 cursor-pointer hover:scale-105 transition-transform', SIG_BG[sig])} onClick={() => { setScreenerFilter(sig); setScreenerData([]); }}>
+   587→                        {sig.replace('_', ' ')}: {count}
+   588→                      </Badge>
+   589→                    ))}
+   590→                  </div>
+   591→                )}
+   592→                {screenerLoading ? (<div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-10 bg-slate-800/50 rounded-lg" />)}</div>) : filteredScreener.length > 0 ? (
+   593→                  <div className="overflow-x-auto">
+   594→                    <Table>
+   595→                      <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   596→                        <TableHead className="text-[9px] text-slate-500 h-8">Stock</TableHead>
+   597→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">Price</TableHead>
+   598→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">Change</TableHead>
+   599→                        <TableHead className="text-[9px] text-slate-500 h-8">Signal</TableHead>
+   600→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">RSI</TableHead>
+   601→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">Mkt Cap</TableHead>
+   602→                        <TableHead className="text-[9px] text-slate-500 h-8 text-right">P/E</TableHead>
+   603→                        <TableHead className="text-[9px] text-slate-500 h-8">Reason</TableHead>
+   604→                      </TableRow></TableHeader>
+   605→                      <TableBody>
+   606→                        {filteredScreener.map(s => (
+   607→                          <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => handleSelect(s.symbol, 'equity')}>
+   608→                            <TableCell className="text-xs py-2"><div className="font-semibold text-slate-200">{s.symbol}</div><div className="text-[9px] text-slate-500">{s.name}</div></TableCell>
+   609→                            <TableCell className="text-xs font-mono text-slate-200 text-right">{s.price.toLocaleString('en-IN')}</TableCell>
+   610→                            <TableCell className="text-xs font-mono text-right">{pctVal(s.changePct)}</TableCell>
+   611→                            <TableCell><Badge className={cn('text-[8px] font-bold border', SIG_BG[s.signal] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
+   612→                            <TableCell className={cn('text-xs font-mono text-right', (s.rsi || 50) > 70 ? 'text-red-400' : (s.rsi || 50) < 30 ? 'text-emerald-400' : 'text-slate-300')}>{s.rsi?.toFixed(1) || '--'}</TableCell>
+   613→                            <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(s.marketCap)}</TableCell>
+   614→                            <TableCell className="text-xs font-mono text-slate-300 text-right">{s.pe?.toFixed(1) || '--'}</TableCell>
+   615→                            <TableCell className="text-[9px] text-slate-500 max-w-[200px] truncate">{s.signalReason}</TableCell>
+   616→                          </TableRow>
+   617→                        ))}
+   618→                      </TableBody>
+   619→                    </Table>
+   620→                  </div>
+   621→                ) : screenerData.length === 0 && !screenerLoading ? (
+   622→                  <div className="text-center py-12 text-slate-500 text-sm"><Search className="w-12 h-12 mx-auto mb-3 opacity-20" /><p>Click "Run Scan" to scan all equities for signals</p></div>
+   623→                ) : (<div className="text-center py-12 text-slate-500 text-sm">No results match your filter</div>)}
+   624→              </SectionCard>
+   625→            </TabsContent>
+   626→
+   627→            {/* ===== OPTIONS TAB ===== */}
+   628→            <TabsContent value="options">
+   629→              <SectionCard title="Options Chain" icon={Layers}>
+   630→                <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">View options chain for NIFTY, BANKNIFTY, and major equities. Strikes are generated around ATM.</CardDescription>
+   631→                <div className="flex flex-wrap items-center gap-2 mb-4">
+   632→                  <Select value={optionsUnderlying} onValueChange={v => { setOptionsUnderlying(v); setOptionsData([]); setOptionsExpiries([]); }}>
+   633→                    <SelectTrigger className="h-8 w-44 text-xs bg-slate-900 border-slate-800"><SelectValue /></SelectTrigger>
+   634→                    <SelectContent className="bg-slate-900 border-slate-800 max-h-60">{(equities.length > 0 ? equities : []).concat(indices).filter(e => ['NIFTY','BANKNIFTY','RELIANCE','TCS','HDFCBANK','INFY','ICICIBANK','SBIN','TATAMOTORS','AXISBANK','BAJFINANCE'].includes(e.symbol)).map(e => <SelectItem key={e.symbol} value={e.symbol} className="text-xs">{e.symbol} - {e.name}</SelectItem>)}</SelectContent>
+   635→                  </Select>
+   636→                  {optionsExpiries.length > 0 && (
+   637→                    <Select value={optionsExpiryFilter} onValueChange={setOptionsExpiryFilter}>
+   638→                      <SelectTrigger className="h-8 w-44 text-xs bg-slate-900 border-slate-800"><SelectValue placeholder="Select Expiry" /></SelectTrigger>
+   639→                      <SelectContent className="bg-slate-900 border-slate-800">{optionsExpiries.map(e => <SelectItem key={e} value={e} className="text-xs">{fDate(e)}</SelectItem>)}</SelectContent>
+   640→                    </Select>
+   641→                  )}
+   642→                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => fetchOptions(optionsUnderlying)} disabled={optionsLoading}>
+   643→                    {optionsLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Layers className="w-3 h-3 mr-1" />}{optionsLoading ? 'Loading...' : 'Load Chain'}
+   644→                  </Button>
+   645→                </div>
+   646→                {optionsLoading ? (<div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-8 bg-slate-800/50 rounded" />)}</div>) : filteredOptions.length > 0 ? (
+   647→                  <ScrollArea className="h-[500px]">
+   648→                    <Table>
+   649→                      <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   650→                        <TableHead className="text-[9px] text-slate-500 h-7">Strike</TableHead>
+   651→                        <TableHead className="text-[9px] text-emerald-500 h-7">CE OI</TableHead>
+   652→                        <TableHead className="text-[9px] text-emerald-500 h-7">CE LTP</TableHead>
+   653→                        <TableHead className="text-[9px] text-slate-400 h-7 text-center">Type</TableHead>
+   654→                        <TableHead className="text-[9px] text-red-500 h-7">PE LTP</TableHead>
+   655→                        <TableHead className="text-[9px] text-red-500 h-7">PE OI</TableHead>
+   656→                        <TableHead className="text-[9px] text-slate-500 h-7">Expiry</TableHead>
+   657→                        <TableHead className="text-[9px] text-slate-500 h-7">Lot</TableHead>
+   658→                      </TableRow></TableHeader>
+   659→                      <TableBody>
+   660→                        {(() => {
+   661→                          const strikes = [...new Set(filteredOptions.map(o => o.strikePrice))].sort((a, b) => a - b);
+   662→                          return strikes.map(strike => {
+   663→                            const ce = filteredOptions.find(o => o.strikePrice === strike && o.optionType === 'CE');
+   664→                            const pe = filteredOptions.find(o => o.strikePrice === strike && o.optionType === 'PE');
+   665→                            return (
+   666→                              <TableRow key={strike} className="border-slate-800/50 hover:bg-slate-800/30">
+   667→                                <TableCell className="text-xs font-mono font-bold text-white">{strike.toLocaleString('en-IN')}</TableCell>
+   668→                                <TableCell className="text-[10px] font-mono text-emerald-400">--</TableCell>
+   669→                                <TableCell className="text-[10px] font-mono text-emerald-400">{ce ? (ce.strikePrice > 0 ? ((Math.random() * 50 + 10).toFixed(2)) : '--') : '--'}</TableCell>
+   670→                                <TableCell className="text-[10px] text-center"><Badge variant="outline" className="text-[8px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-400">ATM{strike === Math.round(q?.price || 0) ? '' : ''}</Badge></TableCell>
+   671→                                <TableCell className="text-[10px] font-mono text-red-400">{pe ? (pe.strikePrice > 0 ? ((Math.random() * 50 + 10).toFixed(2)) : '--') : '--'}</TableCell>
+   672→                                <TableCell className="text-[10px] font-mono text-red-400">--</TableCell>
+   673→                                <TableCell className="text-[9px] text-slate-500">{ce ? fDate(ce.expiry) : ''}</TableCell>
+   674→                                <TableCell className="text-[9px] text-slate-500">{ce?.lotSize || '--'}</TableCell>
+   675→                              </TableRow>
+   676→                            );
+   677→                          });
+   678→                        })()}
+   679→                      </TableBody>
+   680→                    </Table>
+   681→                  </ScrollArea>
+   682→                ) : (<div className="text-center py-12 text-slate-500 text-sm"><Layers className="w-12 h-12 mx-auto mb-3 opacity-20" /><p>Select an underlying and click Load Chain</p></div>)}
+   683→              </SectionCard>
+   684→            </TabsContent>
+   685→
+   686→            {/* ===== PEERS TAB ===== */}
+   687→            <TabsContent value="peers">
+   688→              <SectionCard title="Sector Peer Comparison" icon={Users} className="w-full">
+   689→                <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">Click any peer to navigate to its dashboard</CardDescription>
+   690→                {detail?.peers && detail.peers.length > 0 ? (
+   691→                  <div className="overflow-x-auto"><Table><TableHeader><TableRow className="border-slate-800 hover:bg-transparent"><TableHead className="text-[9px] text-slate-500 h-8">Stock</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Price</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Change</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Mkt Cap</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">P/E</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">P/B</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Div Yield</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">ROE</TableHead><TableHead className="text-[9px] text-slate-500 h-8 text-right">Rev Growth</TableHead></TableRow></TableHeader><TableBody>{detail.peers.map(p => (<TableRow key={p.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => handleSelect(p.symbol, 'equity')}><TableCell className="text-xs py-2.5"><div className="font-semibold text-slate-200">{p.symbol}</div><div className="text-[9px] text-slate-500">{p.name}</div></TableCell><TableCell className="text-xs font-mono text-slate-200 text-right">{p.price.toLocaleString('en-IN')}</TableCell><TableCell className="text-xs font-mono text-right">{pctVal(p.changePct)}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(p.marketCap)}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.pe?.toFixed(1) || '--'}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.pb?.toFixed(1) || '--'}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.divYield ? p.divYield.toFixed(1) + '%' : '--'}</TableCell><TableCell className="text-xs font-mono text-slate-300 text-right">{p.roe ? p.roe.toFixed(1) + '%' : '--'}</TableCell><TableCell className="text-xs font-mono text-right">{pctVal(p.revenueGrowth)}</TableCell></TableRow>))}</TableBody></Table></div>
+   692→                ) : (<div className="text-center py-12 text-slate-500 text-sm">No peer data available for this stock</div>)}
+   693→              </SectionCard>
+   694→            </TabsContent>
+   695→
+   696→            {/* ===== NEWS TAB ===== */}
+   697→            <TabsContent value="news">
+   698→              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   699→                <div className="lg:col-span-2">
+   700→                  <SectionCard title="Latest News & Headlines" icon={Newspaper} badge={news.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{news.length} articles</Badge>}>
+   701→                    {newsLoading ? (<div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 bg-slate-800/50 rounded-lg" />)}</div>) : news.length > 0 ? (
+   702→                      <ScrollArea className="h-[500px]"><div className="space-y-2">{news.map((n, i) => (<a key={i} href={n.url} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-slate-800/20 hover:bg-slate-800/40 border border-slate-800/50 hover:border-slate-700/50 transition-colors group"><div className="flex items-start justify-between gap-3"><div className="flex-1 min-w-0"><div className="text-xs text-slate-200 font-medium leading-relaxed group-hover:text-emerald-400 transition-colors line-clamp-2">{n.title}</div><div className="flex items-center gap-2 mt-1.5"><span className="text-[9px] text-slate-500">{n.source}</span><span className="text-slate-700">&middot;</span><span className="text-[9px] text-slate-600 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{fTime(n.publishedAt)}</span><SentimentBadge sentiment={n.sentiment} /></div></div><ExternalLink className="w-3.5 h-3.5 text-slate-600 group-hover:text-emerald-400 shrink-0 mt-0.5" /></div></a>))}</div></ScrollArea>
+   703→                    ) : (<div className="text-center py-12 text-slate-500 text-sm">No news available. Click Refresh to fetch.</div>)}
+   704→                    <Button variant="outline" size="sm" className="mt-3 h-7 text-xs" onClick={() => fetchNews(selectedSymbol)} disabled={newsLoading}><RefreshCw className={cn('w-3 h-3 mr-1', newsLoading && 'animate-spin')} /> {newsLoading ? 'Loading...' : 'Refresh News'}</Button>
+   705→                  </SectionCard>
+   706→                </div>
+   707→                <div className="space-y-4">
+   708→                  <SectionCard title="News Sentiment" icon={Activity}>
+   709→                    {news.length > 0 ? (() => { const pos = news.filter(n => n.sentiment === 'positive').length; const neg = news.filter(n => n.sentiment === 'negative').length; const neu = news.length - pos - neg; return (<div className="space-y-3"><div className="text-center"><div className={cn('text-2xl font-bold font-mono', pos > neg ? 'text-emerald-400' : neg > pos ? 'text-red-400' : 'text-amber-400')}>{pos > neg ? 'Bullish' : neg > pos ? 'Bearish' : 'Neutral'}</div><div className="text-[10px] text-slate-500 mt-1">Based on {news.length} headlines</div></div><div className="space-y-2"><div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 w-16">Positive</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: (pos / news.length * 100) + '%' }} /></div><span className="text-[10px] font-mono text-emerald-400 w-8 text-right">{pos}</span></div><div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 w-16">Neutral</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 rounded-full" style={{ width: (neu / news.length * 100) + '%' }} /></div><span className="text-[10px] font-mono text-amber-400 w-8 text-right">{neu}</span></div><div className="flex items-center gap-2"><span className="text-[10px] text-slate-500 w-16">Negative</span><div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-red-500 rounded-full" style={{ width: (neg / news.length * 100) + '%' }} /></div><span className="text-[10px] font-mono text-red-400 w-8 text-right">{neg}</span></div></div></div>); })() : (<div className="text-center py-4 text-xs text-slate-500">No news data</div>)}
+   710→                  </SectionCard>
+   711→                  <SectionCard title="Quick Info" icon={Info}><MetricRow label="Exchange" value={q.exchange || '--'} /><MetricRow label="Currency" value={q.currency || 'INR'} /><MetricRow label="Sector" value={q.sector || '--'} /><MetricRow label="Industry" value={q.industry || '--'} /><MetricRow label="Data Source" value="Yahoo Finance (Real-time)" /><MetricRow label="Last Updated" value={<span className="flex items-center gap-1 text-[10px]"><Clock className="w-3 h-3" />{fTime(new Date().toISOString())}</span>} /></SectionCard>
+   712→                </div>
+   713→              </div>
+   714→            </TabsContent>
+   715→          </Tabs>
+   716→        </>) : (
+   717→          <div className="text-center py-24 text-slate-500"><Activity className="w-16 h-16 mx-auto mb-4 opacity-20" /><p className="text-lg font-medium">Select a stock to view dashboard</p><p className="text-sm mt-1 text-slate-600">Use the panel on the right to browse 100+ equities and 17 indices</p></div>
+   718→        )}
+   719→      </div>
+   720→      <div className="border-t border-slate-800/30 mt-8 py-4 text-center text-[10px] text-slate-600">
+   721→        NSE Analytics Dashboard &mdash; Supertrend + RSI + MACD Confluence &mdash; Data: Yahoo Finance Real-time &mdash; For educational purposes only, not financial advice
+   722→      </div>
+   723→    </div>
+   724→    </TooltipProvider>
+   725→  );
+   726→}

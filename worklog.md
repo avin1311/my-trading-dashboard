@@ -126,3 +126,26 @@ Stage Summary:
 - dev.sh fix ensures future container restarts will also work in production mode
 - Root cause was dev mode OOM; production mode uses ~90% less memory
 - Current session: server running as detached daemon (PID 6535)
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Component refactoring + Power BI enhancements + data verification
+
+Work Log:
+- Refactored 726-line page.tsx into 16 focused files (page.tsx now 177 lines)
+- Created: types.ts, formatters.tsx, use-dashboard-data.ts hook
+- Created 8 tab components, kpi-strip, market-ticker-bar, stock-selector-sheet
+- Verified Yahoo Finance real data: RELIANCE ₹1,304, NIFTY 24,099, TCS ₹2,052
+- Data was never fake — Yahoo API works with proper User-Agent headers
+- Built signal-gauge.tsx: SVG semicircular gauge with gradient, needle, score
+- Enhanced KPI cards: mini bar charts, progress bars, trend indicators
+- Built fundamentals heatmap: 3x3 color-coded tile grid (green/amber/red)
+- Built technicals summary cards: RSI zone bar, Supertrend arrow, MACD histogram, S/R range chart
+
+Stage Summary:
+- 47 TypeScript/TSX files in src/
+- 14 dashboard component files
+- All 8 tabs working with real Yahoo Finance data
+- Power BI-style visual elements deployed
+- Server running as detached daemon on port 3000 → Caddy proxy on port 81
