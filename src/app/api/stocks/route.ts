@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
     const stats = { totalEquities: stockList.equities.length, totalIndices: stockList.indices.length, optionUnderlyings: stockList.optionUnderlyings.length };
     const sectors = [...new Set(stockList.equities.map((s: any) => s.sec))];
-    return NextResponse.json({ instruments, stats, sectors: sectors.sort() });
+    return NextResponse.json({ instruments, stats, sectors: sectors.sort() }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   if (type === "index") {
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       const q = search.toLowerCase();
       instruments = instruments.filter((s: any) => s.s.toLowerCase().includes(q) || s.n.toLowerCase().includes(q));
     }
-    return NextResponse.json({ instruments, stats: { totalIndices: stockList.indices.length } });
+    return NextResponse.json({ instruments, stats: { totalIndices: stockList.indices.length } }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   if (type === "option") {
@@ -107,12 +107,12 @@ export async function GET(request: NextRequest) {
     if (expiry) {
       instruments = instruments.filter(o => o.expiry === expiry);
     }
-    return NextResponse.json({ instruments, underlyings, expiryDates, stats: { optionUnderlyings: underlyings.length } });
+    return NextResponse.json({ instruments, underlyings, expiryDates, stats: { optionUnderlyings: underlyings.length } }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   return NextResponse.json({
     instruments: [...stockList.equities, ...stockList.indices],
     stats: { totalEquities: stockList.equities.length, totalIndices: stockList.indices.length, optionUnderlyings: stockList.optionUnderlyings.length },
     sectors: [...new Set(stockList.equities.map((s: any) => s.sec))].sort(),
-  });
+  }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
 }

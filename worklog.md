@@ -149,3 +149,34 @@ Stage Summary:
 - All 8 tabs working with real Yahoo Finance data
 - Power BI-style visual elements deployed
 - Server running as detached daemon on port 3000 → Caddy proxy on port 81
+
+---
+Task ID: 3
+Agent: Main Agent (2 parallel sub-agents)
+Task: Implement 4 new features (auto-refresh, watchlist, CSV export, volume profile)
+
+Work Log:
+- Feature 1: Auto-refresh polling added to use-dashboard-data.ts hook
+  - autoRefresh toggle (default off), configurable interval (default 30s)
+  - silentFetchDetail avoids save point spam during auto-refresh
+  - Market overview refreshes every 60s when auto-refresh is on
+  - Timer toggle button in market-ticker-bar with pulsing LIVE dot
+- Feature 2: Watchlist with localStorage persistence
+  - useWatchlist() hook with lazy SSR-safe initializer
+  - Star icon in header to toggle watchlist membership
+  - New Watchlist tab (2nd position) with mini price cards
+  - Batches of 3 concurrent fetches to avoid Yahoo rate limits
+- Feature 3: CSV Export
+  - /api/export/csv route: type=signals|backtest|both
+  - Proper Content-Disposition headers for download
+  - ExportButton component added to Strategy tab
+- Feature 4: Volume Profile
+  - 12-bucket horizontal bar chart with red-to-green gradient
+  - Current price highlighted with white dot marker
+  - Added to Technicals tab
+
+Stage Summary:
+- 52 total TypeScript/TSX source files
+- 18 dashboard component files (up from 14)
+- 12 API/page routes (up from 11)
+- All 4 features built, build clean, server live on port 81

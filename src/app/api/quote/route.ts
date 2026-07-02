@@ -12,17 +12,17 @@ export async function GET(request: NextRequest) {
   if (marketOverview) {
     try {
       const data = await getMarketOverview();
-      return NextResponse.json(data);
+      return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
     } catch (err: any) {
       return NextResponse.json(
         { error: "Failed to fetch market overview: " + err.message },
-        { status: 500 }
+        { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
       );
     }
   }
 
   if (!symbol) {
-    return NextResponse.json({ error: "symbol is required" }, { status: 400 });
+    return NextResponse.json({ error: "symbol is required" }, { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   try {
@@ -37,11 +37,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ quote, peers });
+    return NextResponse.json({ quote, peers }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Failed to fetch quote: " + err.message },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUp, ArrowDown, TrendingUp, Calendar, CircleDot, Radio, RefreshCw } from 'lucide-react';
+import { ArrowUp, ArrowDown, TrendingUp, Calendar, CircleDot, Radio, RefreshCw, Timer, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +19,11 @@ export function MarketTickerBar({
   selectedLongName,
   handleRefresh,
   headerActions,
+  autoRefresh,
+  onToggleAutoRefresh,
+  refreshInterval,
+  isWatchlisted,
+  onToggleWatchlist,
 }: {
   overview: MarketOverview | null;
   lastDate: string;
@@ -29,6 +34,11 @@ export function MarketTickerBar({
   selectedLongName: string;
   handleRefresh: () => void;
   headerActions: React.ReactNode;
+  autoRefresh?: boolean;
+  onToggleAutoRefresh?: () => void;
+  refreshInterval?: number;
+  isWatchlisted?: boolean;
+  onToggleWatchlist?: () => void;
 }) {
   const topGainers = overview?.topGainers?.slice(0, 5) || [];
 
@@ -81,6 +91,18 @@ export function MarketTickerBar({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold tracking-tight text-white">{selectedLongName || selectedSymbol}</h1>
+                {onToggleWatchlist && (
+                  <button
+                    onClick={onToggleWatchlist}
+                    className={cn(
+                      'p-1 rounded-md transition-colors',
+                      isWatchlisted ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400'
+                    )}
+                    title={isWatchlisted ? 'Remove from watchlist' : 'Add to watchlist'}
+                  >
+                    <Star className={cn('w-4 h-4', isWatchlisted && 'fill-current')} />
+                  </button>
+                )}
                 <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0', TYPE_COLOR[selectedType] || 'bg-slate-800 text-slate-400')}>
                   {selectedType.toUpperCase()}
                 </Badge>
@@ -116,6 +138,24 @@ export function MarketTickerBar({
             <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs h-8" onClick={handleRefresh} disabled={detailLoading}>
               <RefreshCw className={cn('w-3.5 h-3.5 mr-1', detailLoading && 'animate-spin')} /> Refresh
             </Button>
+            {onToggleAutoRefresh && (
+              <button
+                onClick={onToggleAutoRefresh}
+                className={cn(
+                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border transition-colors',
+                  autoRefresh
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-slate-900/60 border-slate-800/60 text-slate-500 hover:text-slate-300'
+                )}
+              >
+                <div className="flex items-center gap-1">
+                  <Timer className="w-3 h-3" />
+                  <span className={cn('w-1.5 h-1.5 rounded-full', autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600')} />
+                  {autoRefresh ? 'LIVE' : 'OFF'}
+                </div>
+                <span className="font-mono">{refreshInterval}s</span>
+              </button>
+            )}
             {headerActions}
           </div>
         </div>

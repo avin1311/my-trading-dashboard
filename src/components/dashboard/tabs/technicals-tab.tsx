@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Activity, Target, Gauge, TrendingUp, BarChart3 } from 'lucide-react';
+import { Activity, Target, Gauge, TrendingUp, BarChart3, BarChart2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { fINR, SIG_BG } from '@/lib/formatters';
 import { SectionCard, MetricRow, PBar } from '../kpi-card';
+import { VolumeProfile } from '../volume-profile';
 import type { LiveQuote } from '@/lib/types';
 
 /* ==============================
@@ -363,6 +364,7 @@ export function TechnicalsTab({
 }: {
   q: LiveQuote;
   t: Record<string, any>;
+  stockData?: { date: string; close: number; volume: number; high: number; low: number }[];
 }) {
   return (
     <div className="space-y-4">
@@ -468,6 +470,11 @@ export function TechnicalsTab({
           <MetricRow label="Volatility (20D)" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
         </SectionCard>
       </div>
+
+      {/* Volume Profile */}
+      <SectionCard title="Volume Profile" icon={BarChart2}>
+        <VolumeProfile data={stockData || []} currentPrice={q.price} />
+      </SectionCard>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const symbol = searchParams.get("symbol");
 
   if (!symbol) {
-    return NextResponse.json({ error: "symbol is required" }, { status: 400 });
+    return NextResponse.json({ error: "symbol is required" }, { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   try {
@@ -158,11 +158,11 @@ export async function GET(request: NextRequest) {
       peers,
       dataPoints: histData.length,
       lastDate: histData.length > 0 ? histData[histData.length - 1].date : null,
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Failed to fetch stock detail: " + err.message },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }
 }

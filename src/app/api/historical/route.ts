@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const symbol = searchParams.get("symbol");
 
   if (!symbol) {
-    return NextResponse.json({ error: "symbol is required" }, { status: 400 });
+    return NextResponse.json({ error: "symbol is required" }, { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   const days = Math.min(
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (stockData.length < 50) {
       return NextResponse.json(
         { error: "Insufficient historical data" },
-        { status: 422 }
+        { status: 422, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
       );
     }
 
@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
       dataSource: "yahoo_finance",
       dataPoints: stockData.length,
       lastDate: stockData[stockData.length - 1]?.date,
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
     return NextResponse.json(
       { error: "Failed to fetch data: " + err.message },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }
 }

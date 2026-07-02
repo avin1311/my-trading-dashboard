@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   // Return cached if fresh
   if (screenerCache && screenerCache.params === cacheKey && Date.now() - screenerCache.timestamp < SCREENER_TTL) {
-    return NextResponse.json({ ...screenerCache.data, cached: true });
+    return NextResponse.json({ ...screenerCache.data, cached: true }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   // Get equities to scan
@@ -121,5 +121,5 @@ export async function GET(request: NextRequest) {
   };
 
   screenerCache = { data: response, timestamp: Date.now(), params: cacheKey };
-  return NextResponse.json(response);
+  return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
 }

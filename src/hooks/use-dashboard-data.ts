@@ -16,6 +16,10 @@ export function useDashboardData() {
   const [selectedType, setSelectedType] = useState('equity');
   const [signalsLoading, setSignalsLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(true);
+
+  // Auto-refresh ON by default for real-time feel
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(15);
   const [stockData, setStockData] = useState<OHLCV[]>([]);
   const [signals, setSignals] = useState<StrategySignal[]>([]);
   const [backtest, setBacktest] = useState<BacktestResult | null>(null);
@@ -24,9 +28,9 @@ export function useDashboardData() {
   const [detail, setDetail] = useState<StockDetail | null>(null);
   const [overview, setOverview] = useState<MarketOverview | null>(null);
   const [lastDate, setLastDate] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<string>('');
   const [equitySearch, setEquitySearch] = useState('');
   const [selectedSector, setSelectedSector] = useState('all');
-  const [activeTab, setActiveTab] = useState('overview');
 
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
@@ -56,10 +60,11 @@ export function useDashboardData() {
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     };
     setSavePoints(prev => [...prev.slice(-5), sp]);
+    setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
     setTimeout(() => setSavePoints(prev => prev.filter(p => p.id !== sp.id)), 8000);
   }, []);
 
-  // Initial load
+  // Initial load — fetch stocks, indices, overview
   useEffect(() => {
     Promise.all([
       fetch('/api/stocks?type=equity').then(r => r.json()),
@@ -70,7 +75,7 @@ export function useDashboardData() {
       setIndices(idx.instruments || []);
       setSectors(eq.sectors || []);
       if (ov) setOverview(ov);
-      addSavePoint('Market Data Loaded', `${(eq.instruments || []).length} equities, ${(idx.instruments || []).length} indices loaded from Yahoo Finance`);
+      addSavePoint('Market Data Loaded', `${(eq.instruments || []).length} equities, ${(idx.instruments || []).length} indices loaded`);
     }).catch(console.error);
   }, []);
 
@@ -81,10 +86,21 @@ export function useDashboardData() {
       const data = await res.json();
       if (data.quote) {
         setDetail(data);
-        addSavePoint(`Loaded ${sym}`, `Price: ${data.quote.price.toLocaleString('en-IN')} | ${data.quote.changePct >= 0 ? '+' : ''}${data.quote.changePct.toFixed(2)}% | Data points: ${data.dataPoints}`);
+        addSavePoint(`Loaded ${sym}`, `Price: ₹${data.quote.price.toLocaleString('en-IN')} | ${data.quote.changePct >= 0 ? '+' : ''}${data.quote.changePct.toFixed(2)}%`);
       }
     } catch {} finally { setDetailLoading(false); }
   }, [addSavePoint]);
+
+  // Silent fetch — no save points, no loading spinner
+  const silentFetchDetail = useCallback(async (sym: string) => {
+    try {
+      const res = await fetch('/api/stock-detail?symbol=' + sym);
+      const data = await res.json();
+      if (data.quote) {
+        setDetail(data);
+      }
+    } catch {}
+  }, []);
 
   const fetchSignals = useCallback(async (sym: string, p: StrategyParams) => {
     setSignalsLoading(true);
@@ -124,7 +140,7 @@ export function useDashboardData() {
       const data = await res.json();
       setScreenerData(data.results || []);
       setScreenerCounts(data.signalCounts || {});
-      addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched | Source: ${data.dataSource}`);
+      addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched`);
     } catch {} finally { setScreenerLoading(false); }
   }, [screenerFilter, screenerSector, addSavePoint]);
 
@@ -139,22 +155,47 @@ export function useDashboardData() {
     } catch {} finally { setOptionsLoading(false); }
   }, []);
 
-  useEffect(() => { fetchDetail(selectedSymbol); fetchSignals(selectedSymbol, params); }, [selectedSymbol]);
-  useEffect(() => { if (activeTab === 'news' && news.length === 0) fetchNews(selectedSymbol); }, [activeTab, selectedSymbol]);
-  useEffect(() => { if (activeTab === 'screener' && screenerData.length === 0) fetchScreener(); }, [activeTab]);
-  useEffect(() => { if (activeTab === 'options' && optionsData.length === 0) fetchOptions(optionsUnderlying); }, [activeTab, optionsUnderlying]);
+  // When symbol changes: fetch detail + signals + news
+  useEffect(() => {
+    fetchDetail(selectedSymbol);
+    fetchSignals(selectedSymbol, params);
+    fetchNews(selectedSymbol);
+  }, [selectedSymbol]);
+
+  // Fetch screener on first load
+  useEffect(() => { fetchScreener(); }, []);
+
+  // Fetch options on demand
+  useEffect(() => { if (optionsData.length === 0) fetchOptions(optionsUnderlying); }, [optionsUnderlying]);
+
+  // Auto-refresh polling
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const detailInterval = setInterval(() => {
+      silentFetchDetail(selectedSymbol);
+    }, refreshInterval * 1000);
+    const overviewInterval = setInterval(() => {
+      fetch('/api/quote?overview=true').then(r => r.json()).then((ov: any) => {
+        if (ov) setOverview(ov);
+      }).catch(() => {});
+    }, 60000);
+    return () => {
+      clearInterval(detailInterval);
+      clearInterval(overviewInterval);
+    };
+  }, [autoRefresh, refreshInterval, selectedSymbol, silentFetchDetail]);
 
   const handleRefresh = () => {
     fetchDetail(selectedSymbol);
     fetchSignals(selectedSymbol, params);
-    if (activeTab === 'news') fetchNews(selectedSymbol);
+    fetchNews(selectedSymbol);
+    fetchScreener();
   };
 
   const handleSelect = (sym: string, type: string) => {
     setSelectedSymbol(sym);
     setSelectedType(type);
     setSheetOpen(false);
-    setActiveTab('overview');
     setNews([]);
     setScreenerData([]);
   };
@@ -216,14 +257,14 @@ export function useDashboardData() {
 
   return {
     // State
+    autoRefresh, setAutoRefresh, refreshInterval, setRefreshInterval,
     sheetOpen, setSheetOpen,
     equities, indices, sectors,
     selectedSymbol, selectedType,
     signalsLoading, detailLoading,
     stockData, signals, backtest, params, setParams, recalculating, setRecalculating,
-    detail, overview, lastDate,
+    detail, overview, lastDate, lastUpdated,
     equitySearch, setEquitySearch, selectedSector, setSelectedSector,
-    activeTab, setActiveTab,
     news, newsLoading,
     screenerData, setScreenerData, screenerCounts, screenerLoading, screenerFilter, setScreenerFilter,
     screenerSector, setScreenerSector, screenerSearched, setScreenerSearched,
@@ -238,5 +279,6 @@ export function useDashboardData() {
     // Actions
     handleRefresh, handleSelect,
     fetchSignals, fetchNews, fetchScreener, fetchOptions,
+    silentFetchDetail,
   };
 }

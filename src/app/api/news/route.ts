@@ -64,11 +64,11 @@ function classifySentiment(text: string): "positive" | "negative" | "neutral" {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const symbol = searchParams.get("symbol");
-  if (!symbol) return NextResponse.json({ error: "symbol is required" }, { status: 400 });
+  if (!symbol) return NextResponse.json({ error: "symbol is required" }, { status: 400, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
 
   const cached = newsCache.get(symbol);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json({ news: cached.data, cached: true });
+    return NextResponse.json({ news: cached.data, cached: true }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   try {
@@ -88,8 +88,8 @@ export async function GET(request: NextRequest) {
       return true;
     });
     newsCache.set(symbol, { data: unique, timestamp: Date.now() });
-    return NextResponse.json({ news: unique, cached: false });
+    return NextResponse.json({ news: unique, cached: false }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message, news: [] }, { status: 500 });
+    return NextResponse.json({ error: err.message, news: [] }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 }

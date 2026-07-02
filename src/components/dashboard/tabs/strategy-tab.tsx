@@ -11,6 +11,7 @@ import { fDate } from '@/lib/formatters';
 import { SectionCard, MetricRow } from '../kpi-card';
 import type { StrategyParams, StrategySignal, BacktestResult, ChartDataPoint } from '@/lib/types';
 import ChartSection from '../charts';
+import { ExportButton } from '../export-button';
 
 export function StrategyTab({
   chartData,
@@ -39,7 +40,11 @@ export function StrategyTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 space-y-4">
-        <SectionCard title="Price Chart with Signals" icon={LineChartIcon}>
+        <SectionCard
+          title="Price Chart with Signals"
+          icon={LineChartIcon}
+          badge={<ExportButton symbol={selectedSymbol} />}
+        >
           <ChartSection chartData={chartData} visibleData={visibleData} latestSignal={latestSignal} signalsLoading={signalsLoading} />
         </SectionCard>
         <SectionCard title="Strategy Parameters" icon={Settings2}>
@@ -75,7 +80,7 @@ export function StrategyTab({
       <div className="space-y-4">
         {backtest && (
           <>
-            <SectionCard title="Backtest Results" icon={Trophy}>
+            <SectionCard title="Backtest Results" icon={Trophy} badge={<ExportButton symbol={selectedSymbol} />}>
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20">
                   <div className="text-[9px] text-slate-500">Total Return</div>
