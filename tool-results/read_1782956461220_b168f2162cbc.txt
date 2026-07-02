@@ -255,286 +255,287 @@
    255→   255→};
    256→   256→
    257→   257→// ==================== HTTP HELPER ====================
-   258→   258→function httpsGet(url: string): Promise<string> {
-   259→   259→  return new Promise((resolve, reject) => {
-   260→   260→    const https = require('https');
-   261→   261→    const req = https.get(url, {
-   262→   262→      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-   263→   263→    }, (res: any) => {
-   264→   264→      if (res.statusCode === 301 || res.statusCode === 302) {
-   265→   265→        httpsGet(res.headers.location).then(resolve).catch(reject);
-   266→   266→        return;
-   267→   267→      }
-   268→   268→      let data = '';
-   269→   269→      res.on('data', (c: string) => (data += c));
-   270→   270→      res.on('end', () => resolve(data));
-   271→   271→    });
-   272→   272→    req.on('error', reject);
-   273→   273→    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
-   274→   274→  });
-   275→   275→}
-   276→   276→
-   277→   277→// ==================== CACHING ====================
-   278→   278→const quoteCache = new Map<string, { data: LiveQuote; timestamp: number }>();
-   279→   279→const histCache = new Map<string, { data: HistoricalDataPoint[]; timestamp: number }>();
-   280→   280→const QUOTE_TTL = 60_000; // 1 min
-   281→   281→const HIST_TTL = 300_000; // 5 min
-   282→   282→
-   283→   283→// ==================== SYMBOL HELPERS ====================
-   284→   284→function getYahooSymbol(nseSymbol: string): string {
-   285→   285→  if (YAHOO_SYMBOL_MAP[nseSymbol]) return YAHOO_SYMBOL_MAP[nseSymbol];
-   286→   286→  if (!nseSymbol.includes(".")) return `${nseSymbol}.NS`;
-   287→   287→  return nseSymbol;
-   288→   288→}
-   289→   289→
-   290→   290→// ==================== CALCULATE MOVING AVERAGES ====================
-   291→   291→function calculateSMA(data: number[], period: number): number | null {
-   292→   292→  if (data.length < period) return null;
-   293→   293→  const slice = data.slice(-period);
-   294→   294→  return slice.reduce((a, b) => a + b, 0) / period;
-   295→   295→}
-   296→   296→
-   297→   297→// ==================== LIVE QUOTE ====================
-   298→   298→export async function getLiveQuote(nseSymbol: string): Promise<LiveQuote> {
-   299→   299→  const cacheKey = nseSymbol;
-   300→   300→  const cached = quoteCache.get(cacheKey);
-   301→   301→  if (cached && Date.now() - cached.timestamp < QUOTE_TTL) {
-   302→   302→    return cached.data;
-   303→   303→  }
-   304→   304→
-   305→   305→  const yahooSymbol = getYahooSymbol(nseSymbol);
-   306→   306→  const isIndex = yahooSymbol.startsWith("^");
-   307→   307→
-   308→   308→  // Fetch price data from chart API
-   309→   309→  const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1d&interval=5m&includePrePost=false`;
-   310→   310→  const body = await httpsGet(chartUrl);
-   311→   311→  const data = JSON.parse(body);
-   312→   312→  const result = data.chart?.result?.[0];
-   313→   313→  const meta = result?.meta;
-   314→   314→
-   315→   315→  if (!meta) throw new Error(`No data for ${nseSymbol}`);
-   316→   316→
-   317→   317→  const price = meta.regularMarketPrice || 0;
-   318→   318→  const prevClose = meta.previousClose || meta.chartPreviousClose || 0;
-   319→   319→  const change = price - prevClose;
-   320→   320→  const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
-   321→   321→
-   322→   322→  // Get fundamentals from our database
-   323→   323→  const fund = FUNDAMENTALS_DB[nseSymbol] || {};
-   324→   324→
-   325→   325→  // Get sector/industry from fundamentals
-   326→   326→  const sector = fund.sector || "";
-   327→   327→  const industry = fund.industry || "";
-   328→   328→
-   329→   329→  const quote: LiveQuote = {
-   330→   330→    symbol: nseSymbol,
-   331→   331→    name: meta.shortName || nseSymbol,
-   332→   332→    longName: meta.longName || meta.shortName || nseSymbol,
-   333→   333→    sector,
-   334→   334→    industry,
-   335→   335→    exchange: meta.fullExchangeName || meta.exchangeName || "NSE",
-   336→   336→    currency: meta.currency || "INR",
-   337→   337→    type: isIndex ? "index" : "equity",
-   338→   338→
-   339→   339→    price: Math.round(price * 100) / 100,
-   340→   340→    change: Math.round(change * 100) / 100,
-   341→   341→    changePct: Math.round(changePct * 100) / 100,
-   342→   342→    prevClose: Math.round(prevClose * 100) / 100,
-   343→   343→    open: Math.round((meta.chartPreviousClose || prevClose) * 100) / 100,
-   344→   344→    dayHigh: Math.round((meta.regularMarketDayHigh || price) * 100) / 100,
-   345→   345→    dayLow: Math.round((meta.regularMarketDayLow || price) * 100) / 100,
-   346→   346→
-   347→   347→    volume: meta.regularMarketVolume || 0,
-   348→   348→    avgVolume: fund.marketCap ? Math.round((fund.marketCap / price) * 0.005) : 0,
-   349→   349→    volumeRatio: 1.0,
-   350→   350→
-   351→   351→    marketCap: fund.marketCap || (isIndex ? 0 : price * 1e9),
-   352→   352→    pe: fund.pe ?? null,
-   353→   353→    forwardPE: fund.forwardPE ?? null,
-   354→   354→    pb: fund.pb ?? null,
-   355→   355→    eps: fund.eps ?? null,
-   356→   356→    bookValue: fund.bookValue ?? null,
-   357→   357→    dividendYield: fund.dividendYield ?? null,
-   358→   358→    payoutRatio: fund.payoutRatio ?? null,
-   359→   359→
-   360→   360→    high52w: Math.round((meta.fiftyTwoWeekHigh || 0) * 100) / 100,
-   361→   361→    low52w: Math.round((meta.fiftyTwoWeekLow || 0) * 100) / 100,
-   362→   362→    percentFrom52wHigh: meta.fiftyTwoWeekHigh ? ((price - meta.fiftyTwoWeekHigh) / meta.fiftyTwoWeekHigh) * 100 : 0,
-   363→   363→    percentFrom52wLow: meta.fiftyTwoWeekLow ? ((price - meta.fiftyTwoWeekLow) / meta.fiftyTwoWeekLow) * 100 : 0,
-   364→   364→
-   365→   365→    fiftyDMA: null,
-   366→   366→    twoHundredDMA: null,
-   367→   367→    percentAbove50DMA: null,
-   368→   368→    percentAbove200DMA: null,
-   369→   369→
-   370→   370→    beta: fund.beta ?? null,
-   371→   371→    roe: fund.roe ?? null,
-   372→   372→    roa: fund.roa ?? null,
-   373→   373→    debtToEquity: fund.debtToEquity ?? null,
-   374→   374→    revenueGrowth: fund.revenueGrowth ?? null,
-   375→   375→    profitMargins: fund.profitMargins ?? null,
-   376→   376→    operatingMargins: fund.operatingMargins ?? null,
-   377→   377→    currentRatio: fund.currentRatio ?? null,
-   378→   378→    totalRevenue: fund.totalRevenue ?? null,
-   379→   379→    ebitda: fund.ebitda ?? null,
-   380→   380→    grossProfits: fund.grossProfits ?? null,
-   381→   381→    freeCashflow: fund.freeCashflow ?? null,
-   382→   382→
-   383→   383→    recommendation: fund.recommendation || null,
-   384→   384→    targetHigh: fund.targetHigh ?? null,
-   385→   385→    targetLow: fund.targetLow ?? null,
-   386→   386→    targetMean: fund.targetMean ?? null,
-   387→   387→    targetMedian: fund.targetMedian ?? null,
-   388→   388→    analysts: fund.analysts ?? null,
-   389→   389→
-   390→   390→    instHolding: fund.instHolding ?? null,
-   391→   391→    insiderHolding: fund.insiderHolding ?? null,
-   392→   392→
-   393→   393→    marketState: "REGULAR",
-   394→   394→    lastUpdated: new Date().toISOString(),
-   395→   395→  };
-   396→   396→
-   397→   397→  quoteCache.set(cacheKey, { data: quote, timestamp: Date.now() });
-   398→   398→  return quote;
-   399→   399→}
-   400→   400→
-   401→   401→// ==================== HISTORICAL DATA ====================
-   402→   402→export async function getHistoricalData(
-   403→   403→  nseSymbol: string,
-   404→   404→  days: number = 200
-   405→   405→): Promise<HistoricalDataPoint[]> {
-   406→   406→  const cacheKey = `${nseSymbol}_${days}`;
-   407→   407→  const cached = histCache.get(cacheKey);
-   408→   408→  if (cached && Date.now() - cached.timestamp < HIST_TTL) {
-   409→   409→    return cached.data;
-   410→   410→  }
-   411→   411→
-   412→   412→  const yahooSymbol = getYahooSymbol(nseSymbol);
-   413→   413→  const period1 = Math.floor(new Date(Date.now() - Math.ceil(days * 1.5) * 86400000).getTime() / 1000);
-   414→   414→  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${period1}&period2=9999999999&interval=1d`;
-   415→   415→
-   416→   416→  const body = await httpsGet(url);
-   417→   417→  const data = JSON.parse(body);
-   418→   418→  const result = data.chart?.result?.[0];
-   419→   419→
-   420→   420→  if (!result) throw new Error(`No historical data for ${nseSymbol}`);
-   421→   421→
-   422→   422→  const timestamps = result.timestamp || [];
-   423→   423→  const quotes = result.indicators?.quote?.[0] || {};
-   424→   424→
-   425→   425→  const points: HistoricalDataPoint[] = [];
-   426→   426→  for (let i = 0; i < timestamps.length; i++) {
-   427→   427→    const close = quotes.close?.[i];
-   428→   428→    const open = quotes.open?.[i];
-   429→   429→    const high = quotes.high?.[i];
-   430→   430→    const low = quotes.low?.[i];
-   431→   431→    const vol = quotes.volume?.[i];
-   432→   432→    if (close != null && close > 0) {
-   433→   433→      points.push({
-   434→   434→        date: new Date(timestamps[i] * 1000).toISOString().split("T")[0],
-   435→   435→        open: Math.round((open || close) * 100) / 100,
-   436→   436→        high: Math.round((high || close) * 100) / 100,
-   437→   437→        low: Math.round((low || close) * 100) / 100,
-   438→   438→        close: Math.round(close * 100) / 100,
-   439→   439→        volume: vol || 0,
-   440→   440→      });
-   441→   441→    }
-   442→   442→  }
-   443→   443→
-   444→   444→  const finalData = points.slice(-days);
-   445→   445→
-   446→   446→  // Update moving averages on cached quote
-   447→   447→  const closes = finalData.map(d => d.close);
-   448→   448→  const cachedQuote = quoteCache.get(nseSymbol);
-   449→   449→  if (cachedQuote) {
-   450→   450→    const dma50 = calculateSMA(closes, 50);
-   451→   451→    const dma200 = calculateSMA(closes, 200);
-   452→   452→    cachedQuote.data.fiftyDMA = dma50 ? Math.round(dma50 * 100) / 100 : null;
-   453→   453→    cachedQuote.data.twoHundredDMA = dma200 ? Math.round(dma200 * 100) / 100 : null;
-   454→   454→    cachedQuote.data.percentAbove50DMA = dma50 ? ((cachedQuote.data.price - dma50) / dma50) * 100 : null;
-   455→   455→    cachedQuote.data.percentAbove200DMA = dma200 ? ((cachedQuote.data.price - dma200) / dma200) * 100 : null;
-   456→   456→  }
-   457→   457→
-   458→   458→  histCache.set(cacheKey, { data: finalData, timestamp: Date.now() });
-   459→   459→  return finalData;
-   460→   460→}
-   461→   461→
-   462→   462→// ==================== SECTOR PEERS ====================
-   463→   463→export async function getSectorPeers(
-   464→   464→  nseSymbol: string,
-   465→   465→  sector: string
-   466→   466→): Promise<PeerData[]> {
-   467→   467→  let peerSymbols: string[] = [];
-   468→   468→  for (const [sec, symbols] of Object.entries(SECTOR_PEERS)) {
-   469→   469→    if (
-   470→   470→      sector.toLowerCase().includes(sec.toLowerCase()) ||
-   471→   471→      sec.toLowerCase().includes(sector.toLowerCase())
-   472→   472→    ) {
-   473→   473→      peerSymbols = symbols.filter((s) => s !== nseSymbol).slice(0, 10);
-   474→   474→      break;
-   475→   475→    }
-   476→   476→  }
-   477→   477→
-   478→   478→  if (peerSymbols.length < 2) return [];
-   479→   479→
-   480→   480→  const allPeers: PeerData[] = [];
-   481→   481→  // Fetch in batches of 3 to avoid rate limits
-   482→   482→  for (let i = 0; i < peerSymbols.length; i += 3) {
-   483→   483→    const batch = peerSymbols.slice(i, i + 3);
-   484→   484→    const results = await Promise.allSettled(batch.map((s) => getLiveQuote(s)));
-   485→   485→    for (let j = 0; j < results.length; j++) {
-   486→   486→      if (results[j].status === "fulfilled") {
-   487→   487→        const q = results[j].value;
-   488→   488→        allPeers.push({
-   489→   489→          symbol: q.symbol,
-   490→   490→          name: q.name,
-   491→   491→          price: q.price,
-   492→   492→          changePct: q.changePct,
-   493→   493→          marketCap: q.marketCap,
-   494→   494→          pe: q.pe,
-   495→   495→          pb: q.pb,
-   496→   496→          divYield: q.dividendYield,
-   497→   497→          roe: q.roe,
-   498→   498→          revenueGrowth: q.revenueGrowth,
-   499→   499→        });
-   500→   500→      }
-   501→   501→    }
-   502→   502→  }
-   503→   503→
-   504→   504→  return allPeers;
-   505→   505→}
-   506→   506→
-   507→   507→// ==================== MARKET OVERVIEW ====================
-   508→   508→export async function getMarketOverview(): Promise<{
-   509→   509→  nifty50: LiveQuote;
-   510→   510→  bankNifty: LiveQuote;
-   511→   511→  niftyIT: LiveQuote;
-   512→   512→  indiaVix: LiveQuote;
-   513→   513→  topGainers: LiveQuote[];
-   514→   514→  topLosers: LiveQuote[];
-   515→   515→}> {
-   516→   516→  const [nifty50, bankNifty, niftyIT, indiaVix] = await Promise.all([
-   517→   517→    getLiveQuote("NIFTY"),
-   518→   518→    getLiveQuote("BANKNIFTY"),
-   519→   519→    getLiveQuote("NIFTYIT"),
-   520→   520→    getLiveQuote("INDIAVIX"),
-   521→   521→  ]);
-   522→   522→
-   523→   523→  const hotStocks = [
-   524→   524→    "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
-   525→   525→    "SBIN", "TATAMOTORS", "LT", "AXISBANK", "BAJFINANCE",
-   526→   526→    "SUNPHARMA", "MARUTI", "HCLTECH", "ADANIENT", "TATASTEEL",
-   527→   527→    "BHARTIARTL", "WIPRO", "NTPC", "POWERGRID", "TITAN",
-   528→   528→  ];
-   529→   529→
-   530→   530→  const quotes = await Promise.allSettled(hotStocks.map((s) => getLiveQuote(s)));
-   531→   531→  const validQuotes = quotes
-   532→   532→    .filter((r) => r.status === "fulfilled")
-   533→   533→    .map((r) => (r as PromiseFulfilledResult<LiveQuote>).value);
-   534→   534→
-   535→   535→  const sorted = [...validQuotes].sort((a, b) => b.changePct - a.changePct);
-   536→   536→  const topGainers = sorted.slice(0, 5);
-   537→   537→  const topLosers = sorted.slice(-5).reverse();
-   538→   538→
-   539→   539→  return { nifty50, bankNifty, niftyIT, indiaVix, topGainers, topLosers };
-   540→   540→}
+   258→   258→import https from 'https';
+   259→   259→
+   260→   260→function httpsGet(url: string): Promise<string> {
+   261→   261→  return new Promise((resolve, reject) => {
+   262→   262→    const req = https.get(url, {
+   263→   263→      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+   264→   264→    }, (res) => {
+   265→   265→      if (res.statusCode === 301 || res.statusCode === 302) {
+   266→   266→        httpsGet(res.headers.location || '').then(resolve).catch(reject);
+   267→   267→        return;
+   268→   268→      }
+   269→   269→      let data = '';
+   270→   270→      res.on('data', (c: string) => (data += c));
+   271→   271→      res.on('end', () => resolve(data));
+   272→   272→    });
+   273→   273→    req.on('error', reject);
+   274→   274→    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
+   275→   275→  });
+   276→   276→}
+   277→   277→
+   278→   278→// ==================== CACHING ====================
+   279→   279→const quoteCache = new Map<string, { data: LiveQuote; timestamp: number }>();
+   280→   280→const histCache = new Map<string, { data: HistoricalDataPoint[]; timestamp: number }>();
+   281→   281→const QUOTE_TTL = 60_000; // 1 min
+   282→   282→const HIST_TTL = 300_000; // 5 min
+   283→   283→
+   284→   284→// ==================== SYMBOL HELPERS ====================
+   285→   285→function getYahooSymbol(nseSymbol: string): string {
+   286→   286→  if (YAHOO_SYMBOL_MAP[nseSymbol]) return YAHOO_SYMBOL_MAP[nseSymbol];
+   287→   287→  if (!nseSymbol.includes(".")) return `${nseSymbol}.NS`;
+   288→   288→  return nseSymbol;
+   289→   289→}
+   290→   290→
+   291→   291→// ==================== CALCULATE MOVING AVERAGES ====================
+   292→   292→function calculateSMA(data: number[], period: number): number | null {
+   293→   293→  if (data.length < period) return null;
+   294→   294→  const slice = data.slice(-period);
+   295→   295→  return slice.reduce((a, b) => a + b, 0) / period;
+   296→   296→}
+   297→   297→
+   298→   298→// ==================== LIVE QUOTE ====================
+   299→   299→export async function getLiveQuote(nseSymbol: string): Promise<LiveQuote> {
+   300→   300→  const cacheKey = nseSymbol;
+   301→   301→  const cached = quoteCache.get(cacheKey);
+   302→   302→  if (cached && Date.now() - cached.timestamp < QUOTE_TTL) {
+   303→   303→    return cached.data;
+   304→   304→  }
+   305→   305→
+   306→   306→  const yahooSymbol = getYahooSymbol(nseSymbol);
+   307→   307→  const isIndex = yahooSymbol.startsWith("^");
+   308→   308→
+   309→   309→  // Fetch price data from chart API
+   310→   310→  const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1d&interval=5m&includePrePost=false`;
+   311→   311→  const body = await httpsGet(chartUrl);
+   312→   312→  const data = JSON.parse(body);
+   313→   313→  const result = data.chart?.result?.[0];
+   314→   314→  const meta = result?.meta;
+   315→   315→
+   316→   316→  if (!meta) throw new Error(`No data for ${nseSymbol}`);
+   317→   317→
+   318→   318→  const price = meta.regularMarketPrice || 0;
+   319→   319→  const prevClose = meta.previousClose || meta.chartPreviousClose || 0;
+   320→   320→  const change = price - prevClose;
+   321→   321→  const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+   322→   322→
+   323→   323→  // Get fundamentals from our database
+   324→   324→  const fund = FUNDAMENTALS_DB[nseSymbol] || {};
+   325→   325→
+   326→   326→  // Get sector/industry from fundamentals
+   327→   327→  const sector = fund.sector || "";
+   328→   328→  const industry = fund.industry || "";
+   329→   329→
+   330→   330→  const quote: LiveQuote = {
+   331→   331→    symbol: nseSymbol,
+   332→   332→    name: meta.shortName || nseSymbol,
+   333→   333→    longName: meta.longName || meta.shortName || nseSymbol,
+   334→   334→    sector,
+   335→   335→    industry,
+   336→   336→    exchange: meta.fullExchangeName || meta.exchangeName || "NSE",
+   337→   337→    currency: meta.currency || "INR",
+   338→   338→    type: isIndex ? "index" : "equity",
+   339→   339→
+   340→   340→    price: Math.round(price * 100) / 100,
+   341→   341→    change: Math.round(change * 100) / 100,
+   342→   342→    changePct: Math.round(changePct * 100) / 100,
+   343→   343→    prevClose: Math.round(prevClose * 100) / 100,
+   344→   344→    open: Math.round((meta.chartPreviousClose || prevClose) * 100) / 100,
+   345→   345→    dayHigh: Math.round((meta.regularMarketDayHigh || price) * 100) / 100,
+   346→   346→    dayLow: Math.round((meta.regularMarketDayLow || price) * 100) / 100,
+   347→   347→
+   348→   348→    volume: meta.regularMarketVolume || 0,
+   349→   349→    avgVolume: fund.marketCap ? Math.round((fund.marketCap / price) * 0.005) : 0,
+   350→   350→    volumeRatio: 1.0,
+   351→   351→
+   352→   352→    marketCap: fund.marketCap || (isIndex ? 0 : price * 1e9),
+   353→   353→    pe: fund.pe ?? null,
+   354→   354→    forwardPE: fund.forwardPE ?? null,
+   355→   355→    pb: fund.pb ?? null,
+   356→   356→    eps: fund.eps ?? null,
+   357→   357→    bookValue: fund.bookValue ?? null,
+   358→   358→    dividendYield: fund.dividendYield ?? null,
+   359→   359→    payoutRatio: fund.payoutRatio ?? null,
+   360→   360→
+   361→   361→    high52w: Math.round((meta.fiftyTwoWeekHigh || 0) * 100) / 100,
+   362→   362→    low52w: Math.round((meta.fiftyTwoWeekLow || 0) * 100) / 100,
+   363→   363→    percentFrom52wHigh: meta.fiftyTwoWeekHigh ? ((price - meta.fiftyTwoWeekHigh) / meta.fiftyTwoWeekHigh) * 100 : 0,
+   364→   364→    percentFrom52wLow: meta.fiftyTwoWeekLow ? ((price - meta.fiftyTwoWeekLow) / meta.fiftyTwoWeekLow) * 100 : 0,
+   365→   365→
+   366→   366→    fiftyDMA: null,
+   367→   367→    twoHundredDMA: null,
+   368→   368→    percentAbove50DMA: null,
+   369→   369→    percentAbove200DMA: null,
+   370→   370→
+   371→   371→    beta: fund.beta ?? null,
+   372→   372→    roe: fund.roe ?? null,
+   373→   373→    roa: fund.roa ?? null,
+   374→   374→    debtToEquity: fund.debtToEquity ?? null,
+   375→   375→    revenueGrowth: fund.revenueGrowth ?? null,
+   376→   376→    profitMargins: fund.profitMargins ?? null,
+   377→   377→    operatingMargins: fund.operatingMargins ?? null,
+   378→   378→    currentRatio: fund.currentRatio ?? null,
+   379→   379→    totalRevenue: fund.totalRevenue ?? null,
+   380→   380→    ebitda: fund.ebitda ?? null,
+   381→   381→    grossProfits: fund.grossProfits ?? null,
+   382→   382→    freeCashflow: fund.freeCashflow ?? null,
+   383→   383→
+   384→   384→    recommendation: fund.recommendation || null,
+   385→   385→    targetHigh: fund.targetHigh ?? null,
+   386→   386→    targetLow: fund.targetLow ?? null,
+   387→   387→    targetMean: fund.targetMean ?? null,
+   388→   388→    targetMedian: fund.targetMedian ?? null,
+   389→   389→    analysts: fund.analysts ?? null,
+   390→   390→
+   391→   391→    instHolding: fund.instHolding ?? null,
+   392→   392→    insiderHolding: fund.insiderHolding ?? null,
+   393→   393→
+   394→   394→    marketState: "REGULAR",
+   395→   395→    lastUpdated: new Date().toISOString(),
+   396→   396→  };
+   397→   397→
+   398→   398→  quoteCache.set(cacheKey, { data: quote, timestamp: Date.now() });
+   399→   399→  return quote;
+   400→   400→}
+   401→   401→
+   402→   402→// ==================== HISTORICAL DATA ====================
+   403→   403→export async function getHistoricalData(
+   404→   404→  nseSymbol: string,
+   405→   405→  days: number = 200
+   406→   406→): Promise<HistoricalDataPoint[]> {
+   407→   407→  const cacheKey = `${nseSymbol}_${days}`;
+   408→   408→  const cached = histCache.get(cacheKey);
+   409→   409→  if (cached && Date.now() - cached.timestamp < HIST_TTL) {
+   410→   410→    return cached.data;
+   411→   411→  }
+   412→   412→
+   413→   413→  const yahooSymbol = getYahooSymbol(nseSymbol);
+   414→   414→  const period1 = Math.floor(new Date(Date.now() - Math.ceil(days * 1.5) * 86400000).getTime() / 1000);
+   415→   415→  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${period1}&period2=9999999999&interval=1d`;
+   416→   416→
+   417→   417→  const body = await httpsGet(url);
+   418→   418→  const data = JSON.parse(body);
+   419→   419→  const result = data.chart?.result?.[0];
+   420→   420→
+   421→   421→  if (!result) throw new Error(`No historical data for ${nseSymbol}`);
+   422→   422→
+   423→   423→  const timestamps = result.timestamp || [];
+   424→   424→  const quotes = result.indicators?.quote?.[0] || {};
+   425→   425→
+   426→   426→  const points: HistoricalDataPoint[] = [];
+   427→   427→  for (let i = 0; i < timestamps.length; i++) {
+   428→   428→    const close = quotes.close?.[i];
+   429→   429→    const open = quotes.open?.[i];
+   430→   430→    const high = quotes.high?.[i];
+   431→   431→    const low = quotes.low?.[i];
+   432→   432→    const vol = quotes.volume?.[i];
+   433→   433→    if (close != null && close > 0) {
+   434→   434→      points.push({
+   435→   435→        date: new Date(timestamps[i] * 1000).toISOString().split("T")[0],
+   436→   436→        open: Math.round((open || close) * 100) / 100,
+   437→   437→        high: Math.round((high || close) * 100) / 100,
+   438→   438→        low: Math.round((low || close) * 100) / 100,
+   439→   439→        close: Math.round(close * 100) / 100,
+   440→   440→        volume: vol || 0,
+   441→   441→      });
+   442→   442→    }
+   443→   443→  }
+   444→   444→
+   445→   445→  const finalData = points.slice(-days);
+   446→   446→
+   447→   447→  // Update moving averages on cached quote
+   448→   448→  const closes = finalData.map(d => d.close);
+   449→   449→  const cachedQuote = quoteCache.get(nseSymbol);
+   450→   450→  if (cachedQuote) {
+   451→   451→    const dma50 = calculateSMA(closes, 50);
+   452→   452→    const dma200 = calculateSMA(closes, 200);
+   453→   453→    cachedQuote.data.fiftyDMA = dma50 ? Math.round(dma50 * 100) / 100 : null;
+   454→   454→    cachedQuote.data.twoHundredDMA = dma200 ? Math.round(dma200 * 100) / 100 : null;
+   455→   455→    cachedQuote.data.percentAbove50DMA = dma50 ? ((cachedQuote.data.price - dma50) / dma50) * 100 : null;
+   456→   456→    cachedQuote.data.percentAbove200DMA = dma200 ? ((cachedQuote.data.price - dma200) / dma200) * 100 : null;
+   457→   457→  }
+   458→   458→
+   459→   459→  histCache.set(cacheKey, { data: finalData, timestamp: Date.now() });
+   460→   460→  return finalData;
+   461→   461→}
+   462→   462→
+   463→   463→// ==================== SECTOR PEERS ====================
+   464→   464→export async function getSectorPeers(
+   465→   465→  nseSymbol: string,
+   466→   466→  sector: string
+   467→   467→): Promise<PeerData[]> {
+   468→   468→  let peerSymbols: string[] = [];
+   469→   469→  for (const [sec, symbols] of Object.entries(SECTOR_PEERS)) {
+   470→   470→    if (
+   471→   471→      sector.toLowerCase().includes(sec.toLowerCase()) ||
+   472→   472→      sec.toLowerCase().includes(sector.toLowerCase())
+   473→   473→    ) {
+   474→   474→      peerSymbols = symbols.filter((s) => s !== nseSymbol).slice(0, 10);
+   475→   475→      break;
+   476→   476→    }
+   477→   477→  }
+   478→   478→
+   479→   479→  if (peerSymbols.length < 2) return [];
+   480→   480→
+   481→   481→  const allPeers: PeerData[] = [];
+   482→   482→  // Fetch in batches of 3 to avoid rate limits
+   483→   483→  for (let i = 0; i < peerSymbols.length; i += 3) {
+   484→   484→    const batch = peerSymbols.slice(i, i + 3);
+   485→   485→    const results = await Promise.allSettled(batch.map((s) => getLiveQuote(s)));
+   486→   486→    for (let j = 0; j < results.length; j++) {
+   487→   487→      if (results[j].status === "fulfilled") {
+   488→   488→        const q = results[j].value;
+   489→   489→        allPeers.push({
+   490→   490→          symbol: q.symbol,
+   491→   491→          name: q.name,
+   492→   492→          price: q.price,
+   493→   493→          changePct: q.changePct,
+   494→   494→          marketCap: q.marketCap,
+   495→   495→          pe: q.pe,
+   496→   496→          pb: q.pb,
+   497→   497→          divYield: q.dividendYield,
+   498→   498→          roe: q.roe,
+   499→   499→          revenueGrowth: q.revenueGrowth,
+   500→   500→        });
+   501→   501→      }
+   502→   502→    }
+   503→   503→  }
+   504→   504→
+   505→   505→  return allPeers;
+   506→   506→}
+   507→   507→
+   508→   508→// ==================== MARKET OVERVIEW ====================
+   509→   509→export async function getMarketOverview(): Promise<{
+   510→   510→  nifty50: LiveQuote;
+   511→   511→  bankNifty: LiveQuote;
+   512→   512→  niftyIT: LiveQuote;
+   513→   513→  indiaVix: LiveQuote;
+   514→   514→  topGainers: LiveQuote[];
+   515→   515→  topLosers: LiveQuote[];
+   516→   516→}> {
+   517→   517→  const [nifty50, bankNifty, niftyIT, indiaVix] = await Promise.all([
+   518→   518→    getLiveQuote("NIFTY"),
+   519→   519→    getLiveQuote("BANKNIFTY"),
+   520→   520→    getLiveQuote("NIFTYIT"),
+   521→   521→    getLiveQuote("INDIAVIX"),
+   522→   522→  ]);
+   523→   523→
+   524→   524→  const hotStocks = [
+   525→   525→    "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
+   526→   526→    "SBIN", "TATAMOTORS", "LT", "AXISBANK", "BAJFINANCE",
+   527→   527→    "SUNPHARMA", "MARUTI", "HCLTECH", "ADANIENT", "TATASTEEL",
+   528→   528→    "BHARTIARTL", "WIPRO", "NTPC", "POWERGRID", "TITAN",
+   529→   529→  ];
+   530→   530→
+   531→   531→  const quotes = await Promise.allSettled(hotStocks.map((s) => getLiveQuote(s)));
+   532→   532→  const validQuotes = quotes
+   533→   533→    .filter((r) => r.status === "fulfilled")
+   534→   534→    .map((r) => (r as PromiseFulfilledResult<LiveQuote>).value);
+   535→   535→
+   536→   536→  const sorted = [...validQuotes].sort((a, b) => b.changePct - a.changePct);
+   537→   537→  const topGainers = sorted.slice(0, 5);
+   538→   538→  const topLosers = sorted.slice(-5).reverse();
+   539→   539→
+   540→   540→  return { nifty50, bankNifty, niftyIT, indiaVix, topGainers, topLosers };
+   541→   541→}

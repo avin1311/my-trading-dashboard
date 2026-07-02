@@ -498,44 +498,5 @@
    498→          roe: q.roe,
    499→          revenueGrowth: q.revenueGrowth,
    500→        });
-   501→      }
-   502→    }
-   503→  }
-   504→
-   505→  return allPeers;
-   506→}
-   507→
-   508→// ==================== MARKET OVERVIEW ====================
-   509→export async function getMarketOverview(): Promise<{
-   510→  nifty50: LiveQuote;
-   511→  bankNifty: LiveQuote;
-   512→  niftyIT: LiveQuote;
-   513→  indiaVix: LiveQuote;
-   514→  topGainers: LiveQuote[];
-   515→  topLosers: LiveQuote[];
-   516→}> {
-   517→  const [nifty50, bankNifty, niftyIT, indiaVix] = await Promise.all([
-   518→    getLiveQuote("NIFTY"),
-   519→    getLiveQuote("BANKNIFTY"),
-   520→    getLiveQuote("NIFTYIT"),
-   521→    getLiveQuote("INDIAVIX"),
-   522→  ]);
-   523→
-   524→  const hotStocks = [
-   525→    "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
-   526→    "SBIN", "TATAMOTORS", "LT", "AXISBANK", "BAJFINANCE",
-   527→    "SUNPHARMA", "MARUTI", "HCLTECH", "ADANIENT", "TATASTEEL",
-   528→    "BHARTIARTL", "WIPRO", "NTPC", "POWERGRID", "TITAN",
-   529→  ];
-   530→
-   531→  const quotes = await Promise.allSettled(hotStocks.map((s) => getLiveQuote(s)));
-   532→  const validQuotes = quotes
-   533→    .filter((r) => r.status === "fulfilled")
-   534→    .map((r) => (r as PromiseFulfilledResult<LiveQuote>).value);
-   535→
-   536→  const sorted = [...validQuotes].sort((a, b) => b.changePct - a.changePct);
-   537→  const topGainers = sorted.slice(0, 5);
-   538→  const topLosers = sorted.slice(-5).reverse();
-   539→
-   540→  return { nifty50, bankNifty, niftyIT, indiaVix, topGainers, topLosers };
-   541→}
+
+[showing lines 1-500 of 541; use offset=501 with limit to continue reading]

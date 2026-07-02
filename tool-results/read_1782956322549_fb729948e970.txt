@@ -1,0 +1,502 @@
+    30→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+    31→import { ScrollArea } from '@/components/ui/scroll-area';
+    32→import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+    33→import { Separator } from '@/components/ui/separator';
+    34→import { Progress } from '@/components/ui/progress';
+    35→import { cn } from '@/lib/utils';
+    36→
+    37→// ==================== TYPES ====================
+    38→interface StockInfo { symbol: string; name: string; sector: string; basePrice: number; volatility: number; type: string; }
+    39→interface OHLCV { date: string; open: number; high: number; low: number; close: number; volume: number; }
+    40→type SignalType = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
+    41→interface StrategySignal { date: string; close: number; signal: SignalType; supertrend: number; supertrendDir: number; rsi: number; macd: number; macdSignal: number; macdHistogram: number; reason: string; }
+    42→interface TradeRecord { entryDate: string; exitDate: string; entryPrice: number; exitPrice: number; type: string; pnl: number; pnlPct: number; signal: SignalType; }
+    43→interface BacktestResult { totalReturn: number; totalReturnPct: number; winRate: number; totalTrades: number; winningTrades: number; losingTrades: number; avgWinPct: number; avgLossPct: number; maxDrawdownPct: number; profitFactor: number; trades: TradeRecord[]; }
+    44→interface StrategyParams { supertrendPeriod: number; supertrendMultiplier: number; rsiPeriod: number; rsiOverbought: number; rsiOversold: number; macdFast: number; macdSlow: number; macdSignal: number; }
+    45→interface ChartDataPoint extends OHLCV { supertrend: number | null; supertrendDir: number | null; rsi: number | null; macd: number | null; macdSignal: number | null; macdHistogram: number | null; signal: SignalType | null; }
+    46→interface LiveQuote { symbol: string; name: string; longName: string; sector: string; industry: string; exchange: string; currency: string; type: string; price: number; change: number; changePct: number; prevClose: number; open: number; dayHigh: number; dayLow: number; volume: number; avgVolume: number; volumeRatio: number; marketCap: number; pe: number | null; forwardPE: number | null; pb: number | null; eps: number | null; bookValue: number | null; dividendYield: number | null; payoutRatio: number | null; high52w: number; low52w: number; percentFrom52wHigh: number; percentFrom52wLow: number; fiftyDMA: number | null; twoHundredDMA: number | null; percentAbove50DMA: number | null; percentAbove200DMA: number | null; beta: number | null; roe: number | null; roa: number | null; debtToEquity: number | null; revenueGrowth: number | null; profitMargins: number | null; operatingMargins: number | null; currentRatio: number | null; totalRevenue: number | null; ebitda: number | null; grossProfits: number | null; freeCashflow: number | null; recommendation: string | null; targetHigh: number | null; targetLow: number | null; targetMean: number | null; targetMedian: number | null; analysts: number | null; instHolding: number | null; }
+    47→interface PeerData { symbol: string; name: string; price: number; changePct: number; marketCap: number; pe: number | null; pb: number | null; divYield: number | null; roe: number | null; revenueGrowth: number | null; }
+    48→interface StockDetail { quote: LiveQuote; technicals: Record<string, any>; performance: Record<string, number | null>; ownership: Record<string, number | null>; financials: Record<string, number | null>; peers: PeerData[] | null; dataPoints: number; lastDate: string | null; }
+    49→interface MarketOverview { nifty50: LiveQuote; bankNifty: LiveQuote; niftyIT: LiveQuote; indiaVix: LiveQuote; topGainers?: LiveQuote[]; topLosers?: LiveQuote[]; }
+    50→interface NewsItem { title: string; source: string; url: string; publishedAt: string; summary: string; sentiment: "positive" | "negative" | "neutral"; }
+    51→
+    52→const DEFAULT_PARAMS: StrategyParams = {
+    53→  supertrendPeriod: 10, supertrendMultiplier: 3, rsiPeriod: 14,
+    54→  rsiOverbought: 70, rsiOversold: 30, macdFast: 12, macdSlow: 26, macdSignal: 9,
+    55→};
+    56→
+    57→// ==================== FORMATTERS ====================
+    58→function fINR(v: number): string {
+    59→  if (v >= 1e12) return '\u20B9' + (v / 1e12).toFixed(2) + ' T';
+    60→  if (v >= 1e7) return '\u20B9' + (v / 1e7).toFixed(2) + ' Cr';
+    61→  if (v >= 1e5) return '\u20B9' + (v / 1e5).toFixed(2) + ' L';
+    62→  return '\u20B9' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    63→}
+    64→function fNum(v: number): string {
+    65→  if (v >= 1e12) return (v / 1e12).toFixed(2) + 'T';
+    66→  if (v >= 1e7) return (v / 1e7).toFixed(2) + ' Cr';
+    67→  if (v >= 1e5) return (v / 1e5).toFixed(2) + ' L';
+    68→  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+    69→  return v.toFixed(2);
+    70→}
+    71→function fDate(d: string): string {
+    72→  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+    73→}
+    74→function fTime(d: string): string {
+    75→  const dt = new Date(d);
+    76→  const now = new Date();
+    77→  const diffMs = now.getTime() - dt.getTime();
+    78→  const diffHrs = Math.floor(diffMs / 3600000);
+    79→  if (diffHrs < 1) return 'Just now';
+    80→  if (diffHrs < 24) return diffHrs + 'h ago';
+    81→  return fDate(d);
+    82→}
+    83→
+    84→// ==================== COLOR MAPS ====================
+    85→const SIG_BG: Record<string, string> = {
+    86→  STRONG_BUY: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400',
+    87→  BUY: 'bg-green-500/20 border-green-500/40 text-green-400',
+    88→  HOLD: 'bg-amber-500/20 border-amber-500/40 text-amber-400',
+    89→  SELL: 'bg-orange-500/20 border-orange-500/40 text-orange-400',
+    90→  STRONG_SELL: 'bg-red-500/20 border-red-500/40 text-red-400',
+    91→};
+    92→const SIG_DOT: Record<string, string> = {
+    93→  STRONG_BUY: 'bg-emerald-400', BUY: 'bg-green-400', HOLD: 'bg-amber-400', SELL: 'bg-orange-400', STRONG_SELL: 'bg-red-400',
+    94→};
+    95→const TYPE_COLOR: Record<string, string> = {
+    96→  equity: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+    97→  index: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    98→};
+    99→
+   100→function pctVal(v: number | null) {
+   101→  if (v === null) return <span className="text-slate-600">--</span>;
+   102→  const c = v >= 0 ? 'text-emerald-400' : 'text-red-400';
+   103→  const icon = v > 0.5 ? <ArrowUpRight className="w-3 h-3" /> : v < -0.5 ? <ArrowDownRight className="w-3 h-3" /> : <Minus className="w-3 h-3" />;
+   104→  return <span className={cn(c, 'flex items-center gap-0.5 font-mono')}>{icon}{Math.abs(v).toFixed(2)}%</span>;
+   105→}
+   106→
+   107→// ==================== POWER BI STYLE COMPONENTS ====================
+   108→function KPICard({ label, value, sub, icon: Icon, trend, accent }: {
+   109→  label: string; value: React.ReactNode; sub?: React.ReactNode;
+   110→  icon?: React.ElementType; trend?: 'up' | 'down' | 'flat'; accent?: string;
+   111→}) {
+   112→  const accentColor = accent || (trend === 'up' ? 'from-emerald-500/5 to-emerald-500/10 border-emerald-500/20' : trend === 'down' ? 'from-red-500/5 to-red-500/10 border-red-500/20' : 'from-slate-500/5 to-slate-500/10 border-slate-700/50');
+   113→  return (
+   114→    <div className={cn('rounded-xl border bg-gradient-to-br p-3.5 transition-all', accentColor)}>
+   115→      <div className="flex items-center justify-between mb-2">
+   116→        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{label}</span>
+   117→        {Icon && <Icon className={cn('w-3.5 h-3.5', trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-500' : 'text-slate-600')} />}
+   118→      </div>
+   119→      <div className="text-sm font-bold text-slate-100 truncate">{value}</div>
+   120→      {sub && <div className="text-[10px] text-slate-400 mt-1">{sub}</div>}
+   121→    </div>
+   122→  );
+   123→}
+   124→
+   125→function MetricRow({ label, value, highlight, badge, bar }: {
+   126→  label: string; value: React.ReactNode; highlight?: boolean;
+   127→  badge?: { text: string; color: string }; bar?: { value: number; max: number; color: string };
+   128→}) {
+   129→  return (
+   130→    <div className="flex items-center justify-between py-2 border-b border-slate-800/40 last:border-0">
+   131→      <span className="text-xs text-slate-400">{label}</span>
+   132→      <div className="flex items-center gap-2">
+   133→        {bar && (
+   134→          <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+   135→            <div className={cn('h-full rounded-full transition-all', bar.color)} style={{ width: Math.min(100, (bar.value / bar.max) * 100) + '%' }} />
+   136→          </div>
+   137→        )}
+   138→        {badge && <Badge variant="outline" className={cn('text-[8px] px-1 py-0', badge.color)}>{badge.text}</Badge>}
+   139→        <span className={cn('text-xs font-mono', highlight ? 'text-white font-semibold' : 'text-slate-200')}>{value}</span>
+   140→      </div>
+   141→    </div>
+   142→  );
+   143→}
+   144→
+   145→function SectionCard({ title, icon: Icon, children, className, badge }: {
+   146→  title: string; icon?: React.ElementType; children: React.ReactNode; className?: string;
+   147→  badge?: React.ReactNode;
+   148→}) {
+   149→  return (
+   150→    <Card className={cn('border-slate-800/70 bg-gradient-to-br from-slate-900/80 to-slate-900/50 backdrop-blur-sm', className)}>
+   151→      <CardHeader className="p-3.5 pb-2">
+   152→        <div className="flex items-center justify-between">
+   153→          <CardTitle className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+   154→            {Icon && <Icon className="w-3.5 h-3.5 text-emerald-500/70" />}
+   155→            {title}
+   156→          </CardTitle>
+   157→          {badge}
+   158→        </div>
+   159→      </CardHeader>
+   160→      <CardContent className="p-3.5 pt-0">{children}</CardContent>
+   161→    </Card>
+   162→  );
+   163→}
+   164→
+   165→function MktTicker({ label, q }: { label: string; q: LiveQuote | null }) {
+   166→  if (!q) return <div className="flex flex-col items-center px-3 py-1.5"><Skeleton className="h-3 w-16 bg-slate-800" /></div>;
+   167→  const up = q.changePct >= 0;
+   168→  return (
+   169→    <Tooltip>
+   170→      <TooltipTrigger asChild>
+   171→        <div className="flex flex-col items-center px-3 py-1.5 cursor-default">
+   172→          <span className="text-[10px] text-slate-500 font-medium">{label}</span>
+   173→          <span className="text-xs font-bold text-slate-200 font-mono">{q.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+   174→          <span className={cn('text-[10px] font-semibold font-mono', up ? 'text-emerald-400' : 'text-red-400')}>
+   175→            {up ? '+' : ''}{q.changePct.toFixed(2)}%
+   176→          </span>
+   177→        </div>
+   178→      </TooltipTrigger>
+   179→      <TooltipContent className="text-xs bg-slate-900 border-slate-700">
+   180→        <div>H: {q.dayHigh.toLocaleString('en-IN')} L: {q.dayLow.toLocaleString('en-IN')}</div>
+   181→        <div>Vol: {fNum(q.volume)}</div>
+   182→      </TooltipContent>
+   183→    </Tooltip>
+   184→  );
+   185→}
+   186→
+   187→function PBar({ value, min, max, label, color }: { value: number; min: number; max: number; label: string; color: string }) {
+   188→  const pct = max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 50;
+   189→  return (
+   190→    <div className="flex items-center gap-2 text-xs">
+   191→      <span className="w-16 text-slate-500 text-right shrink-0">{label}</span>
+   192→      <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+   193→        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: pct + '%' }} />
+   194→      </div>
+   195→      <span className="w-14 text-slate-300 font-mono text-right shrink-0">{value.toFixed(1)}</span>
+   196→    </div>
+   197→  );
+   198→}
+   199→
+   200→function SentimentBadge({ sentiment }: { sentiment: string }) {
+   201→  const map: Record<string, string> = {
+   202→    positive: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+   203→    negative: 'bg-red-500/15 text-red-400 border-red-500/30',
+   204→    neutral: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+   205→  };
+   206→  return <Badge variant="outline" className={cn('text-[8px] px-1.5 py-0 capitalize', map[sentiment] || map.neutral)}>{sentiment}</Badge>;
+   207→}
+   208→
+   209→// ==================== OWNERSHIP PIE (CSS-only) ====================
+   210→function OwnershipDonut({ data }: { data: Record<string, number | null> }) {
+   211→  const segments = [
+   212→    { label: 'Promoter', value: data.promoter, color: '#3b82f6' },
+   213→    { label: 'FII', value: data.fii, color: '#10b981' },
+   214→    { label: 'DII', value: data.dii, color: '#f59e0b' },
+   215→    { label: 'Public', value: data.public, color: '#6366f1' },
+   216→  ].filter(s => s.value !== null && s.value !== undefined) as { label: string; value: number; color: string }[];
+   217→  const total = segments.reduce((a, s) => a + s.value, 0);
+   218→  if (total === 0) return <div className="text-xs text-slate-500 text-center py-4">No ownership data</div>;
+   219→
+   220→  let cumulativePercent = 0;
+   221→  const gradientParts = segments.map(s => {
+   222→    const start = cumulativePercent;
+   223→    cumulativePercent += (s.value / total) * 100;
+   224→    return `${s.color} ${start}% ${cumulativePercent}%`;
+   225→  });
+   226→
+   227→  return (
+   228→    <div className="flex items-center gap-4">
+   229→      <div className="relative w-24 h-24 shrink-0">
+   230→        <div className="w-24 h-24 rounded-full" style={{ background: `conic-gradient(${gradientParts.join(', ')})` }} />
+   231→        <div className="absolute inset-3 rounded-full bg-slate-900 flex items-center justify-center">
+   232→          <span className="text-[10px] text-slate-400 font-semibold">Holding</span>
+   233→        </div>
+   234→      </div>
+   235→      <div className="space-y-1.5 flex-1">
+   236→        {segments.map(s => (
+   237→          <div key={s.label} className="flex items-center gap-2 text-xs">
+   238→            <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: s.color }} />
+   239→            <span className="text-slate-400 flex-1">{s.label}</span>
+   240→            <span className="font-mono text-slate-200 font-semibold">{s.value.toFixed(1)}%</span>
+   241→          </div>
+   242→        ))}
+   243→      </div>
+   244→    </div>
+   245→  );
+   246→}
+   247→
+   248→// ==================== MAIN PAGE ====================
+   249→export default function Home() {
+   250→  const [sheetOpen, setSheetOpen] = useState(false);
+   251→  const [equities, setEquities] = useState<StockInfo[]>([]);
+   252→  const [indices, setIndices] = useState<StockInfo[]>([]);
+   253→  const [sectors, setSectors] = useState<string[]>([]);
+   254→  const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE');
+   255→  const [selectedType, setSelectedType] = useState('equity');
+   256→  const [signalsLoading, setSignalsLoading] = useState(true);
+   257→  const [detailLoading, setDetailLoading] = useState(true);
+   258→  const [stockData, setStockData] = useState<OHLCV[]>([]);
+   259→  const [signals, setSignals] = useState<StrategySignal[]>([]);
+   260→  const [backtest, setBacktest] = useState<BacktestResult | null>(null);
+   261→  const [params, setParams] = useState<StrategyParams>({ ...DEFAULT_PARAMS });
+   262→  const [recalculating, setRecalculating] = useState(false);
+   263→  const [detail, setDetail] = useState<StockDetail | null>(null);
+   264→  const [overview, setOverview] = useState<MarketOverview | null>(null);
+   265→  const [lastDate, setLastDate] = useState('');
+   266→  const [equitySearch, setEquitySearch] = useState('');
+   267→  const [selectedSector, setSelectedSector] = useState('all');
+   268→  const [activeTab, setActiveTab] = useState('overview');
+   269→  const [news, setNews] = useState<NewsItem[]>([]);
+   270→  const [newsLoading, setNewsLoading] = useState(false);
+   271→
+   272→  // Initial data load
+   273→  useEffect(() => {
+   274→    Promise.all([
+   275→      fetch('/api/stocks?type=equity').then(r => r.json()),
+   276→      fetch('/api/stocks?type=index').then(r => r.json()),
+   277→      fetch('/api/quote?overview=true').then(r => r.json()).catch(() => null),
+   278→    ]).then(([eq, idx, ov]: any[]) => {
+   279→      setEquities(eq.instruments || []);
+   280→      setIndices(idx.instruments || []);
+   281→      setSectors(eq.sectors || []);
+   282→      if (ov) setOverview(ov);
+   283→    }).catch(console.error);
+   284→  }, []);
+   285→
+   286→  const fetchDetail = useCallback(async (sym: string) => {
+   287→    setDetailLoading(true);
+   288→    try {
+   289→      const res = await fetch('/api/stock-detail?symbol=' + sym);
+   290→      const data = await res.json();
+   291→      if (data.quote) setDetail(data);
+   292→    } catch {} finally { setDetailLoading(false); }
+   293→  }, []);
+   294→
+   295→  const fetchSignals = useCallback(async (sym: string, p: StrategyParams) => {
+   296→    setSignalsLoading(true);
+   297→    try {
+   298→      const sp = new URLSearchParams({ symbol: sym, days: '200' });
+   299→      for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
+   300→      const res = await fetch('/api/signals?' + sp.toString());
+   301→      const data = await res.json();
+   302→      setStockData(data.stockData || []);
+   303→      setSignals(data.signals || []);
+   304→      setBacktest(data.backtest || null);
+   305→      setParams(data.params || DEFAULT_PARAMS);
+   306→      setLastDate(data.lastDate || '');
+   307→    } catch {} finally { setSignalsLoading(false); setRecalculating(false); }
+   308→  }, []);
+   309→
+   310→  const fetchNews = useCallback(async (sym: string) => {
+   311→    setNewsLoading(true);
+   312→    try {
+   313→      const res = await fetch('/api/news?symbol=' + sym);
+   314→      const data = await res.json();
+   315→      if (data.news) setNews(data.news);
+   316→    } catch {} finally { setNewsLoading(false); }
+   317→  }, []);
+   318→
+   319→  useEffect(() => {
+   320→    fetchDetail(selectedSymbol);
+   321→    fetchSignals(selectedSymbol, params);
+   322→  }, [selectedSymbol]);
+   323→
+   324→  // Fetch news on tab switch
+   325→  useEffect(() => {
+   326→    if (activeTab === 'news' && news.length === 0) fetchNews(selectedSymbol);
+   327→  }, [activeTab, selectedSymbol]);
+   328→
+   329→  const handleRefresh = () => {
+   330→    fetchDetail(selectedSymbol);
+   331→    fetchSignals(selectedSymbol, params);
+   332→    if (activeTab === 'news') fetchNews(selectedSymbol);
+   333→  };
+   334→
+   335→  const handleSelect = (sym: string, type: string) => {
+   336→    setSelectedSymbol(sym);
+   337→    setSelectedType(type);
+   338→    setSheetOpen(false);
+   339→    setActiveTab('overview');
+   340→    setNews([]);
+   341→  };
+   342→
+   343→  const chartData = useMemo(() => {
+   344→    const sigMap = new Map(signals.map(s => [s.date, s]));
+   345→    return stockData.map(d => {
+   346→      const sig = sigMap.get(d.date);
+   347→      return { ...d, supertrend: sig?.supertrend ?? null, supertrendDir: sig?.supertrendDir ?? null, rsi: sig?.rsi ?? null, macd: sig?.macd ?? null, macdSignal: sig?.macdSignal ?? null, macdHistogram: sig?.macdHistogram ?? null, signal: sig?.signal ?? null };
+   348→    });
+   349→  }, [stockData, signals]);
+   350→
+   351→  const visibleData = useMemo(() => {
+   352→    const max = 100, end = chartData.length, start = Math.max(0, end - max);
+   353→    return chartData.slice(start, end);
+   354→  }, [chartData]);
+   355→
+   356→  const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+   357→
+   358→  const filteredEquities = useMemo(() => {
+   359→    let list = equities;
+   360→    if (equitySearch) { const q = equitySearch.toLowerCase(); list = list.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)); }
+   361→    if (selectedSector !== 'all') list = list.filter(s => s.sector === selectedSector);
+   362→    return list;
+   363→  }, [equities, equitySearch, selectedSector]);
+   364→
+   365→  const q = detail?.quote || null;
+   366→  const t = detail?.technicals || {};
+   367→  const perf = detail?.performance || {};
+   368→  const own = detail?.ownership || {};
+   369→  const fin = detail?.financials || {};
+   370→
+   371→  // Quick scan signals for all equities (summary)
+   372→  const topGainers = overview?.topGainers?.slice(0, 5) || [];
+   373→  const topLosers = overview?.topLosers?.slice(0, 5) || [];
+   374→
+   375→  return (
+   376→    <TooltipProvider delayDuration={200}>
+   377→    <div className="min-h-screen bg-[#06080f] text-slate-100">
+   378→      {/* ========== TOP MARKET TICKER BAR ========== */}
+   379→      <div className="sticky top-0 z-50 border-b border-slate-800/60 bg-[#06080f]/95 backdrop-blur-md">
+   380→        <div className="max-w-[1920px] mx-auto px-4">
+   381→          <div className="flex items-center justify-between py-1.5">
+   382→            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+   383→              <MktTicker label="NIFTY 50" q={overview?.nifty50 ?? null} />
+   384→              <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
+   385→              <MktTicker label="BANK NIFTY" q={overview?.bankNifty ?? null} />
+   386→              <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
+   387→              <MktTicker label="NIFTY IT" q={overview?.niftyIT ?? null} />
+   388→              <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
+   389→              <MktTicker label="INDIA VIX" q={overview?.indiaVix ?? null} />
+   390→              {/* Top Gainers/Losers mini */}
+   391→              {topGainers.length > 0 && (
+   392→                <>
+   393→                  <div className="w-px h-8 bg-slate-800/60 mx-1" />
+   394→                  <div className="flex items-center gap-1">
+   395→                    <TrendingUp className="w-3 h-3 text-emerald-500" />
+   396→                    {topGainers.slice(0, 3).map(s => (
+   397→                      <span key={s.symbol} className="text-[9px] font-mono text-emerald-400 px-1.5">{s.symbol} +{s.changePct.toFixed(1)}%</span>
+   398→                    ))}
+   399→                  </div>
+   400→                </>
+   401→              )}
+   402→            </div>
+   403→            <div className="flex items-center gap-2 shrink-0 ml-3">
+   404→              {q && (
+   405→                <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 gap-1">
+   406→                  <CircleDot className="w-2 h-2 animate-pulse" /> LIVE
+   407→                </Badge>
+   408→              )}
+   409→              {lastDate && (
+   410→                <span className="text-[10px] text-slate-600 font-mono hidden md:inline flex items-center gap-1">
+   411→                  <Calendar className="w-3 h-3" /> {fDate(lastDate)}
+   412→                </span>
+   413→              )}
+   414→            </div>
+   415→          </div>
+   416→
+   417→          {/* ========== HEADER WITH STOCK SELECTOR ========== */}
+   418→          <div className="flex items-center justify-between py-2.5">
+   419→            <div className="flex items-center gap-3 min-w-0">
+   420→              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-600/20 border border-emerald-500/20 flex items-center justify-center shrink-0">
+   421→                <TrendingUp className="w-5 h-5 text-emerald-400" />
+   422→              </div>
+   423→              <div className="min-w-0">
+   424→                <div className="flex items-center gap-2 flex-wrap">
+   425→                  <h1 className="text-lg font-bold tracking-tight text-white">{q?.longName || q?.name || selectedSymbol}</h1>
+   426→                  <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0', TYPE_COLOR[selectedType] || 'bg-slate-800 text-slate-400')}>{selectedType.toUpperCase()}</Badge>
+   427→                  {q?.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/80 border-slate-700 text-slate-400">{q.sector}</Badge>}
+   428→                  {q?.industry && q.industry !== q.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/60 border-slate-700/60 text-slate-500">{q.industry}</Badge>}
+   429→                </div>
+   430→                {detailLoading ? (
+   431→                  <Skeleton className="h-6 w-40 bg-slate-800 mt-1" />
+   432→                ) : q ? (
+   433→                  <div className="flex items-center gap-3 mt-0.5">
+   434→                    <span className="text-2xl font-extrabold font-mono text-white tracking-tight">
+   435→                      {q.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+   436→                    </span>
+   437→                    <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', q.changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
+   438→                      {q.changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+   439→                      {Math.abs(q.change).toFixed(2)} ({Math.abs(q.changePct).toFixed(2)}%)
+   440→                    </span>
+   441→                    <span className="text-[10px] text-slate-500 hidden sm:inline">{q.exchange} &middot; {q.currency}</span>
+   442→                  </div>
+   443→                ) : null}
+   444→              </div>
+   445→            </div>
+   446→            <div className="flex items-center gap-2 shrink-0">
+   447→              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs h-8" onClick={handleRefresh} disabled={detailLoading}>
+   448→                <RefreshCw className={cn('w-3.5 h-3.5 mr-1', detailLoading && 'animate-spin')} /> Refresh
+   449→              </Button>
+   450→              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+   451→                <SheetTrigger asChild>
+   452→                  <Button variant="outline" className="bg-slate-900/80 border-slate-700 text-slate-200 hover:bg-slate-800 gap-2 h-8 text-xs">
+   453→                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+   454→                    <span className="hidden sm:inline">{selectedSymbol}</span>
+   455→                    <ChevronRight className="w-3 h-3 opacity-50" />
+   456→                  </Button>
+   457→                </SheetTrigger>
+   458→                <SheetContent side="right" className="w-full sm:w-[440px] bg-[#0a0e1a] border-slate-800 p-0">
+   459→                  <SheetHeader className="px-4 pt-4 pb-2">
+   460→                    <SheetTitle className="text-white text-sm flex items-center gap-2">
+   461→                      <Layers className="w-4 h-4 text-emerald-400" /> Select Instrument
+   462→                    </SheetTitle>
+   463→                    <SheetDescription className="text-slate-400 text-xs">
+   464→                      {equities.length} equities, {indices.length} indices
+   465→                    </SheetDescription>
+   466→                  </SheetHeader>
+   467→                  <Tabs defaultValue="equities" className="px-4">
+   468→                    <TabsList className="bg-slate-900 w-full border border-slate-800 h-8">
+   469→                      <TabsTrigger value="equities" className="flex-1 text-[10px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Equities ({equities.length})</TabsTrigger>
+   470→                      <TabsTrigger value="indices" className="flex-1 text-[10px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Indices ({indices.length})</TabsTrigger>
+   471→                    </TabsList>
+   472→                    <TabsContent value="equities" className="mt-2">
+   473→                      <Input placeholder="Search symbol or name..." value={equitySearch} onChange={e => setEquitySearch(e.target.value)} className="h-8 text-xs bg-slate-900 border-slate-800 mb-2" />
+   474→                      <Select value={selectedSector} onValueChange={setSelectedSector}>
+   475→                        <SelectTrigger className="h-7 text-[10px] bg-slate-900 border-slate-800 mb-2"><SelectValue placeholder="All Sectors" /></SelectTrigger>
+   476→                        <SelectContent className="bg-slate-900 border-slate-800"><SelectItem value="all">All Sectors</SelectItem>{sectors.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+   477→                      </Select>
+   478→                      <ScrollArea className="h-[calc(100vh-280px)]">
+   479→                        <div className="space-y-0.5">
+   480→                          {filteredEquities.map(s => (
+   481→                            <button key={s.symbol} onClick={() => handleSelect(s.symbol, 'equity')} className={cn('w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-slate-800/60 transition-colors', s.symbol === selectedSymbol && 'bg-emerald-500/10 border border-emerald-500/20')}>
+   482→                              <div className="min-w-0">
+   483→                                <div className="text-xs font-semibold text-slate-200 truncate">{s.symbol}</div>
+   484→                                <div className="text-[10px] text-slate-500 truncate">{s.name}</div>
+   485→                              </div>
+   486→                              <Badge variant="outline" className="text-[8px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-500 shrink-0 ml-2">{s.sector}</Badge>
+   487→                            </button>
+   488→                          ))}
+   489→                        </div>
+   490→                      </ScrollArea>
+   491→                    </TabsContent>
+   492→                    <TabsContent value="indices" className="mt-2">
+   493→                      <ScrollArea className="h-[calc(100vh-240px)]">
+   494→                        <div className="space-y-0.5">
+   495→                          {indices.map(s => (
+   496→                            <button key={s.symbol} onClick={() => handleSelect(s.symbol, 'index')} className={cn('w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-slate-800/60 transition-colors', s.symbol === selectedSymbol && 'bg-emerald-500/10 border border-emerald-500/20')}>
+   497→                              <div className="min-w-0">
+   498→                                <div className="text-xs font-semibold text-slate-200">{s.symbol}</div>
+   499→                                <div className="text-[10px] text-slate-500">{s.name}</div>
+   500→                              </div>
+   501→                            </button>
+   502→                          ))}
+   503→                        </div>
+   504→                      </ScrollArea>
+   505→                    </TabsContent>
+   506→                  </Tabs>
+   507→                </SheetContent>
+   508→              </Sheet>
+   509→            </div>
+   510→          </div>
+   511→        </div>
+   512→      </div>
+   513→
+   514→      {/* ========== MAIN CONTENT ========== */}
+   515→      <div className="max-w-[1920px] mx-auto px-4 py-4">
+   516→        {detailLoading && !q ? (
+   517→          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+   518→            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 bg-slate-900/50 rounded-xl" />)}
+   519→          </div>
+   520→        ) : q ? (
+   521→          <>
+   522→            {/* ===== KPI STRIP ===== */}
+   523→            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5 mb-5">
+   524→              <KPICard label="Market Cap" value={q.marketCap ? fINR(q.marketCap) : '--'} icon={Globe} trend={q.changePct >= 0 ? 'up' : 'down'} />
+   525→              <KPICard label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} sub={q.forwardPE ? 'Fwd: ' + q.forwardPE.toFixed(1) : undefined} icon={PieChart} />
+   526→              <KPICard label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} sub={q.bookValue ? 'BV: ' + fINR(q.bookValue) : undefined} icon={BarChart3} />
+   527→              <KPICard label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} sub={q.roa ? 'ROA: ' + q.roa.toFixed(1) + '%' : undefined} icon={TrendingUpIcon} trend={q.roe && q.roe > 15 ? 'up' : q.roe && q.roe < 8 ? 'down' : undefined} />
+   528→              <KPICard label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} sub={q.eps ? 'EPS: ' + q.eps.toFixed(1) : undefined} icon={Percent} />
+   529→              <KPICard label="Volume" value={fNum(q.volume)} sub={q.avgVolume ? 'Avg: ' + fNum(q.avgVolume) : undefined} icon={BarChart2} trend={q.volumeRatio > 1.5 ? 'up' : q.volumeRatio < 0.5 ? 'down' : undefined} />
+
+[showing lines 30-529 of 1090; use offset=530 with limit to continue reading]

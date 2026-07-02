@@ -1,0 +1,502 @@
+   530→              <KPICard label="Beta" value={q.beta?.toFixed(2) || '--'} sub={q.debtToEquity ? 'D/E: ' + q.debtToEquity.toFixed(2) : undefined} icon={Shield} />
+   531→              <KPICard label="Signal" value={latestSignal ? latestSignal.signal.replace('_', ' ') : 'HOLD'} icon={latestSignal?.signal?.includes('BUY') ? CheckCircle2 : latestSignal?.signal?.includes('SELL') ? XCircle : AlertTriangle} accent={SIG_BG[latestSignal?.signal || 'HOLD'] || SIG_BG.HOLD} />
+   532→            </div>
+   533→
+   534→            {/* ===== TABS ===== */}
+   535→            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+   536→              <TabsList className="bg-slate-900/60 border border-slate-800/60 h-10 p-1 rounded-xl">
+   537→                <TabsTrigger value="overview" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3">
+   538→                  <Eye className="w-3.5 h-3.5" /> Overview
+   539→                </TabsTrigger>
+   540→                <TabsTrigger value="fundamentals" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3">
+   541→                  <DollarSign className="w-3.5 h-3.5" /> Fundamentals
+   542→                </TabsTrigger>
+   543→                <TabsTrigger value="technicals" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3">
+   544→                  <Activity className="w-3.5 h-3.5" /> Technicals
+   545→                </TabsTrigger>
+   546→                <TabsTrigger value="strategy" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3">
+   547→                  <Target className="w-3.5 h-3.5" /> Strategy
+   548→                </TabsTrigger>
+   549→                <TabsTrigger value="peers" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3">
+   550→                  <Users className="w-3.5 h-3.5" /> Peers
+   551→                </TabsTrigger>
+   552→                <TabsTrigger value="news" className="text-[11px] rounded-lg data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1.5 px-3">
+   553→                  <Newspaper className="w-3.5 h-3.5" /> News
+   554→                </TabsTrigger>
+   555→              </TabsList>
+   556→
+   557→              {/* ===== OVERVIEW TAB ===== */}
+   558→              <TabsContent value="overview">
+   559→                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   560→                  <div className="lg:col-span-2 space-y-4">
+   561→                    {/* Signal Banner */}
+   562→                    {latestSignal && (
+   563→                      <SectionCard title="Strategy Signal" icon={Zap} badge={<Badge className={cn('text-[10px] font-bold border', SIG_BG[latestSignal.signal])}>{latestSignal.signal.replace('_', ' ')}</Badge>}>
+   564→                        <div className="grid grid-cols-3 gap-4">
+   565→                          <div className="text-center p-2 rounded-lg bg-slate-800/30">
+   566→                            <div className="text-[10px] text-slate-500 mb-1">RSI ({latestSignal.rsi?.toFixed(1)})</div>
+   567→                            <div className={cn('text-lg font-bold font-mono', (latestSignal.rsi || 50) > 70 ? 'text-red-400' : (latestSignal.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>
+   568→                              {latestSignal.rsi?.toFixed(1)}
+   569→                            </div>
+   570→                            <Progress value={latestSignal.rsi || 50} className="mt-1.5 h-1.5" />
+   571→                            <div className="flex justify-between text-[8px] text-slate-600 mt-0.5"><span>0</span><span className="text-red-400/60">70</span><span>100</span></div>
+   572→                          </div>
+   573→                          <div className="text-center p-2 rounded-lg bg-slate-800/30">
+   574→                            <div className="text-[10px] text-slate-500 mb-1">Supertrend</div>
+   575→                            <div className={cn('text-lg font-bold', latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>
+   576→                              {latestSignal.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}
+   577→                            </div>
+   578→                            <div className="text-[10px] text-slate-500 mt-1 font-mono">ST: {fINR(latestSignal.supertrend)}</div>
+   579→                          </div>
+   580→                          <div className="text-center p-2 rounded-lg bg-slate-800/30">
+   581→                            <div className="text-[10px] text-slate-500 mb-1">MACD</div>
+   582→                            <div className={cn('text-lg font-bold', (latestSignal.macd || 0) > (latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>
+   583→                              {(latestSignal.macd || 0) > (latestSignal.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}
+   584→                            </div>
+   585→                            <div className="text-[10px] text-slate-500 mt-1 font-mono">
+   586→                              M: {(latestSignal.macd || 0).toFixed(2)} S: {(latestSignal.macdSignal || 0).toFixed(2)}
+   587→                            </div>
+   588→                          </div>
+   589→                        </div>
+   590→                        <div className="mt-3 p-2 rounded-lg bg-slate-800/20 border border-slate-800/50">
+   591→                          <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+   592→                            <Info className="w-3 h-3" />
+   593→                            <span>{latestSignal.reason}</span>
+   594→                            <span className="text-slate-600 ml-auto">As of {fDate(latestSignal.date)}</span>
+   595→                          </div>
+   596→                        </div>
+   597→                      </SectionCard>
+   598→                    )}
+   599→
+   600→                    {/* Performance Returns */}
+   601→                    <SectionCard title="Price Performance" icon={TrendingUp}>
+   602→                      <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">
+   603→                        {(['1W', '1M', '3M', '6M', '1Y', 'YTD'] as const).map(p => {
+   604→                          const val = perf[p] ?? null;
+   605→                          const up = val !== null && val >= 0;
+   606→                          return (
+   607→                            <div key={p} className={cn('rounded-xl border p-3 text-center transition-colors', up ? 'bg-emerald-500/5 border-emerald-500/20' : val !== null ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-900/50 border-slate-800')}>
+   608→                              <div className="text-[10px] text-slate-500 font-semibold">{p}</div>
+   609→                              <div className="text-base font-bold font-mono mt-1">{pctVal(val)}</div>
+   610→                            </div>
+   611→                          );
+   612→                        })}
+   613→                      </div>
+   614→                    </SectionCard>
+   615→
+   616→                    {/* 52 Week Range */}
+   617→                    <SectionCard title="52 Week Range" icon={Activity}>
+   618→                      <div className="flex items-center gap-3">
+   619→                        <span className="text-xs font-mono text-slate-400 w-20 text-right">{q.low52w.toLocaleString('en-IN')}</span>
+   620→                        <div className="flex-1 relative h-3 bg-slate-800 rounded-full overflow-hidden">
+   621→                          <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/30 via-amber-500/30 to-emerald-500/30 rounded-full" style={{ width: (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '%' }} />
+   622→                          <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-emerald-500 shadow-lg shadow-emerald-500/20" style={{ left: 'calc(' + (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '% - 6px)' }} />
+   623→                        </div>
+   624→                        <span className="text-xs font-mono text-slate-400 w-20">{q.high52w.toLocaleString('en-IN')}</span>
+   625→                      </div>
+   626→                      <div className="flex justify-between mt-2.5">
+   627→                        <span className="text-[10px] text-slate-500">From Low: <span className="text-emerald-400 font-mono font-semibold">{q.percentFrom52wLow.toFixed(1)}%</span></span>
+   628→                        <span className="text-[10px] text-slate-500">From High: <span className="text-red-400 font-mono font-semibold">{q.percentFrom52wHigh.toFixed(1)}%</span></span>
+   629→                      </div>
+   630→                    </SectionCard>
+   631→
+   632→                    {/* Moving Averages */}
+   633→                    <SectionCard title="Moving Averages" icon={LineChartIcon}>
+   634→                      <div className="space-y-3">
+   635→                        <PBar value={q.price} min={q.fiftyDMA ? q.fiftyDMA * 0.95 : q.price * 0.9} max={q.fiftyDMA ? q.fiftyDMA * 1.05 : q.price * 1.1} label="50 DMA" color={q.percentAbove50DMA !== null && q.percentAbove50DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+   636→                        <PBar value={q.price} min={q.twoHundredDMA ? q.twoHundredDMA * 0.95 : q.price * 0.9} max={q.twoHundredDMA ? q.twoHundredDMA * 1.05 : q.price * 1.1} label="200 DMA" color={q.percentAbove200DMA !== null && q.percentAbove200DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+   637→                        <div className="grid grid-cols-2 gap-2 mt-1">
+   638→                          {q.fiftyDMA && (
+   639→                            <div className="rounded-lg bg-slate-800/30 p-2 text-xs">
+   640→                              <span className="text-slate-500">50 DMA</span>
+   641→                              <div className="font-mono text-slate-200">{fINR(q.fiftyDMA)}</div>
+   642→                              <div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   643→                                {(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%
+   644→                              </div>
+   645→                            </div>
+   646→                          )}
+   647→                          {q.twoHundredDMA && (
+   648→                            <div className="rounded-lg bg-slate-800/30 p-2 text-xs">
+   649→                              <span className="text-slate-500">200 DMA</span>
+   650→                              <div className="font-mono text-slate-200">{fINR(q.twoHundredDMA)}</div>
+   651→                              <div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   652→                                {(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%
+   653→                              </div>
+   654→                            </div>
+   655→                          )}
+   656→                        </div>
+   657→                      </div>
+   658→                    </SectionCard>
+   659→                  </div>
+   660→
+   661→                  {/* RIGHT SIDEBAR */}
+   662→                  <div className="space-y-4">
+   663→                    <SectionCard title="Key Ratios" icon={PieChart}>
+   664→                      <MetricRow label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} highlight />
+   665→                      <MetricRow label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} />
+   666→                      <MetricRow label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} />
+   667→                      <MetricRow label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} highlight />
+   668→                      <MetricRow label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} />
+   669→                      <MetricRow label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
+   670→                      <MetricRow label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} />
+   671→                      <MetricRow label="Beta" value={q.beta?.toFixed(2) || '--'} />
+   672→                    </SectionCard>
+   673→
+   674→                    <SectionCard title="Profitability" icon={TrendingUpIcon}>
+   675→                      <MetricRow label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
+   676→                      <MetricRow label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} />
+   677→                      <MetricRow label="Net Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
+   678→                      <MetricRow label="OPM" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} />
+   679→                      <MetricRow label="Rev Growth" value={pctVal(q.revenueGrowth)} highlight />
+   680→                      <MetricRow label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} />
+   681→                      <MetricRow label="D/E Ratio" value={q.debtToEquity?.toFixed(2) || '--'} />
+   682→                    </SectionCard>
+   683→
+   684→                    <SectionCard title="Shareholding Pattern" icon={Users}>
+   685→                      <OwnershipDonut data={own} />
+   686→                    </SectionCard>
+   687→
+   688→                    {q.targetMean && (
+   689→                      <SectionCard title="Analyst Consensus" icon={Target} badge={
+   690→                        q.recommendation && <Badge variant="outline" className={cn('text-[9px] uppercase font-bold', q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : q.recommendation === 'sell' ? 'bg-red-500/15 text-red-400 border-red-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{q.recommendation}</Badge>
+   691→                      }>
+   692→                        <MetricRow label="Target Mean" value={fINR(q.targetMean)} highlight />
+   693→                        <MetricRow label="Target Median" value={q.targetMedian ? fINR(q.targetMedian) : '--'} />
+   694→                        <MetricRow label="Target High" value={q.targetHigh ? fINR(q.targetHigh) : '--'} />
+   695→                        <MetricRow label="Target Low" value={q.targetLow ? fINR(q.targetLow) : '--'} />
+   696→                        {q.analysts && <div className="mt-2 text-[10px] text-slate-500">{q.analysts} analysts covering</div>}
+   697→                        <div className="mt-1.5 text-xs">
+   698→                          <span className="text-slate-500">Upside from CMP: </span>
+   699→                          <span className={cn('font-mono font-bold', ((q.targetMean - q.price) / q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   700→                            {((q.targetMean - q.price) / q.price * 100) >= 0 ? '+' : ''}{((q.targetMean - q.price) / q.price * 100).toFixed(1)}%
+   701→                          </span>
+   702→                        </div>
+   703→                      </SectionCard>
+   704→                    )}
+   705→                  </div>
+   706→                </div>
+   707→              </TabsContent>
+   708→
+   709→              {/* ===== FUNDAMENTALS TAB ===== */}
+   710→              <TabsContent value="fundamentals">
+   711→                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   712→                  <SectionCard title="Valuation Metrics" icon={PieChart}>
+   713→                    <MetricRow label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} highlight />
+   714→                    <MetricRow label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} />
+   715→                    <MetricRow label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} />
+   716→                    <MetricRow label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} />
+   717→                    <MetricRow label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} />
+   718→                    <MetricRow label="Dividend Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
+   719→                    <MetricRow label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} />
+   720→                    <Separator className="my-1.5 bg-slate-800" />
+   721→                    <MetricRow label="Market Cap" value={fINR(q.marketCap)} highlight />
+   722→                    <MetricRow label="Enterprise Value" value={q.marketCap ? fINR(q.marketCap * 1.1) : '--'} />
+   723→                  </SectionCard>
+   724→
+   725→                  <SectionCard title="Profitability & Growth" icon={TrendingUpIcon}>
+   726→                    <MetricRow label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
+   727→                    <MetricRow label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} />
+   728→                    <MetricRow label="Net Profit Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
+   729→                    <MetricRow label="Operating Margin" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} />
+   730→                    <MetricRow label="Revenue Growth" value={pctVal(q.revenueGrowth)} highlight />
+   731→                    <MetricRow label="Beta" value={q.beta?.toFixed(2) || '--'} />
+   732→                    <MetricRow label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} />
+   733→                    <MetricRow label="Debt/Equity" value={q.debtToEquity?.toFixed(2) || '--'} />
+   734→                  </SectionCard>
+   735→
+   736→                  <SectionCard title="Financial Highlights" icon={DollarSign}>
+   737→                    <MetricRow label="Revenue" value={fin.revenue ? fINR(fin.revenue as number) : '--'} highlight />
+   738→                    <MetricRow label="EBITDA" value={fin.ebitda ? fINR(fin.ebitda as number) : '--'} />
+   739→                    <MetricRow label="Gross Profit" value={fin.grossProfits ? fINR(fin.grossProfits as number) : '--'} />
+   740→                    <MetricRow label="Free Cash Flow" value={fin.freeCashflow ? fINR(fin.freeCashflow as number) : '--'} />
+   741→                    <MetricRow label="Net Profit" value={fin.netProfit ? fINR(fin.netProfit as number) : '--'} />
+   742→                    <Separator className="my-1.5 bg-slate-800" />
+   743→                    <MetricRow label="Day Volume" value={fNum(q.volume)} />
+   744→                    <MetricRow label="Avg Volume" value={fNum(q.avgVolume)} />
+   745→                    <MetricRow label="Volume Ratio" value={t.volumeRatio?.toFixed(2) || '--'} />
+   746→                    <MetricRow label="20D Volatility" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
+   747→                  </SectionCard>
+   748→
+   749→                  <SectionCard title="Price Details" icon={Activity}>
+   750→                    <MetricRow label="Open" value={q.open.toLocaleString('en-IN', { minimumFractionDigits: 2 })} />
+   751→                    <MetricRow label="Prev Close" value={q.prevClose.toLocaleString('en-IN', { minimumFractionDigits: 2 })} />
+   752→                    <MetricRow label="Day High" value={q.dayHigh.toLocaleString('en-IN', { minimumFractionDigits: 2 })} />
+   753→                    <MetricRow label="Day Low" value={q.dayLow.toLocaleString('en-IN', { minimumFractionDigits: 2 })} />
+   754→                    <MetricRow label="52W High" value={q.high52w.toLocaleString('en-IN', { minimumFractionDigits: 2 })} />
+   755→                    <MetricRow label="52W Low" value={q.low52w.toLocaleString('en-IN', { minimumFractionDigits: 2 })} />
+   756→                    <MetricRow label="% From 52W High" value={<span className="text-red-400 font-mono">{q.percentFrom52wHigh.toFixed(1)}%</span>} />
+   757→                    <MetricRow label="% From 52W Low" value={<span className="text-emerald-400 font-mono">+{q.percentFrom52wLow.toFixed(1)}%</span>} />
+   758→                  </SectionCard>
+   759→
+   760→                  <SectionCard title="Shareholding Pattern" icon={Users} className="md:col-span-2 lg:col-span-2">
+   761→                    <OwnershipDonut data={own} />
+   762→                  </SectionCard>
+   763→                </div>
+   764→              </TabsContent>
+   765→
+   766→              {/* ===== TECHNICALS TAB ===== */}
+   767→              <TabsContent value="technicals">
+   768→                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   769→                  <SectionCard title="Indicator Summary" icon={Activity}>
+   770→                    <div className="space-y-3">
+   771→                      <div className="flex items-center justify-between">
+   772→                        <span className="text-xs text-slate-400">Overall Signal</span>
+   773→                        <Badge className={cn('text-[10px] font-bold border', SIG_BG[t.signal || 'HOLD'])}>{(t.signal || 'HOLD') as string}</Badge>
+   774→                      </div>
+   775→                      <div className="flex items-center justify-between">
+   776→                        <span className="text-xs text-slate-400">Supertrend</span>
+   777→                        <span className={cn('text-xs font-mono font-semibold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>
+   778→                          {t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}
+   779→                        </span>
+   780→                      </div>
+   781→                      <div className="flex items-center justify-between">
+   782→                        <span className="text-xs text-slate-400">RSI (14)</span>
+   783→                        <span className={cn('text-xs font-mono font-bold', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>
+   784→                          {t.rsi?.toFixed(1) || '--'}
+   785→                        </span>
+   786→                      </div>
+   787→                      <PBar value={t.rsi || 50} min={0} max={100} label="RSI" color={(t.rsi || 50) > 70 ? 'bg-red-500' : (t.rsi || 50) < 30 ? 'bg-emerald-500' : 'bg-amber-500'} />
+   788→                      <div className="flex items-center justify-between">
+   789→                        <span className="text-xs text-slate-400">MACD</span>
+   790→                        <span className={cn('text-xs font-mono font-semibold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>
+   791→                          {(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}
+   792→                        </span>
+   793→                      </div>
+   794→                      <div className="text-[10px] text-slate-500 font-mono space-x-1">
+   795→                        <span>MACD: {t.macd?.toFixed(2) || '--'}</span>
+   796→                        <span>Signal: {t.macdSignal?.toFixed(2) || '--'}</span>
+   797→                        <span>Hist: {t.macdHistogram?.toFixed(2) || '--'}</span>
+   798→                      </div>
+   799→                    </div>
+   800→                  </SectionCard>
+   801→
+   802→                  <SectionCard title="Support & Resistance" icon={Target}>
+   803→                    <div className="space-y-2">
+   804→                      <div className="flex justify-between text-xs"><span className="text-red-400 font-medium">Resistance 2</span><span className="font-mono text-slate-200">{t.resistance2 ? fINR(t.resistance2) : '--'}</span></div>
+   805→                      <div className="flex justify-between text-xs"><span className="text-orange-400 font-medium">Resistance 1</span><span className="font-mono text-slate-200">{t.resistance1 ? fINR(t.resistance1) : '--'}</span></div>
+   806→                      <Separator className="bg-slate-700/50" />
+   807→                      <div className="flex justify-between text-xs"><span className="text-white font-bold">Current Price</span><span className="font-mono font-bold text-white text-sm">{fINR(q.price)}</span></div>
+   808→                      <Separator className="bg-slate-700/50" />
+   809→                      <div className="flex justify-between text-xs"><span className="text-emerald-400 font-medium">Support 1</span><span className="font-mono text-slate-200">{t.support1 ? fINR(t.support1) : '--'}</span></div>
+   810→                      <div className="flex justify-between text-xs"><span className="text-green-400 font-medium">Support 2</span><span className="font-mono text-slate-200">{t.support2 ? fINR(t.support2) : '--'}</span></div>
+   811→                    </div>
+   812→                  </SectionCard>
+   813→
+   814→                  <SectionCard title="Pivot Points (Classic)" icon={Activity}>
+   815→                    <div className="space-y-2">
+   816→                      <div className="flex justify-between text-xs"><span className="text-red-400">R2</span><span className="font-mono text-slate-200">{t.pivotR2 ? fINR(t.pivotR2) : '--'}</span></div>
+   817→                      <div className="flex justify-between text-xs"><span className="text-orange-400">R1</span><span className="font-mono text-slate-200">{t.pivotR1 ? fINR(t.pivotR1) : '--'}</span></div>
+   818→                      <Separator className="bg-slate-700/50" />
+   819→                      <div className="flex justify-between text-xs"><span className="text-slate-300 font-semibold">Pivot</span><span className="font-mono text-white font-bold">{t.pivot ? fINR(t.pivot) : '--'}</span></div>
+   820→                      <Separator className="bg-slate-700/50" />
+   821→                      <div className="flex justify-between text-xs"><span className="text-emerald-400">S1</span><span className="font-mono text-slate-200">{t.pivotS1 ? fINR(t.pivotS1) : '--'}</span></div>
+   822→                      <div className="flex justify-between text-xs"><span className="text-green-400">S2</span><span className="font-mono text-slate-200">{t.pivotS2 ? fINR(t.pivotS2) : '--'}</span></div>
+   823→                    </div>
+   824→                    <Separator className="my-2 bg-slate-800" />
+   825→                    <MetricRow label="SMA 20" value={t.sma20 ? fINR(t.sma20) : '--'} />
+   826→                    <MetricRow label="SMA 50" value={t.sma50 ? fINR(t.sma50) : '--'} />
+   827→                    <MetricRow label="Volatility (20D)" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
+   828→                  </SectionCard>
+   829→                </div>
+   830→              </TabsContent>
+   831→
+   832→              {/* ===== STRATEGY TAB ===== */}
+   833→              <TabsContent value="strategy">
+   834→                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   835→                  <div className="lg:col-span-2 space-y-4">
+   836→                    <SectionCard title="Price Chart with Signals" icon={LineChartIcon}>
+   837→                      <ChartSection chartData={chartData} visibleData={visibleData} latestSignal={latestSignal} signalsLoading={signalsLoading} />
+   838→                    </SectionCard>
+   839→
+   840→                    <SectionCard title="Strategy Parameters" icon={Settings2}>
+   841→                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+   842→                        {([
+   843→                          ['supertrendPeriod', 'ST Period', 5, 30, 1],
+   844→                          ['supertrendMultiplier', 'ST Mult', 1, 7, 0.5],
+   845→                          ['rsiPeriod', 'RSI Period', 5, 30, 1],
+   846→                          ['rsiOverbought', 'RSI OB', 60, 90, 1],
+   847→                          ['rsiOversold', 'RSI OS', 10, 40, 1],
+   848→                          ['macdFast', 'MACD Fast', 5, 20, 1],
+   849→                          ['macdSlow', 'MACD Slow', 15, 50, 1],
+   850→                          ['macdSignal', 'MACD Sig', 3, 15, 1],
+   851→                        ] as [keyof StrategyParams, string, number, number, number][]).map(([key, label, min, max, step]) => (
+   852→                          <div key={key} className="space-y-1">
+   853→                            <div className="flex justify-between text-[10px]">
+   854→                              <span className="text-slate-500">{label}</span>
+   855→                              <span className="text-slate-300 font-mono">{params[key]}</span>
+   856→                            </div>
+   857→                            <Slider value={[params[key]]} min={min} max={max} step={step} onValueChange={([v]) => setParams(p => ({ ...p, [key]: v }))} className="py-0" />
+   858→                          </div>
+   859→                        ))}
+   860→                      </div>
+   861→                      <Button size="sm" className="mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={() => { setRecalculating(true); fetchSignals(selectedSymbol, params); }} disabled={recalculating}>
+   862→                        {recalculating ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}
+   863→                        {recalculating ? 'Recalculating...' : 'Apply & Recalculate'}
+   864→                      </Button>
+   865→                    </SectionCard>
+   866→                  </div>
+   867→
+   868→                  {/* Backtest Panel */}
+   869→                  <div className="space-y-4">
+   870→                    {backtest && (
+   871→                      <>
+   872→                        <SectionCard title="Backtest Results" icon={Trophy}>
+   873→                          <div className="grid grid-cols-2 gap-2">
+   874→                            <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20">
+   875→                              <div className="text-[9px] text-slate-500">Total Return</div>
+   876→                              <div className={cn('text-base font-bold font-mono', backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   877→                                {backtest.totalReturnPct >= 0 ? '+' : ''}{backtest.totalReturnPct.toFixed(2)}%
+   878→                              </div>
+   879→                            </div>
+   880→                            <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20">
+   881→                              <div className="text-[9px] text-slate-500">Win Rate</div>
+   882→                              <div className="text-base font-bold font-mono text-blue-400">{backtest.winRate.toFixed(1)}%</div>
+   883→                            </div>
+   884→                            <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20">
+   885→                              <div className="text-[9px] text-slate-500">Total Trades</div>
+   886→                              <div className="text-base font-bold font-mono text-slate-200">{backtest.totalTrades}</div>
+   887→                            </div>
+   888→                            <div className="rounded-lg border border-slate-800 p-2.5 text-center bg-slate-800/20">
+   889→                              <div className="text-[9px] text-slate-500">Profit Factor</div>
+   890→                              <div className={cn('text-base font-bold font-mono', backtest.profitFactor >= 1.5 ? 'text-emerald-400' : backtest.profitFactor >= 1 ? 'text-amber-400' : 'text-red-400')}>
+   891→                                {backtest.profitFactor === 999 ? 'Inf' : backtest.profitFactor.toFixed(2)}
+   892→                              </div>
+   893→                            </div>
+   894→                          </div>
+   895→                          <div className="mt-3">
+   896→                            <MetricRow label="Avg Win" value={<span className="text-emerald-400">+{backtest.avgWinPct.toFixed(2)}%</span>} />
+   897→                            <MetricRow label="Avg Loss" value={<span className="text-red-400">{backtest.avgLossPct.toFixed(2)}%</span>} />
+   898→                            <MetricRow label="Max Drawdown" value={<span className="text-red-400">-{backtest.maxDrawdownPct.toFixed(2)}%</span>} />
+   899→                            <MetricRow label="W/L Ratio" value={backtest.winningTrades + 'W / ' + backtest.losingTrades + 'L'} />
+   900→                          </div>
+   901→                        </SectionCard>
+   902→
+   903→                        <SectionCard title="Recent Trades" icon={BarChart2}>
+   904→                          <ScrollArea className="h-[260px]">
+   905→                            <Table>
+   906→                              <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   907→                                <TableHead className="text-[9px] text-slate-500 h-7">Type</TableHead>
+   908→                                <TableHead className="text-[9px] text-slate-500 h-7">Entry</TableHead>
+   909→                                <TableHead className="text-[9px] text-slate-500 h-7">Exit</TableHead>
+   910→                                <TableHead className="text-[9px] text-slate-500 h-7 text-right">P&L</TableHead>
+   911→                              </TableRow></TableHeader>
+   912→                              <TableBody>
+   913→                                {backtest.trades.map((tr, i) => (
+   914→                                  <TableRow key={i} className="border-slate-800/50 hover:bg-slate-800/30">
+   915→                                    <TableCell className="text-[9px] py-1.5">
+   916→                                      <Badge variant="outline" className={cn('text-[7px] px-1 py-0', tr.type === 'LONG' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20')}>{tr.type}</Badge>
+   917→                                    </TableCell>
+   918→                                    <TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.entryDate)}</TableCell>
+   919→                                    <TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.exitDate)}</TableCell>
+   920→                                    <TableCell className={cn('text-[9px] py-1.5 font-mono font-semibold text-right', tr.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   921→                                      {tr.pnlPct >= 0 ? '+' : ''}{tr.pnlPct.toFixed(2)}%
+   922→                                    </TableCell>
+   923→                                  </TableRow>
+   924→                                ))}
+   925→                              </TableBody>
+   926→                            </Table>
+   927→                          </ScrollArea>
+   928→                        </SectionCard>
+   929→                      </>
+   930→                    )}
+   931→                  </div>
+   932→                </div>
+   933→              </TabsContent>
+   934→
+   935→              {/* ===== PEERS TAB ===== */}
+   936→              <TabsContent value="peers">
+   937→                <SectionCard title="Sector Peer Comparison" icon={Users} className="w-full">
+   938→                  <CardDescription className="text-[10px] text-slate-500 mb-3 -mt-1">Click any peer to navigate to its dashboard</CardDescription>
+   939→                  {detail?.peers && detail.peers.length > 0 ? (
+   940→                    <div className="overflow-x-auto">
+   941→                      <Table>
+   942→                        <TableHeader>
+   943→                          <TableRow className="border-slate-800 hover:bg-transparent">
+   944→                            <TableHead className="text-[9px] text-slate-500 h-8">Stock</TableHead>
+   945→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">Price</TableHead>
+   946→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">Change</TableHead>
+   947→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">Mkt Cap</TableHead>
+   948→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">P/E</TableHead>
+   949→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">P/B</TableHead>
+   950→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">Div Yield</TableHead>
+   951→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">ROE</TableHead>
+   952→                            <TableHead className="text-[9px] text-slate-500 h-8 text-right">Rev Growth</TableHead>
+   953→                          </TableRow>
+   954→                        </TableHeader>
+   955→                        <TableBody>
+   956→                          {detail.peers.map(p => (
+   957→                            <TableRow key={p.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => handleSelect(p.symbol, 'equity')}>
+   958→                              <TableCell className="text-xs py-2.5">
+   959→                                <div className="font-semibold text-slate-200">{p.symbol}</div>
+   960→                                <div className="text-[9px] text-slate-500">{p.name}</div>
+   961→                              </TableCell>
+   962→                              <TableCell className="text-xs font-mono text-slate-200 text-right">{p.price.toLocaleString('en-IN')}</TableCell>
+   963→                              <TableCell className="text-xs font-mono text-right">{pctVal(p.changePct)}</TableCell>
+   964→                              <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(p.marketCap)}</TableCell>
+   965→                              <TableCell className="text-xs font-mono text-slate-300 text-right">{p.pe?.toFixed(1) || '--'}</TableCell>
+   966→                              <TableCell className="text-xs font-mono text-slate-300 text-right">{p.pb?.toFixed(1) || '--'}</TableCell>
+   967→                              <TableCell className="text-xs font-mono text-slate-300 text-right">{p.divYield ? p.divYield.toFixed(1) + '%' : '--'}</TableCell>
+   968→                              <TableCell className="text-xs font-mono text-slate-300 text-right">{p.roe ? p.roe.toFixed(1) + '%' : '--'}</TableCell>
+   969→                              <TableCell className="text-xs font-mono text-right">{pctVal(p.revenueGrowth)}</TableCell>
+   970→                            </TableRow>
+   971→                          ))}
+   972→                        </TableBody>
+   973→                      </Table>
+   974→                    </div>
+   975→                  ) : (
+   976→                    <div className="text-center py-12 text-slate-500 text-sm">No peer data available for this stock</div>
+   977→                  )}
+   978→                </SectionCard>
+   979→              </TabsContent>
+   980→
+   981→              {/* ===== NEWS TAB ===== */}
+   982→              <TabsContent value="news">
+   983→                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   984→                  <div className="lg:col-span-2">
+   985→                    <SectionCard title="Latest News & Headlines" icon={Newspaper} badge={news.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{news.length} articles</Badge>}>
+   986→                      {newsLoading ? (
+   987→                        <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 bg-slate-800/50 rounded-lg" />)}</div>
+   988→                      ) : news.length > 0 ? (
+   989→                        <ScrollArea className="h-[500px]">
+   990→                          <div className="space-y-2">
+   991→                            {news.map((n, i) => (
+   992→                              <a key={i} href={n.url} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-slate-800/20 hover:bg-slate-800/40 border border-slate-800/50 hover:border-slate-700/50 transition-colors group">
+   993→                                <div className="flex items-start justify-between gap-3">
+   994→                                  <div className="flex-1 min-w-0">
+   995→                                    <div className="text-xs text-slate-200 font-medium leading-relaxed group-hover:text-emerald-400 transition-colors line-clamp-2">{n.title}</div>
+   996→                                    <div className="flex items-center gap-2 mt-1.5">
+   997→                                      <span className="text-[9px] text-slate-500">{n.source}</span>
+   998→                                      <span className="text-slate-700">&middot;</span>
+   999→                                      <span className="text-[9px] text-slate-600 flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{fTime(n.publishedAt)}</span>
+  1000→                                      <SentimentBadge sentiment={n.sentiment} />
+  1001→                                    </div>
+  1002→                                  </div>
+  1003→                                  <ExternalLink className="w-3.5 h-3.5 text-slate-600 group-hover:text-emerald-400 shrink-0 mt-0.5" />
+  1004→                                </div>
+  1005→                              </a>
+  1006→                            ))}
+  1007→                          </div>
+  1008→                        </ScrollArea>
+  1009→                      ) : (
+  1010→                        <div className="text-center py-12 text-slate-500 text-sm">No news available. Click Refresh to fetch.</div>
+  1011→                      )}
+  1012→                      <Button variant="outline" size="sm" className="mt-3 h-7 text-xs" onClick={() => fetchNews(selectedSymbol)} disabled={newsLoading}>
+  1013→                        <RefreshCw className={cn('w-3 h-3 mr-1', newsLoading && 'animate-spin')} /> {newsLoading ? 'Loading...' : 'Refresh News'}
+  1014→                      </Button>
+  1015→                    </SectionCard>
+  1016→                  </div>
+  1017→
+  1018→                  <div className="space-y-4">
+  1019→                    <SectionCard title="News Sentiment" icon={Activity}>
+  1020→                      {news.length > 0 ? (() => {
+  1021→                        const pos = news.filter(n => n.sentiment === 'positive').length;
+  1022→                        const neg = news.filter(n => n.sentiment === 'negative').length;
+  1023→                        const neu = news.length - pos - neg;
+  1024→                        return (
+  1025→                          <div className="space-y-3">
+  1026→                            <div className="text-center">
+  1027→                              <div className={cn('text-2xl font-bold font-mono', pos > neg ? 'text-emerald-400' : neg > pos ? 'text-red-400' : 'text-amber-400')}>
+  1028→                                {pos > neg ? 'Bullish' : neg > pos ? 'Bearish' : 'Neutral'}
+  1029→                              </div>
+
+[showing lines 530-1029 of 1090; use offset=1030 with limit to continue reading]

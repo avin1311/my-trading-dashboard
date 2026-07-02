@@ -14,11 +14,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch live quote and historical data in parallel
-    const [quote, histData] = await Promise.all([
-      getLiveQuote(symbol),
-      getHistoricalData(symbol, 200).catch(() => []),
-    ]);
+    // Fetch sequentially to avoid Yahoo rate limits
+    const quote = await getLiveQuote(symbol);
+    // Small delay to avoid rate limiting
+    await new Promise(r => setTimeout(r, 300));
+    const histData = await getHistoricalData(symbol, 200).catch(() => []);
 
     // Generate signals for latest technicals
     let signals = [];

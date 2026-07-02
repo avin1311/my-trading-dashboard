@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { getHistoricalData, getLiveQuote } from "@/lib/market-data";
+import { NextRequest, NextResponse } from "next/server";
+import { getHistoricalData } from "@/lib/market-data";
 
 // GET /api/stock-data?symbol=RELIANCE&days=200
 export async function GET(request: NextRequest) {

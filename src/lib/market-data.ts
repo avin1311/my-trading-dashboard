@@ -257,21 +257,42 @@ const FUNDAMENTALS_DB: Record<string, {
 // ==================== HTTP HELPER ====================
 import https from 'https';
 
-function httpsGet(url: string): Promise<string> {
+const MAX_RESPONSE_SIZE = 500_000; // 500KB max response
+function httpsGet(url: string, timeout = 8000): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'application/json,text/html,*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+      }
     }, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
-        httpsGet(res.headers.location || '').then(resolve).catch(reject);
+        res.resume();
+        httpsGet(res.headers.location || '', timeout).then(resolve).catch(reject);
         return;
       }
-      let data = '';
-      res.on('data', (c: string) => (data += c));
-      res.on('end', () => resolve(data));
+      if (res.statusCode && res.statusCode >= 400) {
+        res.resume();
+        reject(new Error(`HTTP ${res.statusCode} for ${url.split('?')[0]}`));
+        return;
+      }
+      const chunks: Buffer[] = [];
+      let totalSize = 0;
+      res.on('data', (chunk: Buffer) => {
+        totalSize += chunk.length;
+        if (totalSize > MAX_RESPONSE_SIZE) {
+          res.destroy();
+          reject(new Error('Response too large'));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      res.on('error', (e: Error) => { res.destroy(); reject(e); });
     });
     req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
+    req.setTimeout(timeout, () => { req.destroy(); reject(new Error('Timeout')); });
   });
 }
 
@@ -443,6 +464,17 @@ export async function getHistoricalData(
   }
 
   const finalData = points.slice(-days);
+
+  // Validate data freshness - ensure we have recent data
+  if (finalData.length > 0) {
+    const lastDate = new Date(finalData[finalData.length - 1].date);
+    const now = new Date();
+    const daysDiff = Math.floor((now.getTime() - lastDate.getTime()) / 86400000);
+    // If last data point is more than 5 days old (accounting for weekends), log warning
+    if (daysDiff > 5) {
+      console.warn(`[market-data] Data for ${nseSymbol} is ${daysDiff} days old. Last: ${finalData[finalData.length - 1].date}`);
+    }
+  }
 
   // Update moving averages on cached quote
   const closes = finalData.map(d => d.close);
