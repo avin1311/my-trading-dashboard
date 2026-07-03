@@ -1,0 +1,799 @@
+'use client';
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
+} from 'recharts';
+import {
+  TrendingUp, ArrowUp, ArrowDown, Activity, BarChart3, Target, Trophy,
+  TrendingDown, Zap, Settings2,
+  RefreshCw, Layers, BarChart2,
+  DollarSign, Percent, Users, CircleDot, ChevronRight,
+  ArrowUpRight, ArrowDownRight, Minus,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+
+// ==================== TYPES ====================
+interface StockInfo { symbol: string; name: string; sector: string; basePrice: number; volatility: number; type: string; }
+interface OHLCV { date: string; open: number; high: number; low: number; close: number; volume: number; }
+type SignalType = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
+interface StrategySignal { date: string; close: number; signal: SignalType; supertrend: number; supertrendDir: number; rsi: number; macd: number; macdSignal: number; macdHistogram: number; reason: string; }
+interface TradeRecord { entryDate: string; exitDate: string; entryPrice: number; exitPrice: number; type: string; pnl: number; pnlPct: number; signal: SignalType; }
+interface BacktestResult { totalReturn: number; totalReturnPct: number; winRate: number; totalTrades: number; winningTrades: number; losingTrades: number; avgWinPct: number; avgLossPct: number; maxDrawdownPct: number; profitFactor: number; trades: TradeRecord[]; }
+interface StrategyParams { supertrendPeriod: number; supertrendMultiplier: number; rsiPeriod: number; rsiOverbought: number; rsiOversold: number; macdFast: number; macdSlow: number; macdSignal: number; }
+interface ChartDataPoint extends OHLCV { supertrend: number | null; supertrendDir: number | null; rsi: number | null; macd: number | null; macdSignal: number | null; macdHistogram: number | null; signal: SignalType | null; }
+interface LiveQuote { symbol: string; name: string; longName: string; sector: string; industry: string; exchange: string; currency: string; type: string; price: number; change: number; changePct: number; prevClose: number; open: number; dayHigh: number; dayLow: number; volume: number; avgVolume: number; volumeRatio: number; marketCap: number; pe: number | null; forwardPE: number | null; pb: number | null; eps: number | null; bookValue: number | null; dividendYield: number | null; payoutRatio: number | null; high52w: number; low52w: number; percentFrom52wHigh: number; percentFrom52wLow: number; fiftyDMA: number | null; twoHundredDMA: number | null; percentAbove50DMA: number | null; percentAbove200DMA: number | null; beta: number | null; roe: number | null; roa: number | null; debtToEquity: number | null; revenueGrowth: number | null; profitMargins: number | null; operatingMargins: number | null; currentRatio: number | null; totalRevenue: number | null; ebitda: number | null; grossProfits: number | null; freeCashflow: number | null; recommendation: string | null; targetHigh: number | null; targetLow: number | null; targetMean: number | null; targetMedian: number | null; analysts: number | null; instHolding: number | null; }
+interface PeerData { symbol: string; name: string; price: number; changePct: number; marketCap: number; pe: number | null; pb: number | null; divYield: number | null; roe: number | null; revenueGrowth: number | null; }
+interface StockDetail { quote: LiveQuote; technicals: Record<string, any>; performance: Record<string, number | null>; ownership: Record<string, number | null>; financials: Record<string, number | null>; peers: PeerData[] | null; dataPoints: number; lastDate: string | null; }
+interface MarketOverview { nifty50: LiveQuote; bankNifty: LiveQuote; niftyIT: LiveQuote; indiaVix: LiveQuote; }
+
+const DEFAULT_PARAMS: StrategyParams = { supertrendPeriod: 10, supertrendMultiplier: 3, rsiPeriod: 14, rsiOverbought: 70, rsiOversold: 30, macdFast: 12, macdSlow: 26, macdSignal: 9 };
+
+// ==================== FORMATTERS ====================
+function fINR(v: number): string {
+  if (v >= 1e12) return '\u20B9' + (v / 1e12).toFixed(2) + ' T';
+  if (v >= 1e7) return '\u20B9' + (v / 1e7).toFixed(2) + ' Cr';
+  if (v >= 1e5) return '\u20B9' + (v / 1e5).toFixed(2) + ' L';
+  return '\u20B9' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fNum(v: number): string { if (v >= 1e12) return (v / 1e12).toFixed(2) + 'T'; if (v >= 1e7) return (v / 1e7).toFixed(2) + ' Cr'; if (v >= 1e5) return (v / 1e5).toFixed(2) + ' L'; if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K'; return v.toFixed(2); }
+function fDate(d: string): string { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }); }
+
+const SIG_BG: Record<string, string> = {
+  STRONG_BUY: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400',
+  BUY: 'bg-green-500/20 border-green-500/40 text-green-400',
+  HOLD: 'bg-amber-500/20 border-amber-500/40 text-amber-400',
+  SELL: 'bg-orange-500/20 border-orange-500/40 text-orange-400',
+  STRONG_SELL: 'bg-red-500/20 border-red-500/40 text-red-400',
+};
+const TYPE_COLOR: Record<string, string> = {
+  equity: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+  index: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+};
+
+function pctVal(v: number | null) {
+  if (v === null) return <span className="text-slate-600">--</span>;
+  const c = v >= 0 ? 'text-emerald-400' : 'text-red-400';
+  const icon = v > 0.5 ? <ArrowUpRight className="w-3 h-3" /> : v < -0.5 ? <ArrowDownRight className="w-3 h-3" /> : <Minus className="w-3 h-3" />;
+  return <span className={cn(c, 'flex items-center gap-0.5 font-mono')}>{icon}{Math.abs(v).toFixed(2)}%</span>;
+}
+
+// ==================== SMALL COMPONENTS ====================
+function KPI({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border p-3 border-slate-800 bg-slate-900/50">
+      <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-sm font-bold text-slate-100 truncate">{value}</div>
+      {sub && <div className="text-[10px] text-slate-400 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function MktBar({ label, q }: { label: string; q: LiveQuote | null }) {
+  if (!q) return <div className="flex flex-col items-center px-3 py-1"><Skeleton className="h-3 w-16 bg-slate-800" /></div>;
+  const up = q.changePct >= 0;
+  return (
+    <div className="flex flex-col items-center px-3 py-1">
+      <span className="text-[10px] text-slate-500 font-medium">{label}</span>
+      <span className="text-xs font-bold text-slate-200 font-mono">{q.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+      <span className={cn('text-[10px] font-semibold font-mono', up ? 'text-emerald-400' : 'text-red-400')}>
+        {up ? '+' : ''}{q.changePct.toFixed(2)}%
+      </span>
+    </div>
+  );
+}
+
+function PBar({ value, min, max, label, color }: { value: number; min: number; max: number; label: string; color: string }) {
+  const pct = max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 50;
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="w-16 text-slate-500 text-right shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div className={cn('h-full rounded-full', color)} style={{ width: pct + '%' }} />
+      </div>
+      <span className="w-12 text-slate-300 font-mono text-right shrink-0">{value.toFixed(1)}</span>
+    </div>
+  );
+}
+
+function MR({ label, value, highlight }: { label: string; value: React.ReactNode; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-slate-800/50 last:border-0">
+      <span className="text-xs text-slate-400">{label}</span>
+      <span className={cn('text-xs font-mono', highlight ? 'text-white font-semibold' : 'text-slate-200')}>{value}</span>
+    </div>
+  );
+}
+
+// ==================== CHART COMPONENTS (inline to avoid import issues) ====================
+function ChartTooltipContent({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartDataPoint }> }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl text-xs">
+      <div className="font-semibold text-slate-200 mb-1.5">{fDate(d.date)}</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-300">
+        <span>O: {fINR(d.open)}</span><span>H: {fINR(d.high)}</span>
+        <span>L: {fINR(d.low)}</span><span>C: {fINR(d.close)}</span>
+        {d.supertrend !== null && <span className="col-span-2">ST: <span className={d.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'}>{fINR(d.supertrend)}</span></span>}
+        {d.signal && d.signal !== 'HOLD' && <span className={cn('col-span-2 font-semibold', d.signal.includes('BUY') ? 'text-emerald-400' : 'text-red-400')}>{d.signal.replace('_', ' ')}</span>}
+      </div>
+    </div>
+  );
+}
+
+function RSIGauge({ value }: { value: number | null }) {
+  if (value === null) return <div className="text-slate-500 text-xs">RSI: --</div>;
+  const color = value > 70 ? '#ef4444' : value < 30 ? '#10b981' : '#f59e0b';
+  const label = value > 70 ? 'Overbought' : value < 30 ? 'Oversold' : 'Neutral';
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="80" height="48" viewBox="0 0 80 48">
+        <path d="M 8 44 A 34 34 0 0 1 72 44" fill="none" stroke="#1e293b" strokeWidth="6" strokeLinecap="round" />
+        <path d="M 8 44 A 34 34 0 0 1 72 44" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={(value / 100 * 107) + ' 107'} />
+        <text x="40" y="28" textAnchor="middle" fill={color} fontSize="14" fontWeight="bold">{Math.round(value)}</text>
+      </svg>
+      <span className="text-[9px] text-slate-500">{label}</span>
+    </div>
+  );
+}
+
+function mergeChartData(stockData: OHLCV[], signals: StrategySignal[]): ChartDataPoint[] {
+  const sigMap = new Map(signals.map(s => [s.date, s]));
+  return stockData.map(d => {
+    const sig = sigMap.get(d.date);
+    return { ...d, supertrend: sig?.supertrend ?? null, supertrendDir: sig?.supertrendDir ?? null, rsi: sig?.rsi ?? null, macd: sig?.macd ?? null, macdSignal: sig?.macdSignal ?? null, macdHistogram: sig?.macdHistogram ?? null, signal: sig?.signal ?? null };
+  });
+}
+
+// ==================== MAIN ====================
+export default function Home() {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [equities, setEquities] = useState<StockInfo[]>([]);
+  const [indices, setIndices] = useState<StockInfo[]>([]);
+  const [sectors, setSectors] = useState<string[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE');
+  const [selectedType, setSelectedType] = useState('equity');
+  const [signalsLoading, setSignalsLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(true);
+  const [stockData, setStockData] = useState<OHLCV[]>([]);
+  const [signals, setSignals] = useState<StrategySignal[]>([]);
+  const [backtest, setBacktest] = useState<BacktestResult | null>(null);
+  const [params, setParams] = useState<StrategyParams>({ ...DEFAULT_PARAMS });
+  const [chartOffset, setChartOffset] = useState(0);
+  const [recalculating, setRecalculating] = useState(false);
+  const [detail, setDetail] = useState<StockDetail | null>(null);
+  const [overview, setOverview] = useState<MarketOverview | null>(null);
+  const [lastDate, setLastDate] = useState('');
+  const [equitySearch, setEquitySearch] = useState('');
+  const [selectedSector, setSelectedSector] = useState('all');
+  const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/stocks?type=equity').then(r => r.json()),
+      fetch('/api/stocks?type=index').then(r => r.json()),
+      fetch('/api/quote?overview=true').then(r => r.json()).catch(() => null),
+    ]).then(([eq, idx, ov]: any[]) => {
+      setEquities(eq.instruments || []);
+      setIndices(idx.instruments || []);
+      setSectors(eq.sectors || []);
+      if (ov) setOverview(ov);
+    }).catch(console.error);
+  }, []);
+
+  const fetchDetail = useCallback(async (sym: string) => {
+    setDetailLoading(true);
+    try { const res = await fetch('/api/stock-detail?symbol=' + sym); const data = await res.json(); if (data.quote) setDetail(data); } catch {} finally { setDetailLoading(false); }
+  }, []);
+
+  const fetchSignals = useCallback(async (sym: string, p: StrategyParams) => {
+    setSignalsLoading(true); setChartOffset(0);
+    try {
+      const sp = new URLSearchParams({ symbol: sym, days: '200' });
+      for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
+      const res = await fetch('/api/signals?' + sp.toString());
+      const data = await res.json();
+      setStockData(data.stockData || []);
+      setSignals(data.signals || []);
+      setBacktest(data.backtest || null);
+      setParams(data.params || DEFAULT_PARAMS);
+      setLastDate(data.lastDate || '');
+    } catch {} finally { setSignalsLoading(false); setRecalculating(false); }
+  }, []);
+
+  useEffect(() => { fetchDetail(selectedSymbol); fetchSignals(selectedSymbol, params); }, [selectedSymbol]);
+  const handleRefresh = () => { fetchDetail(selectedSymbol); fetchSignals(selectedSymbol, params); };
+  const handleSelect = (sym: string, type: string) => { setSelectedSymbol(sym); setSelectedType(type); setSheetOpen(false); setActiveTab('overview'); };
+
+  const chartData = useMemo(() => mergeChartData(stockData, signals), [stockData, signals]);
+  const visibleData = useMemo(() => { const max = 100, end = chartData.length - chartOffset, start = Math.max(0, end - max); return chartData.slice(start, end); }, [chartData, chartOffset]);
+  const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+  const filteredEquities = useMemo(() => {
+    let list = equities;
+    if (equitySearch) { const q = equitySearch.toLowerCase(); list = list.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)); }
+    if (selectedSector !== 'all') list = list.filter(s => s.sector === selectedSector);
+    return list;
+  }, [equities, equitySearch, selectedSector]);
+
+  const q = detail?.quote || null;
+  const t = detail?.technicals || {};
+  const perf = detail?.performance || {};
+  const own = detail?.ownership || {};
+  const fin = detail?.financials || {};
+
+  const priceMin = useMemo(() => Math.min(...visibleData.map(d => d.low)) * 0.998, [visibleData]);
+  const priceMax = useMemo(() => Math.max(...visibleData.map(d => d.high)) * 1.002, [visibleData]);
+
+  return (
+    <TooltipProvider>
+    <div className="min-h-screen bg-[#0a0e1a] text-slate-100">
+      {/* MARKET BAR */}
+      <div className="sticky top-0 z-50 border-b border-slate-800/60 bg-[#0a0e1a]/95 backdrop-blur-md">
+        <div className="max-w-[1800px] mx-auto px-4">
+          <div className="flex items-center justify-between py-1.5">
+            <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
+              <MktBar label="NIFTY 50" q={overview?.nifty50 ?? null} />
+              <div className="w-px h-8 bg-slate-800 mx-1" />
+              <MktBar label="BANK NIFTY" q={overview?.bankNifty ?? null} />
+              <div className="w-px h-8 bg-slate-800 mx-1" />
+              <MktBar label="NIFTY IT" q={overview?.niftyIT ?? null} />
+              <div className="w-px h-8 bg-slate-800 mx-1" />
+              <MktBar label="INDIA VIX" q={overview?.indiaVix ?? null} />
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-3">
+              {q && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 gap-1"><CircleDot className="w-2 h-2" /> LIVE</Badge>}
+              {lastDate && <span className="text-[10px] text-slate-500 font-mono hidden md:inline">Data: {fDate(lastDate)}</span>}
+            </div>
+          </div>
+          {/* Header */}
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4.5 h-4.5 text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold tracking-tight text-white">{q?.longName || q?.name || selectedSymbol}</h1>
+                  <Badge variant="outline" className={cn('text-[9px] px-1 py-0', TYPE_COLOR[selectedType] || 'bg-slate-800 text-slate-400')}>{selectedType.toUpperCase()}</Badge>
+                  {q?.sector && <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-400">{q.sector}</Badge>}
+                </div>
+                {detailLoading ? <Skeleton className="h-5 w-32 bg-slate-800 mt-1" /> : q ? (
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <span className="text-lg font-bold font-mono text-white">{q.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5', q.changePct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                      {q.changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                      {Math.abs(q.change).toFixed(2)} ({Math.abs(q.changePct).toFixed(2)}%)
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs h-8" onClick={handleRefresh} disabled={detailLoading}>
+                <RefreshCw className={cn('w-3 h-3 mr-1', detailLoading && 'animate-spin')} /> Refresh
+              </Button>
+              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 gap-2 h-8 text-xs">
+                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="hidden sm:inline">{selectedSymbol}</span>
+                    <ChevronRight className="w-3 h-3 opacity-50" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-[420px] bg-[#0a0e1a] border-slate-800 p-0">
+                  <SheetHeader className="px-4 pt-4 pb-2">
+                    <SheetTitle className="text-white text-sm flex items-center gap-2"><Layers className="w-4 h-4 text-emerald-400" /> Select Instrument</SheetTitle>
+                    <SheetDescription className="text-slate-400 text-xs">100+ equities, 16 indices</SheetDescription>
+                  </SheetHeader>
+                  <Tabs defaultValue="equities" className="px-4">
+                    <TabsList className="bg-slate-900 w-full border border-slate-800 h-8">
+                      <TabsTrigger value="equities" className="flex-1 text-[10px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Equities</TabsTrigger>
+                      <TabsTrigger value="indices" className="flex-1 text-[10px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400">Indices</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="equities" className="mt-2">
+                      <Input placeholder="Search..." value={equitySearch} onChange={e => setEquitySearch(e.target.value)} className="h-8 text-xs bg-slate-900 border-slate-800 mb-2" />
+                      <Select value={selectedSector} onValueChange={setSelectedSector}>
+                        <SelectTrigger className="h-7 text-[10px] bg-slate-900 border-slate-800 mb-2"><SelectValue placeholder="All Sectors" /></SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-800"><SelectItem value="all">All Sectors</SelectItem>{sectors.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <ScrollArea className="h-[calc(100vh-280px)]">
+                        <div className="space-y-0.5">{filteredEquities.map(s => (
+                          <button key={s.symbol} onClick={() => handleSelect(s.symbol, 'equity')} className={cn('w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-slate-800/60 transition-colors', s.symbol === selectedSymbol && 'bg-emerald-500/10 border border-emerald-500/20')}>
+                            <div className="min-w-0"><div className="text-xs font-semibold text-slate-200 truncate">{s.symbol}</div><div className="text-[10px] text-slate-500 truncate">{s.name}</div></div>
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-500 shrink-0 ml-2">{s.sector}</Badge>
+                          </button>
+                        ))}</div>
+                      </ScrollArea>
+                    </TabsContent>
+                    <TabsContent value="indices" className="mt-2">
+                      <ScrollArea className="h-[calc(100vh-240px)]">
+                        <div className="space-y-0.5">{indices.map(s => (
+                          <button key={s.symbol} onClick={() => handleSelect(s.symbol, 'index')} className={cn('w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-slate-800/60 transition-colors', s.symbol === selectedSymbol && 'bg-emerald-500/10 border border-emerald-500/20')}>
+                            <div className="min-w-0"><div className="text-xs font-semibold text-slate-200">{s.symbol}</div><div className="text-[10px] text-slate-500">{s.name}</div></div>
+                          </button>
+                        ))}</div>
+                      </ScrollArea>
+                    </TabsContent>
+                  </Tabs>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <div className="max-w-[1800px] mx-auto px-4 py-4">
+        {detailLoading && !q ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-20 bg-slate-900 rounded-lg" />)}
+          </div>
+        ) : q ? (
+          <>
+            {/* KPI CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-4">
+              <KPI label="Market Cap" value={q.marketCap ? fINR(q.marketCap) : '--'} sub={q.type} />
+              <KPI label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} sub={q.forwardPE ? 'Fwd: ' + q.forwardPE.toFixed(1) : undefined} />
+              <KPI label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} sub={q.bookValue ? 'BV: ' + fINR(q.bookValue) : undefined} />
+              <KPI label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} sub={q.roa ? 'ROA: ' + q.roa.toFixed(1) + '%' : undefined} />
+              <KPI label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} sub={q.eps ? 'EPS: ' + q.eps.toFixed(1) : undefined} />
+              <KPI label="Volume" value={fNum(q.volume)} sub={q.avgVolume ? 'Avg: ' + fNum(q.avgVolume) : undefined} />
+              <KPI label="Beta" value={q.beta?.toFixed(2) || '--'} sub={q.debtToEquity ? 'D/E: ' + q.debtToEquity.toFixed(2) : undefined} />
+            </div>
+
+            {/* TABS */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="bg-slate-900/80 border border-slate-800 h-9 p-0.5">
+                <TabsTrigger value="overview" className="text-[11px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1"><BarChart3 className="w-3 h-3" /> Overview</TabsTrigger>
+                <TabsTrigger value="fundamentals" className="text-[11px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1"><DollarSign className="w-3 h-3" /> Fundamentals</TabsTrigger>
+                <TabsTrigger value="technicals" className="text-[11px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1"><Activity className="w-3 h-3" /> Technicals</TabsTrigger>
+                <TabsTrigger value="strategy" className="text-[11px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1"><Target className="w-3 h-3" /> Strategy</TabsTrigger>
+                <TabsTrigger value="peers" className="text-[11px] data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 gap-1"><Users className="w-3 h-3" /> Peers</TabsTrigger>
+              </TabsList>
+
+              {/* OVERVIEW TAB */}
+              <TabsContent value="overview">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 space-y-4">
+                    {latestSignal && (
+                      <Card className="border-slate-800 bg-slate-900/50">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className={cn('px-3 py-1.5 rounded-lg border font-bold text-sm', SIG_BG[latestSignal.signal])}>
+                                {latestSignal.signal.replace('_', ' ')}
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-300">{latestSignal.reason}</div>
+                                <div className="text-[10px] text-slate-500 mt-0.5">As of {fDate(latestSignal.date)}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs">
+                              <div className="text-center"><div className="text-[10px] text-slate-500">RSI</div><div className={cn('font-mono font-semibold', latestSignal.rsi > 70 ? 'text-red-400' : latestSignal.rsi < 30 ? 'text-emerald-400' : 'text-amber-400')}>{latestSignal.rsi.toFixed(1)}</div></div>
+                              <div className="text-center"><div className="text-[10px] text-slate-500">Supertrend</div><div className={cn('font-mono font-semibold', latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{latestSignal.supertrendDir === 1 ? 'BULL' : 'BEAR'}</div></div>
+                              <div className="text-center"><div className="text-[10px] text-slate-500">MACD</div><div className={cn('font-mono font-semibold', (latestSignal.macd || 0) > (latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(latestSignal.macd || 0) > (latestSignal.macdSignal || 0) ? 'BULL' : 'BEAR'}</div></div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Performance */}
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {['1W', '1M', '3M', '6M', '1Y', 'YTD'].map(p => (
+                        <div key={p} className="rounded-lg border border-slate-800 bg-slate-900/50 p-2.5 text-center">
+                          <div className="text-[10px] text-slate-500 font-medium">{p}</div>
+                          <div className="text-sm font-bold font-mono mt-0.5">{pctVal(perf[p] ?? null)}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 52 Week Range */}
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">52 Week Range</CardTitle></CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-mono text-slate-400 w-16 text-right">{q.low52w.toLocaleString('en-IN')}</span>
+                          <div className="flex-1 relative h-2 bg-slate-800 rounded-full">
+                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/40 via-amber-500/40 to-emerald-500/40 rounded-full" style={{ width: (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '%' }} />
+                            <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-slate-900 shadow" style={{ left: 'calc(' + (q.high52w > q.low52w ? ((q.price - q.low52w) / (q.high52w - q.low52w)) * 100 : 50) + '% - 5px)' }} />
+                          </div>
+                          <span className="text-xs font-mono text-slate-400 w-16">{q.high52w.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between mt-2 text-[10px]">
+                          <span className="text-slate-500">From Low: <span className="text-emerald-400 font-mono">{q.percentFrom52wLow.toFixed(1)}%</span></span>
+                          <span className="text-slate-500">From High: <span className="text-red-400 font-mono">{q.percentFrom52wHigh.toFixed(1)}%</span></span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Moving Averages */}
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Moving Averages</CardTitle></CardHeader>
+                      <CardContent className="p-3 pt-0 space-y-2">
+                        <PBar value={q.price} min={q.fiftyDMA ? q.fiftyDMA * 0.95 : q.price * 0.9} max={q.fiftyDMA ? q.fiftyDMA * 1.05 : q.price * 1.1} label="50 DMA" color={q.percentAbove50DMA !== null && q.percentAbove50DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+                        <PBar value={q.price} min={q.twoHundredDMA ? q.twoHundredDMA * 0.95 : q.price * 0.9} max={q.twoHundredDMA ? q.twoHundredDMA * 1.05 : q.price * 1.1} label="200 DMA" color={q.percentAbove200DMA !== null && q.percentAbove200DMA >= 0 ? 'bg-emerald-500' : 'bg-red-500'} />
+                        {q.fiftyDMA && <div className="text-[10px] text-slate-500 text-right">50 DMA: {fINR(q.fiftyDMA)} <span className={q.percentAbove50DMA !== null && q.percentAbove50DMA >= 0 ? 'text-emerald-400' : 'text-red-400'}>({q.percentAbove50DMA?.toFixed(1)}%)</span></div>}
+                        {q.twoHundredDMA && <div className="text-[10px] text-slate-500 text-right">200 DMA: {fINR(q.twoHundredDMA)} <span className={q.percentAbove200DMA !== null && q.percentAbove200DMA >= 0 ? 'text-emerald-400' : 'text-red-400'}>({q.percentAbove200DMA?.toFixed(1)}%)</span></div>}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Right sidebar */}
+                  <div className="space-y-4">
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" /> Key Ratios</CardTitle></CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <MR label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} />
+                        <MR label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} />
+                        <MR label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} />
+                        <MR label="EPS" value={q.eps ? fINR(q.eps) : '--'} highlight />
+                        <MR label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} />
+                        <MR label="Div Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
+                        <MR label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} />
+                      </CardContent>
+                    </Card>
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" /> Profitability</CardTitle></CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <MR label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
+                        <MR label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} />
+                        <MR label="Net Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
+                        <MR label="OPM" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} />
+                        <MR label="Rev Growth" value={pctVal(q.revenueGrowth)} highlight />
+                        <MR label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} />
+                        <MR label="D/E Ratio" value={q.debtToEquity?.toFixed(2) || '--'} />
+                      </CardContent>
+                    </Card>
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Shareholding</CardTitle></CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <MR label="FII" value={own.fii ? own.fii.toFixed(1) + '%' : '--'} />
+                        <MR label="DII" value={own.dii ? own.dii.toFixed(1) + '%' : '--'} />
+                        <MR label="Promoter" value={own.promoter ? own.promoter.toFixed(1) + '%' : '--'} />
+                        <MR label="Public" value={own.public ? own.public.toFixed(1) + '%' : '--'} />
+                      </CardContent>
+                    </Card>
+                    {q.targetMean && (
+                      <Card className="border-slate-800 bg-slate-900/50">
+                        <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Target className="w-3.5 h-3.5" /> Analyst Targets</CardTitle></CardHeader>
+                        <CardContent className="p-3 pt-0">
+                          {q.recommendation && <div className="mb-2"><Badge variant="outline" className={cn('text-[10px] uppercase font-bold', q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : q.recommendation === 'sell' ? 'bg-red-500/15 text-red-400 border-red-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{q.recommendation}</Badge>{q.analysts && <span className="text-[10px] text-slate-500 ml-2">{q.analysts} analysts</span>}</div>}
+                          <MR label="Target Mean" value={fINR(q.targetMean)} highlight />
+                          <MR label="Target Median" value={q.targetMedian ? fINR(q.targetMedian) : '--'} />
+                          <MR label="Target High" value={q.targetHigh ? fINR(q.targetHigh) : '--'} />
+                          <MR label="Target Low" value={q.targetLow ? fINR(q.targetLow) : '--'} />
+                          <div className="mt-2 text-[10px]">
+                            <span className="text-slate-500">Upside: </span>
+                            <span className={cn('font-mono font-semibold', ((q.targetMean - q.price) / q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                              {((q.targetMean - q.price) / q.price * 100) >= 0 ? '+' : ''}{((q.targetMean - q.price) / q.price * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* FUNDAMENTALS TAB */}
+              <TabsContent value="fundamentals">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card className="border-slate-800 bg-slate-900/50">
+                    <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Valuation</CardTitle></CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <MR label="P/E Ratio" value={q.pe?.toFixed(1) || '--'} />
+                      <MR label="Forward P/E" value={q.forwardPE?.toFixed(1) || '--'} />
+                      <MR label="P/B Ratio" value={q.pb?.toFixed(2) || '--'} />
+                      <MR label="EPS (TTM)" value={q.eps ? fINR(q.eps) : '--'} />
+                      <MR label="Book Value" value={q.bookValue ? fINR(q.bookValue) : '--'} />
+                      <MR label="Dividend Yield" value={q.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
+                      <MR label="Payout Ratio" value={q.payoutRatio ? (q.payoutRatio * 100).toFixed(0) + '%' : '--'} />
+                      <MR label="Market Cap" value={fINR(q.marketCap)} highlight />
+                    </CardContent>
+                  </Card>
+                  <Card className="border-slate-800 bg-slate-900/50">
+                    <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Profitability & Growth</CardTitle></CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <MR label="ROE" value={q.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
+                      <MR label="ROA" value={q.roa ? q.roa.toFixed(1) + '%' : '--'} />
+                      <MR label="Net Profit Margin" value={q.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
+                      <MR label="Operating Margin" value={q.operatingMargins ? q.operatingMargins.toFixed(1) + '%' : '--'} />
+                      <MR label="Revenue Growth" value={pctVal(q.revenueGrowth)} highlight />
+                      <MR label="Beta" value={q.beta?.toFixed(2) || '--'} />
+                      <MR label="Current Ratio" value={q.currentRatio?.toFixed(2) || '--'} />
+                      <MR label="Debt/Equity" value={q.debtToEquity?.toFixed(2) || '--'} />
+                    </CardContent>
+                  </Card>
+                  <Card className="border-slate-800 bg-slate-900/50">
+                    <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Financial Highlights</CardTitle></CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <MR label="Revenue" value={fin.revenue ? fINR(fin.revenue as number) : '--'} highlight />
+                      <MR label="EBITDA" value={fin.ebitda ? fINR(fin.ebitda as number) : '--'} />
+                      <MR label="Gross Profit" value={fin.grossProfits ? fINR(fin.grossProfits as number) : '--'} />
+                      <MR label="Free Cash Flow" value={fin.freeCashflow ? fINR(fin.freeCashflow as number) : '--'} />
+                      <MR label="Net Profit" value={fin.netProfit ? fINR(fin.netProfit as number) : '--'} />
+                      <Separator className="my-2 bg-slate-800" />
+                      <MR label="Avg Volume" value={fNum(q.avgVolume)} />
+                      <MR label="Volume Ratio" value={t.volumeRatio?.toFixed(2) || '--'} />
+                      <MR label="20D Volatility" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* TECHNICALS TAB */}
+              <TabsContent value="technicals">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card className="border-slate-800 bg-slate-900/50">
+                    <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Indicator Summary</CardTitle></CardHeader>
+                    <CardContent className="p-3 pt-0 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Overall Signal</span>
+                        <Badge className={cn('text-[10px] font-bold', SIG_BG[t.signal || 'HOLD'])}>{(t.signal || 'HOLD') as string}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Supertrend</span>
+                        <span className={cn('text-xs font-mono font-semibold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">RSI (14)</span>
+                        <span className={cn('text-xs font-mono font-bold', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi?.toFixed(1) || '--'}</span>
+                      </div>
+                      <PBar value={t.rsi || 50} min={0} max={100} label="RSI" color={(t.rsi || 50) > 70 ? 'bg-red-500' : (t.rsi || 50) < 30 ? 'bg-emerald-500' : 'bg-amber-500'} />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">MACD</span>
+                        <span className={cn('text-xs font-mono font-semibold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500">MACD: {t.macd?.toFixed(2) || '--'} | Signal: {t.macdSignal?.toFixed(2) || '--'} | Hist: {t.macdHistogram?.toFixed(2) || '--'}</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-slate-800 bg-slate-900/50">
+                    <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Support & Resistance</CardTitle></CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs"><span className="text-red-400">Resistance 2</span><span className="font-mono text-slate-200">{t.resistance2 ? fINR(t.resistance2) : '--'}</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-orange-400">Resistance 1</span><span className="font-mono text-slate-200">{t.resistance1 ? fINR(t.resistance1) : '--'}</span></div>
+                        <Separator className="bg-slate-800" />
+                        <div className="flex justify-between text-xs"><span className="text-white font-semibold">Current Price</span><span className="font-mono font-bold text-white">{fINR(q.price)}</span></div>
+                        <Separator className="bg-slate-800" />
+                        <div className="flex justify-between text-xs"><span className="text-emerald-400">Support 1</span><span className="font-mono text-slate-200">{t.support1 ? fINR(t.support1) : '--'}</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-green-400">Support 2</span><span className="font-mono text-slate-200">{t.support2 ? fINR(t.support2) : '--'}</span></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-slate-800 bg-slate-900/50">
+                    <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pivot Points (Classic)</CardTitle></CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs"><span className="text-red-400">R2</span><span className="font-mono text-slate-200">{t.pivotR2 ? fINR(t.pivotR2) : '--'}</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-orange-400">R1</span><span className="font-mono text-slate-200">{t.pivotR1 ? fINR(t.pivotR1) : '--'}</span></div>
+                        <Separator className="bg-slate-800" />
+                        <div className="flex justify-between text-xs"><span className="text-slate-300 font-semibold">Pivot</span><span className="font-mono text-white font-bold">{t.pivot ? fINR(t.pivot) : '--'}</span></div>
+                        <Separator className="bg-slate-800" />
+                        <div className="flex justify-between text-xs"><span className="text-emerald-400">S1</span><span className="font-mono text-slate-200">{t.pivotS1 ? fINR(t.pivotS1) : '--'}</span></div>
+                        <div className="flex justify-between text-xs"><span className="text-green-400">S2</span><span className="font-mono text-slate-200">{t.pivotS2 ? fINR(t.pivotS2) : '--'}</span></div>
+                      </div>
+                      <Separator className="my-2 bg-slate-800" />
+                      <MR label="SMA 20" value={t.sma20 ? fINR(t.sma20) : '--'} />
+                      <MR label="SMA 50" value={t.sma50 ? fINR(t.sma50) : '--'} />
+                      <MR label="Volatility (20D)" value={t.volatility20d ? t.volatility20d.toFixed(1) + '%' : '--'} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* STRATEGY TAB */}
+              <TabsContent value="strategy">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 space-y-4">
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardContent className="p-3">
+                        {signalsLoading ? (
+                          <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Price Chart with Supertrend</span>
+                            </div>
+                            <div className="h-[340px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={visibleData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                                  <XAxis dataKey="date" tickFormatter={d => { const dt = new Date(d); return dt.getDate() + '/' + (dt.getMonth() + 1); }} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} />
+                                  <YAxis domain={[priceMin, priceMax]} tickFormatter={v => fINR(v)} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} width={70} />
+                                  <RTooltip content={<ChartTooltipContent />} />
+                                  <Area type="monotone" dataKey="close" stroke="#3b82f6" strokeWidth={1.5} fillOpacity={0.05} isAnimationActive={false} />
+                                  <Line type="monotone" dataKey="supertrend" stroke="#f59e0b" strokeWidth={1.2} dot={false} strokeDasharray="4 2" isAnimationActive={false} connectNulls />
+                                  {visibleData.map((d, i) => {
+                                    if (!d.signal || d.signal === 'HOLD') return null;
+                                    const isBuy = d.signal === 'STRONG_BUY' || d.signal === 'BUY';
+                                    return <ReferenceDot key={i} x={d.date} y={d.close} r={d.signal.startsWith('STRONG') ? 5 : 3.5} fill={isBuy ? '#10b981' : '#ef4444'} stroke={isBuy ? '#065f46' : '#7f1d1d'} strokeWidth={1} isAnimationActive={false} />;
+                                  })}
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* RSI + MACD */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="border-slate-800 bg-slate-900/50">
+                        <CardHeader className="p-3 pb-1"><CardTitle className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">RSI Gauge</CardTitle></CardHeader>
+                        <CardContent className="p-3 pt-1 flex justify-center">
+                          {latestSignal ? <RSIGauge value={latestSignal.rsi} /> : <div className="text-slate-600 text-xs">--</div>}
+                        </CardContent>
+                      </Card>
+                      <Card className="border-slate-800 bg-slate-900/50 md:col-span-2">
+                        <CardHeader className="p-3 pb-1"><CardTitle className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">MACD (12, 26, 9)</CardTitle></CardHeader>
+                        <CardContent className="p-3 pt-1">
+                          {signalsLoading ? <div className="h-[100px] bg-slate-900/50 rounded-lg animate-pulse" /> : (
+                            <div className="h-[100px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={chartData.slice(-30)} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                                  <XAxis dataKey="date" tick={false} tickLine={false} axisLine={{ stroke: '#1e293b' }} />
+                                  <YAxis domain={['auto', 'auto']} tick={false} tickLine={false} axisLine={false} />
+                                  <Bar dataKey="macdHistogram" isAnimationActive={false}>
+                                    {chartData.slice(-30).map((d, i) => (
+                                      <Cell key={i} fill={(d.macdHistogram || 0) >= 0 ? '#10b981' : '#ef4444'} fillOpacity={0.7} />
+                                    ))}
+                                  </Bar>
+                                  <Line type="monotone" dataKey="macd" stroke="#3b82f6" strokeWidth={1} dot={false} isAnimationActive={false} />
+                                  <Line type="monotone" dataKey="macdSignal" stroke="#f59e0b" strokeWidth={1} dot={false} strokeDasharray="2 1" isAnimationActive={false} />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Parameters */}
+                    <Card className="border-slate-800 bg-slate-900/50">
+                      <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" /> Strategy Parameters</CardTitle></CardHeader>
+                      <CardContent className="p-3 pt-0">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {([
+                            ['supertrendPeriod', 'ST Period', 5, 30, 1],
+                            ['supertrendMultiplier', 'ST Mult', 1, 7, 0.5],
+                            ['rsiPeriod', 'RSI Period', 5, 30, 1],
+                            ['rsiOverbought', 'RSI OB', 60, 90, 1],
+                            ['rsiOversold', 'RSI OS', 10, 40, 1],
+                            ['macdFast', 'MACD Fast', 5, 20, 1],
+                            ['macdSlow', 'MACD Slow', 15, 50, 1],
+                            ['macdSignal', 'MACD Sig', 3, 15, 1],
+                          ] as [keyof StrategyParams, string, number, number, number][]).map(([key, label, min, max, step]) => (
+                            <div key={key} className="space-y-1">
+                              <div className="flex justify-between text-[10px]"><span className="text-slate-500">{label}</span><span className="text-slate-300 font-mono">{params[key]}</span></div>
+                              <Slider value={[params[key]]} min={min} max={max} step={step} onValueChange={([v]) => setParams(p => ({ ...p, [key]: v }))} className="py-0" />
+                            </div>
+                          ))}
+                        </div>
+                        <Button size="sm" className="mt-3 h-7 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={() => { setRecalculating(true); fetchSignals(selectedSymbol, params); }} disabled={recalculating}>
+                          {recalculating ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}
+                          {recalculating ? 'Recalculating...' : 'Apply & Recalculate'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Backtest */}
+                  <div className="space-y-4">
+                    {backtest && (
+                      <>
+                        <Card className="border-slate-800 bg-slate-900/50">
+                          <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> Backtest Results</CardTitle></CardHeader>
+                          <CardContent className="p-3 pt-0 space-y-2.5">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-lg border border-slate-800 p-2 text-center"><div className="text-[9px] text-slate-500">Total Return</div><div className={cn('text-sm font-bold font-mono', backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{backtest.totalReturnPct >= 0 ? '+' : ''}{backtest.totalReturnPct.toFixed(2)}%</div></div>
+                              <div className="rounded-lg border border-slate-800 p-2 text-center"><div className="text-[9px] text-slate-500">Win Rate</div><div className="text-sm font-bold font-mono text-blue-400">{backtest.winRate.toFixed(1)}%</div></div>
+                              <div className="rounded-lg border border-slate-800 p-2 text-center"><div className="text-[9px] text-slate-500">Total Trades</div><div className="text-sm font-bold font-mono text-slate-200">{backtest.totalTrades}</div></div>
+                              <div className="rounded-lg border border-slate-800 p-2 text-center"><div className="text-[9px] text-slate-500">Profit Factor</div><div className={cn('text-sm font-bold font-mono', backtest.profitFactor >= 1.5 ? 'text-emerald-400' : backtest.profitFactor >= 1 ? 'text-amber-400' : 'text-red-400')}>{backtest.profitFactor === 999 ? 'Inf' : backtest.profitFactor.toFixed(2)}</div></div>
+                            </div>
+                            <MR label="Avg Win" value={<span className="text-emerald-400">+{backtest.avgWinPct.toFixed(2)}%</span>} />
+                            <MR label="Avg Loss" value={<span className="text-red-400">{backtest.avgLossPct.toFixed(2)}%</span>} />
+                            <MR label="Max Drawdown" value={<span className="text-red-400">-{backtest.maxDrawdownPct.toFixed(2)}%</span>} />
+                            <MR label="W/L Ratio" value={backtest.winningTrades + 'W / ' + backtest.losingTrades + 'L'} />
+                          </CardContent>
+                        </Card>
+                        <Card className="border-slate-800 bg-slate-900/50">
+                          <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><BarChart2 className="w-3.5 h-3.5" /> Recent Trades</CardTitle></CardHeader>
+                          <CardContent className="p-3 pt-0">
+                            <ScrollArea className="h-[280px]">
+                              <Table>
+                                <TableHeader><TableRow className="border-slate-800 hover:bg-transparent"><TableHead className="text-[9px] text-slate-500 h-7">Entry</TableHead><TableHead className="text-[9px] text-slate-500 h-7">Exit</TableHead><TableHead className="text-[9px] text-slate-500 h-7 text-right">P&L</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                  {backtest.trades.map((tr, i) => (
+                                    <TableRow key={i} className="border-slate-800/50 hover:bg-slate-800/30">
+                                      <TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.entryDate)}</TableCell>
+                                      <TableCell className="text-[9px] py-1.5 font-mono text-slate-400">{fDate(tr.exitDate)}</TableCell>
+                                      <TableCell className={cn('text-[9px] py-1.5 font-mono font-semibold text-right', tr.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{tr.pnlPct >= 0 ? '+' : ''}{tr.pnlPct.toFixed(2)}%</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </ScrollArea>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* PEERS TAB */}
+              <TabsContent value="peers">
+                <Card className="border-slate-800 bg-slate-900/50">
+                  <CardHeader className="p-3 pb-2"><CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sector Peer Comparison</CardTitle></CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    {detail?.peers && detail.peers.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-slate-800 hover:bg-transparent">
+                              <TableHead className="text-[9px] text-slate-500 h-7">Stock</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">Price</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">Change</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">Mkt Cap</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">P/E</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">P/B</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">Div Yield</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">ROE</TableHead>
+                              <TableHead className="text-[9px] text-slate-500 h-7 text-right">Rev Growth</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {detail.peers.map(p => (
+                              <TableRow key={p.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => handleSelect(p.symbol, 'equity')}>
+                                <TableCell className="text-xs py-2"><div className="font-semibold text-slate-200">{p.symbol}</div><div className="text-[9px] text-slate-500">{p.name}</div></TableCell>
+                                <TableCell className="text-xs font-mono text-slate-200 text-right">{p.price.toLocaleString('en-IN')}</TableCell>
+                                <TableCell className="text-xs font-mono text-right">{pctVal(p.changePct)}</TableCell>
+                                <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(p.marketCap)}</TableCell>
+                                <TableCell className="text-xs font-mono text-slate-300 text-right">{p.pe?.toFixed(1) || '--'}</TableCell>
+                                <TableCell className="text-xs font-mono text-slate-300 text-right">{p.pb?.toFixed(1) || '--'}</TableCell>
+                                <TableCell className="text-xs font-mono text-slate-300 text-right">{p.divYield ? p.divYield.toFixed(1) + '%' : '--'}</TableCell>
+                                <TableCell className="text-xs font-mono text-slate-300 text-right">{p.roe ? p.roe.toFixed(1) + '%' : '--'}</TableCell>
+                                <TableCell className="text-xs font-mono text-right">{pctVal(p.revenueGrowth)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : <div className="text-center py-8 text-slate-500 text-sm">No peer data available for this stock</div>}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : (
+          <div className="text-center py-20 text-slate-500">
+            <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-lg">Select a stock to view dashboard</p>
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-slate-800/40 mt-8 py-4 text-center text-[10px] text-slate-600">
+        NSE Analytics Dashboard — Supertrend + RSI + MACD Confluence Strategy — Data: Yahoo Finance — For educational purposes only
+      </div>
+    </div>
+    </TooltipProvider>
+  );
+}

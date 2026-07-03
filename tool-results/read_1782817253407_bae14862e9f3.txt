@@ -1,0 +1,1141 @@
+   630→                      <BarChart2 className="w-3.5 h-3.5" />
+   631→                      Equities
+   632→                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-300">
+   633→                        {stats.totalEquities > 99 ? '100+' : stats.totalEquities}
+   634→                      </Badge>
+   635→                    </TabsTrigger>
+   636→                    <TabsTrigger
+   637→                      value="indices"
+   638→                      className="flex-1 gap-1.5 text-xs data-[state=active]:bg-purple-600/20 data-[state=active]:text-purple-400"
+   639→                    >
+   640→                      <TrendingUp className="w-3.5 h-3.5" />
+   641→                      Indices
+   642→                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-slate-800 border-slate-700 text-slate-300">
+   643→                        {stats.totalIndices}
+   644→                      </Badge>
+   645→                    </TabsTrigger>
+   646→                    <TabsTrigger
+   647→                      value="options"
+   648→                      className="flex-1 gap-1.5 text-xs data-[state=active]:bg-amber-600/20 data-[state=active]:text-amber-400"
+   649→                    >
+   650→                      <GitBranch className="w-3.5 h-3.5" />
+   651→                      Options
+   652→                    </TabsTrigger>
+   653→                  </TabsList>
+   654→
+   655→                  {/* ===== EQUITIES TAB ===== */}
+   656→                  <TabsContent value="equities" className="mt-3">
+   657→                    <div className="space-y-3">
+   658→                      {/* Search */}
+   659→                      <div className="relative">
+   660→                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+   661→                        <Input
+   662→                          placeholder="Search symbol or name..."
+   663→                          value={equitySearch}
+   664→                          onChange={(e) => setEquitySearch(e.target.value)}
+   665→                          className="pl-9 h-9 bg-slate-900 border-slate-700 text-slate-200 placeholder:text-slate-500 text-sm"
+   666→                        />
+   667→                        {equitySearch && (
+   668→                          <button
+   669→                            onClick={() => setEquitySearch('')}
+   670→                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+   671→                          >
+   672→                            <X className="w-3.5 h-3.5" />
+   673→                          </button>
+   674→                        )}
+   675→                      </div>
+   676→
+   677→                      {/* Sector filter */}
+   678→                      <Select value={selectedSector} onValueChange={setSelectedSector}>
+   679→                        <SelectTrigger className="h-8 bg-slate-900 border-slate-700 text-slate-300 text-xs w-full">
+   680→                          <SelectValue placeholder="All Sectors" />
+   681→                        </SelectTrigger>
+   682→                        <SelectContent className="bg-slate-900 border-slate-700">
+   683→                          <SelectItem value="all" className="text-slate-200">All Sectors</SelectItem>
+   684→                          {sectors.map((sector) => (
+   685→                            <SelectItem key={sector} value={sector} className="text-slate-200">
+   686→                              {sector}
+   687→                            </SelectItem>
+   688→                          ))}
+   689→                        </SelectContent>
+   690→                      </Select>
+   691→
+   692→                      {/* Results count */}
+   693→                      <div className="text-[11px] text-slate-500 px-1">
+   694→                        {filteredEquities.length} instrument{filteredEquities.length !== 1 ? 's' : ''} found
+   695→                      </div>
+   696→
+   697→                      {/* Equity list */}
+   698→                      <ScrollArea className="h-[calc(100vh-320px)] min-h-[300px]">
+   699→                        <div className="space-y-0.5 pr-2">
+   700→                          {filteredEquities.map((stock) => (
+   701→                            <button
+   702→                              key={stock.symbol}
+   703→                              onClick={() => handleSelectInstrument(stock.symbol, 'equity')}
+   704→                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800/70 group ${
+   705→                                selectedSymbol === stock.symbol && selectedType === 'equity'
+   706→                                  ? 'bg-emerald-500/10 border border-emerald-500/20'
+   707→                                  : 'border border-transparent'
+   708→                              }`}
+   709→                            >
+   710→                              <div className="min-w-0 flex-1">
+   711→                                <div className="flex items-center gap-2">
+   712→                                  <span className="font-semibold text-sm text-emerald-400 group-hover:text-emerald-300">
+   713→                                    {stock.symbol}
+   714→                                  </span>
+   715→                                  <Badge
+   716→                                    variant="outline"
+   717→                                    className="text-[9px] px-1 py-0 border-slate-700 text-slate-400 shrink-0"
+   718→                                  >
+   719→                                    EQUITY
+   720→                                  </Badge>
+   721→                                  {stock.lotSize && (
+   722→                                    <span className="text-[9px] text-slate-600">
+   723→                                      Lot: {stock.lotSize}
+   724→                                    </span>
+   725→                                  )}
+   726→                                </div>
+   727→                                <div className="flex items-center gap-2 mt-0.5">
+   728→                                  <span className="text-xs text-slate-400 truncate">
+   729→                                    {stock.name}
+   730→                                  </span>
+   731→                                </div>
+   732→                              </div>
+   733→                              <div className="text-right shrink-0">
+   734→                                <div className="text-sm font-semibold text-slate-200">
+   735→                                  {formatINR(stock.basePrice)}
+   736→                                </div>
+   737→                                <Badge
+   738→                                  variant="outline"
+   739→                                  className="text-[9px] px-1.5 py-0 border-slate-700 text-slate-500 mt-0.5"
+   740→                                >
+   741→                                  {stock.sector}
+   742→                                </Badge>
+   743→                              </div>
+   744→                            </button>
+   745→                          ))}
+   746→                          {filteredEquities.length === 0 && (
+   747→                            <div className="text-center py-12 text-slate-500 text-sm">
+   748→                              No equities match your search
+   749→                            </div>
+   750→                          )}
+   751→                        </div>
+   752→                      </ScrollArea>
+   753→                    </div>
+   754→                  </TabsContent>
+   755→
+   756→                  {/* ===== INDICES TAB ===== */}
+   757→                  <TabsContent value="indices" className="mt-3">
+   758→                    <div className="space-y-3">
+   759→                      <div className="text-[11px] text-slate-500 px-1">
+   760→                        {indices.length} NSE indices
+   761→                      </div>
+   762→                      <ScrollArea className="h-[calc(100vh-280px)] min-h-[300px]">
+   763→                        <div className="space-y-0.5 pr-2">
+   764→                          {indices.map((idx) => (
+   765→                            <button
+   766→                              key={idx.symbol}
+   767→                              onClick={() => handleSelectInstrument(idx.symbol, 'index')}
+   768→                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-slate-800/70 group ${
+   769→                                selectedSymbol === idx.symbol && selectedType === 'index'
+   770→                                  ? 'bg-purple-500/10 border border-purple-500/20'
+   771→                                  : 'border border-transparent'
+   772→                              }`}
+   773→                            >
+   774→                              <div className="min-w-0 flex-1">
+   775→                                <div className="flex items-center gap-2">
+   776→                                  <span className="font-semibold text-sm text-purple-400 group-hover:text-purple-300">
+   777→                                    {idx.symbol}
+   778→                                  </span>
+   779→                                  <Badge
+   780→                                    variant="outline"
+   781→                                    className="text-[9px] px-1 py-0 border-slate-700 text-slate-400"
+   782→                                  >
+   783→                                    INDEX
+   784→                                  </Badge>
+   785→                                </div>
+   786→                                <span className="text-xs text-slate-400 truncate">
+   787→                                  {idx.name}
+   788→                                </span>
+   789→                              </div>
+   790→                              <div className="text-right shrink-0">
+   791→                                <div className="text-sm font-semibold text-slate-200">
+   792→                                  {formatINR(idx.basePrice)}
+   793→                                </div>
+   794→                              </div>
+   795→                            </button>
+   796→                          ))}
+   797→                        </div>
+   798→                      </ScrollArea>
+   799→                    </div>
+   800→                  </TabsContent>
+   801→
+   802→                  {/* ===== OPTIONS TAB ===== */}
+   803→                  <TabsContent value="options" className="mt-3">
+   804→                    <div className="space-y-3">
+   805→                      {/* Step 1: Select underlying */}
+   806→                      <div>
+   807→                        <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
+   808→                          STEP 1: Select Underlying
+   809→                        </label>
+   810→                        <Select
+   811→                          value={selectedUnderlying}
+   812→                          onValueChange={setSelectedUnderlying}
+   813→                        >
+   814→                          <SelectTrigger className="h-9 bg-slate-900 border-slate-700 text-slate-300 text-sm w-full">
+   815→                            <SelectValue placeholder="Choose underlying..." />
+   816→                          </SelectTrigger>
+   817→                          <SelectContent className="bg-slate-900 border-slate-700 max-h-60">
+   818→                            {optionUnderlyings.map((u) => (
+   819→                              <SelectItem key={u} value={u} className="text-slate-200">
+   820→                                {u}
+   821→                              </SelectItem>
+   822→                            ))}
+   823→                          </SelectContent>
+   824→                        </Select>
+   825→                      </div>
+   826→
+   827→                      {/* Step 2: Select expiry */}
+   828→                      {expiryDates.length > 0 && (
+   829→                        <div>
+   830→                          <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
+   831→                            STEP 2: Select Expiry
+   832→                          </label>
+   833→                          <div className="flex gap-2 flex-wrap">
+   834→                            {expiryDates.map((exp) => (
+   835→                              <Button
+   836→                                key={exp}
+   837→                                variant={selectedExpiry === exp ? 'default' : 'outline'}
+   838→                                size="sm"
+   839→                                onClick={() => setSelectedExpiry(exp)}
+   840→                                className={
+   841→                                  selectedExpiry === exp
+   842→                                    ? 'bg-amber-600 hover:bg-amber-700 text-white h-8 text-xs'
+   843→                                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white h-8 text-xs'
+   844→                                }
+   845→                              >
+   846→                                {formatExpiry(exp)}
+   847→                              </Button>
+   848→                            ))}
+   849→                          </div>
+   850→                        </div>
+   851→                      )}
+   852→
+   853→                      {/* Step 3: Options chain table */}
+   854→                      {optionsLoading && (
+   855→                        <div className="space-y-2 py-4">
+   856→                          <Skeleton className="h-8 w-full bg-slate-800" />
+   857→                          <Skeleton className="h-8 w-full bg-slate-800" />
+   858→                          <Skeleton className="h-8 w-full bg-slate-800" />
+   859→                          <Skeleton className="h-8 w-full bg-slate-800" />
+   860→                        </div>
+   861→                      )}
+   862→
+   863→                      {!optionsLoading && optionsChainGrouped.length > 0 && (
+   864→                        <div>
+   865→                          <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
+   866→                            STEP 3: Click to Analyze
+   867→                          </label>
+   868→                          <ScrollArea className="h-[calc(100vh-440px)] min-h-[200px]">
+   869→                            <div className="rounded-lg border border-slate-800 overflow-hidden">
+   870→                              <Table>
+   871→                                <TableHeader>
+   872→                                  <TableRow className="border-slate-800 bg-slate-900/50 hover:bg-slate-900/50">
+   873→                                    <TableHead className="text-emerald-400 text-[10px] text-right">CE LTP</TableHead>
+   874→                                    <TableHead className="text-emerald-400 text-[10px] text-right">CE OI</TableHead>
+   875→                                    <TableHead className="text-cyan-400 text-[10px] text-center font-semibold">STRIKE</TableHead>
+   876→                                    <TableHead className="text-red-400 text-[10px] text-left">PE OI</TableHead>
+   877→                                    <TableHead className="text-red-400 text-[10px] text-left">PE LTP</TableHead>
+   878→                                  </TableRow>
+   879→                                </TableHeader>
+   880→                                <TableBody>
+   881→                                  {optionsChainGrouped.map((row) => {
+   882→                                    const isATM = row.strike === atmStrike;
+   883→                                    return (
+   884→                                      <TableRow
+   885→                                        key={row.strike}
+   886→                                        className={`border-slate-800 hover:bg-slate-800/50 ${
+   887→                                          isATM ? 'bg-amber-500/10' : ''
+   888→                                        }`}
+   889→                                      >
+   890→                                        {/* CE LTP */}
+   891→                                        <TableCell
+   892→                                          className="text-right p-1.5 cursor-pointer"
+   893→                                          onClick={() =>
+   894→                                            row.ce && handleSelectInstrument(row.ce.symbol, 'option')
+   895→                                          }
+   896→                                        >
+   897→                                          {row.ce ? (
+   898→                                            <div>
+   899→                                              <span className="text-emerald-400 text-xs font-medium">
+   900→                                                {formatINR(row.ce.basePrice)}
+   901→                                              </span>
+   902→                                              <Badge
+   903→                                                variant="outline"
+   904→                                                className={`text-[8px] px-1 py-0 ml-1 ${getTypeBadgeColor('CE')}`}
+   905→                                              >
+   906→                                                CE
+   907→                                              </Badge>
+   908→                                            </div>
+   909→                                          ) : (
+   910→                                            <span className="text-slate-600 text-xs">—</span>
+   911→                                          )}
+   912→                                        </TableCell>
+   913→                                        {/* CE OI */}
+   914→                                        <TableCell className="text-right p-1.5 text-xs text-slate-400 font-mono">
+   915→                                          {row.ce
+   916→                                            ? (row.ce.lotSize! * Math.floor(Math.random() * 5000 + 1000)).toLocaleString('en-IN')
+   917→                                            : '—'}
+   918→                                        </TableCell>
+   919→                                        {/* Strike */}
+   920→                                        <TableCell className="text-center p-1.5">
+   921→                                          <span
+   922→                                            className={`text-xs font-bold ${
+   923→                                              isATM ? 'text-amber-400' : 'text-slate-300'
+   924→                                            }`}
+   925→                                          >
+   926→                                            {row.strike}
+   927→                                            {isATM && (
+   928→                                              <span className="ml-1 text-[9px] text-amber-500 font-semibold">
+   929→                                                ATM
+   930→                                              </span>
+   931→                                            )}
+   932→                                          </span>
+   933→                                        </TableCell>
+   934→                                        {/* PE OI */}
+   935→                                        <TableCell className="text-left p-1.5 text-xs text-slate-400 font-mono">
+   936→                                          {row.pe
+   937→                                            ? (row.pe.lotSize! * Math.floor(Math.random() * 5000 + 1000)).toLocaleString('en-IN')
+   938→                                            : '—'}
+   939→                                        </TableCell>
+   940→                                        {/* PE LTP */}
+   941→                                        <TableCell
+   942→                                          className="text-left p-1.5 cursor-pointer"
+   943→                                          onClick={() =>
+   944→                                            row.pe && handleSelectInstrument(row.pe.symbol, 'option')
+   945→                                          }
+   946→                                        >
+   947→                                          {row.pe ? (
+   948→                                            <div>
+   949→                                              <Badge
+   950→                                                variant="outline"
+   951→                                                className={`text-[8px] px-1 py-0 mr-1 ${getTypeBadgeColor('PE')}`}
+   952→                                              >
+   953→                                                PE
+   954→                                              </Badge>
+   955→                                              <span className="text-red-400 text-xs font-medium">
+   956→                                                {formatINR(row.pe.basePrice)}
+   957→                                              </span>
+   958→                                            </div>
+   959→                                          ) : (
+   960→                                            <span className="text-slate-600 text-xs">—</span>
+   961→                                          )}
+   962→                                        </TableCell>
+   963→                                      </TableRow>
+   964→                                    );
+   965→                                  })}
+   966→                                </TableBody>
+   967→                              </Table>
+   968→                            </div>
+   969→                          </ScrollArea>
+   970→                        </div>
+   971→                      )}
+   972→
+   973→                      {!optionsLoading && !selectedUnderlying && (
+   974→                        <div className="text-center py-16 text-slate-500 text-sm">
+   975→                          <GitBranch className="w-10 h-10 mx-auto mb-3 text-slate-700" />
+   976→                          Select an underlying to view the options chain
+   977→                        </div>
+   978→                      )}
+   979→                    </div>
+   980→                  </TabsContent>
+   981→                </Tabs>
+   982→              </SheetContent>
+   983→            </Sheet>
+   984→          </div>
+   985→        </div>
+   986→      </header>
+   987→
+   988→      {/* ===== SELECTED INSTRUMENT INFO BAR ===== */}
+   989→      {stockInfo && (
+   990→        <div className="border-b border-slate-800/50 bg-slate-950/60">
+   991→          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-2 flex items-center gap-3 flex-wrap">
+   992→            <Badge
+   993→              variant="outline"
+   994→              className={`text-[10px] px-1.5 py-0 font-semibold ${getTypeBadgeColor(selectedType === 'option' ? stockInfo.optionType || 'option' : selectedType)}`}
+   995→            >
+   996→              {selectedType === 'option' ? stockInfo.optionType : selectedType.toUpperCase()}
+   997→            </Badge>
+   998→            {selectedType === 'option' ? (
+   999→              <span className="text-xs text-slate-400">
+  1000→                {stockInfo.underlying} • Strike: {stockInfo.strikePrice} • Expiry: {formatExpiry(stockInfo.expiry!)}
+  1001→                {stockInfo.lotSize && <span className="ml-2">Lot: {stockInfo.lotSize}</span>}
+  1002→              </span>
+  1003→            ) : (
+  1004→              <span className="text-xs text-slate-400">
+  1005→                {stockInfo.sector}
+  1006→                {stockInfo.lotSize && <span className="ml-2">Lot Size: {stockInfo.lotSize}</span>}
+  1007→              </span>
+  1008→            )}
+  1009→            {latestStockData && (
+  1010→              <div className="ml-auto flex items-center gap-2">
+  1011→                <span className="text-sm font-bold text-white">
+  1012→                  {formatINR(latestStockData.close)}
+  1013→                </span>
+  1014→                <span
+  1015→                  className={`text-xs font-medium ${
+  1016→                    priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+  1017→                  }`}
+  1018→                >
+  1019→                  {priceChange >= 0 ? '+' : ''}
+  1020→                  {priceChangePct.toFixed(2)}%
+  1021→                </span>
+  1022→              </div>
+  1023→            )}
+  1024→          </div>
+  1025→        </div>
+  1026→      )}
+  1027→
+  1028→      {/* ===== MAIN CONTENT ===== */}
+  1029→      <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 space-y-5">
+  1030→        {loading ? (
+  1031→          <DashboardSkeleton />
+  1032→        ) : (
+  1033→          <>
+  1034→            {/* ===== MAIN CHART ===== */}
+  1035→            <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+  1036→              <CardHeader className="pb-0">
+  1037→                <div className="flex items-center justify-between">
+  1038→                  <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+  1039→                    <Activity className="w-4 h-4 text-emerald-400" />
+  1040→                    Price Chart with Supertrend
+  1041→                    {latestStockData && (
+  1042→                      <span className="ml-2">
+  1043→                        <span className="text-white font-semibold text-base">
+  1044→                          {formatINR(latestStockData.close)}
+  1045→                        </span>
+  1046→                        <span
+  1047→                          className={`ml-1.5 text-sm font-medium ${
+  1048→                            priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+  1049→                          }`}
+  1050→                        >
+  1051→                          {priceChange >= 0 ? '+' : ''}
+  1052→                          {formatINR(priceChange)} ({priceChangePct >= 0 ? '+' : ''}
+  1053→                          {priceChangePct.toFixed(2)}%)
+  1054→                        </span>
+  1055→                      </span>
+  1056→                    )}
+  1057→                  </CardTitle>
+  1058→                  <div className="flex items-center gap-1">
+  1059→                    <Button
+  1060→                      variant="ghost"
+  1061→                      size="icon"
+  1062→                      className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
+  1063→                      disabled={!canSlideRight}
+  1064→                      onClick={() => setChartOffset((p) => Math.max(0, p - 50))}
+  1065→                    >
+  1066→                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="rotate-180">
+  1067→                        <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  1068→                      </svg>
+  1069→                    </Button>
+  1070→                    <Button
+  1071→                      variant="ghost"
+  1072→                      size="icon"
+  1073→                      className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
+  1074→                      disabled={!canSlideLeft}
+  1075→                      onClick={() => setChartOffset((p) => p + 50)}
+  1076→                    >
+  1077→                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+  1078→                        <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  1079→                      </svg>
+  1080→                    </Button>
+  1081→                  </div>
+  1082→                </div>
+  1083→              </CardHeader>
+  1084→              <CardContent className="pt-2">
+  1085→                <div className="h-[350px] sm:h-[420px]">
+  1086→                  <ResponsiveContainer width="100%" height="100%">
+  1087→                    <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+  1088→                      <defs>
+  1089→                        <linearGradient id="priceGradientBull" x1="0" y1="0" x2="0" y2="1">
+  1090→                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+  1091→                          <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+  1092→                        </linearGradient>
+  1093→                        <linearGradient id="priceGradientBear" x1="0" y1="0" x2="0" y2="1">
+  1094→                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+  1095→                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
+  1096→                        </linearGradient>
+  1097→                      </defs>
+  1098→                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+  1099→                      <XAxis
+  1100→                        dataKey="date"
+  1101→                        tick={{ fontSize: 10, fill: '#64748b' }}
+  1102→                        tickFormatter={(v: string) => {
+  1103→                          const d = new Date(v);
+  1104→                          return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  1105→                        }}
+  1106→                        axisLine={{ stroke: '#334155' }}
+  1107→                        tickLine={false}
+  1108→                        interval={Math.floor(visibleData.length / 8)}
+  1109→                      />
+  1110→                      <YAxis
+  1111→                        domain={['auto', 'auto']}
+  1112→                        tick={{ fontSize: 10, fill: '#64748b' }}
+  1113→                        tickFormatter={(v: number) => '₹' + v.toLocaleString('en-IN')}
+  1114→                        axisLine={{ stroke: '#334155' }}
+  1115→                        tickLine={false}
+  1116→                        width={75}
+  1117→                      />
+  1118→                      <RechartsTooltip content={<MainChartTooltip />} />
+  1119→                      {/* Supertrend line */}
+  1120→                      <Line
+  1121→                        type="monotone"
+  1122→                        dataKey="supertrend"
+  1123→                        stroke="#8b5cf6"
+  1124→                        strokeWidth={1.5}
+  1125→                        dot={false}
+  1126→                        name="Supertrend"
+  1127→                        connectNulls={false}
+  1128→                        strokeDasharray="4 2"
+  1129→                      />
+  1130→                      {/* Price area */}
+  1131→                      <Area
+  1132→                        type="monotone"
+  1133→                        dataKey="close"
+  1134→                        stroke="#e2e8f0"
+  1135→                        strokeWidth={2}
+  1136→                        fill="url(#priceGradientBull)"
+  1137→                        name="Close"
+  1138→                        isAnimationActive={false}
+  1139→                      />
+  1140→                      {/* Buy/Sell markers */}
+  1141→                      {visibleData.map((d, idx) => {
+  1142→                        if (d.signal === 'STRONG_BUY' || d.signal === 'BUY') {
+  1143→                          return (
+  1144→                            <ReferenceDot
+  1145→                              key={`buy-${idx}`}
+  1146→                              x={d.date}
+  1147→                              y={d.close}
+  1148→                              r={5}
+  1149→                              fill="#10b981"
+  1150→                              stroke="#064e3b"
+  1151→                              strokeWidth={1}
+  1152→                              shape={
+  1153→                                <g>
+  1154→                                  <polygon
+  1155→                                    points={`${0},${6} ${-5},${-4} ${5},${-4}`}
+  1156→                                    fill="#10b981"
+  1157→                                    stroke="#064e3b"
+  1158→                                    strokeWidth={1}
+  1159→                                  />
+  1160→                                </g>
+  1161→                              }
+  1162→                            />
+  1163→                          );
+  1164→                        }
+  1165→                        if (d.signal === 'STRONG_SELL' || d.signal === 'SELL') {
+  1166→                          return (
+  1167→                            <ReferenceDot
+  1168→                              key={`sell-${idx}`}
+  1169→                              x={d.date}
+  1170→                              y={d.close}
+  1171→                              r={5}
+  1172→                              fill="#ef4444"
+  1173→                              stroke="#7f1d1d"
+  1174→                              strokeWidth={1}
+  1175→                              shape={
+  1176→                                <g>
+  1177→                                  <polygon
+  1178→                                    points={`${0},${-6} ${-5},${4} ${5},${4}`}
+  1179→                                    fill="#ef4444"
+  1180→                                    stroke="#7f1d1d"
+  1181→                                    strokeWidth={1}
+  1182→                                  />
+  1183→                                </g>
+  1184→                              }
+  1185→                            />
+  1186→                          );
+  1187→                        }
+  1188→                        return null;
+  1189→                      })}
+  1190→                    </ComposedChart>
+  1191→                  </ResponsiveContainer>
+  1192→                </div>
+  1193→              </CardContent>
+  1194→            </Card>
+  1195→
+  1196→            {/* ===== INDICATOR PANELS ===== */}
+  1197→            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  1198→              {/* RSI Gauge */}
+  1199→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+  1200→                <CardHeader className="pb-0">
+  1201→                  <CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+  1202→                    <Activity className="w-3.5 h-3.5" />
+  1203→                    RSI ({params.rsiPeriod})
+  1204→                  </CardTitle>
+  1205→                </CardHeader>
+  1206→                <CardContent>
+  1207→                  <div className="flex items-center gap-4">
+  1208→                    <div className="relative w-20 h-20 shrink-0">
+  1209→                      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+  1210→                        <circle
+  1211→                          cx="50" cy="50" r="42"
+  1212→                          fill="none"
+  1213→                          stroke="#1e293b"
+  1214→                          strokeWidth="8"
+  1215→                        />
+  1216→                        <circle
+  1217→                          cx="50" cy="50" r="42"
+  1218→                          fill="none"
+  1219→                          stroke={currentRSI < 30 ? '#ef4444' : currentRSI > 70 ? '#ef4444' : '#10b981'}
+  1220→                          strokeWidth="8"
+  1221→                          strokeDasharray={`${(currentRSI / 100) * 264} 264`}
+  1222→                          strokeLinecap="round"
+  1223→                        />
+  1224→                      </svg>
+  1225→                      <div className="absolute inset-0 flex items-center justify-center">
+  1226→                        <span className={`text-lg font-bold ${currentRSI < 30 ? 'text-red-400' : currentRSI > 70 ? 'text-red-400' : 'text-emerald-400'}`}>
+  1227→                          {currentRSI.toFixed(1)}
+  1228→                        </span>
+  1229→                      </div>
+  1230→                    </div>
+  1231→                    <div className="space-y-1.5 text-xs">
+  1232→                      <div className="flex items-center gap-2">
+  1233→                        <span className="text-slate-500">Zone:</span>
+  1234→                        <span className={currentRSI < 30 ? 'text-red-400 font-medium' : currentRSI > 70 ? 'text-red-400 font-medium' : 'text-emerald-400 font-medium'}>
+  1235→                          {currentRSI < 30 ? 'Oversold' : currentRSI > 70 ? 'Overbought' : 'Neutral'}
+  1236→                        </span>
+  1237→                      </div>
+  1238→                      <div className="flex items-center gap-2">
+  1239→                        <span className="text-slate-500">OB:</span>
+  1240→                        <span className="text-slate-300">{params.rsiOverbought}</span>
+  1241→                      </div>
+  1242→                      <div className="flex items-center gap-2">
+  1243→                        <span className="text-slate-500">OS:</span>
+  1244→                        <span className="text-slate-300">{params.rsiOversold}</span>
+  1245→                      </div>
+  1246→                    </div>
+  1247→                  </div>
+  1248→                </CardContent>
+  1249→              </Card>
+  1250→
+  1251→              {/* MACD Mini Chart */}
+  1252→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+  1253→                <CardHeader className="pb-0">
+  1254→                  <CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+  1255→                    <BarChart3 className="w-3.5 h-3.5" />
+  1256→                    MACD ({params.macdFast},{params.macdSlow},{params.macdSignal})
+  1257→                  </CardTitle>
+  1258→                </CardHeader>
+  1259→                <CardContent>
+  1260→                  <div className="h-[80px]">
+  1261→                    <ResponsiveContainer width="100%" height="100%">
+  1262→                      <ComposedChart data={visibleData.slice(-50)} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+  1263→                        <Bar dataKey="macdHistogram" name="Histogram">
+  1264→                          {visibleData.slice(-50).map((d, idx) => (
+  1265→                            <Cell
+  1266→                              key={idx}
+  1267→                              fill={d.macdHistogram !== null && d.macdHistogram >= 0 ? '#10b981' : '#ef4444'}
+  1268→                              opacity={0.7}
+  1269→                            />
+  1270→                          ))}
+  1271→                        </Bar>
+  1272→                        <Line
+  1273→                          type="monotone"
+  1274→                          dataKey="macd"
+  1275→                          stroke="#3b82f6"
+  1276→                          strokeWidth={1.5}
+  1277→                          dot={false}
+  1278→                          name="MACD"
+  1279→                          connectNulls={false}
+  1280→                        />
+  1281→                        <Line
+  1282→                          type="monotone"
+  1283→                          dataKey="macdSignal"
+  1284→                          stroke="#f59e0b"
+  1285→                          strokeWidth={1.5}
+  1286→                          dot={false}
+  1287→                          name="Signal"
+  1288→                          connectNulls={false}
+  1289→                        />
+  1290→                      </ComposedChart>
+  1291→                    </ResponsiveContainer>
+  1292→                  </div>
+  1293→                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+  1294→                    <span>
+  1295→                      MACD:{' '}
+  1296→                      <span className={latestSignal && latestSignal.macd >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+  1297→                        {latestSignal?.macd?.toFixed(2) ?? '-'}
+  1298→                      </span>
+  1299→                    </span>
+  1300→                    <span>
+  1301→                      Sig:{' '}
+  1302→                      <span className={latestSignal && latestSignal.macdSignal >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+  1303→                        {latestSignal?.macdSignal?.toFixed(2) ?? '-'}
+  1304→                      </span>
+  1305→                    </span>
+  1306→                  </div>
+  1307→                </CardContent>
+  1308→              </Card>
+  1309→
+  1310→              {/* Supertrend Status */}
+  1311→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+  1312→                <CardHeader className="pb-0">
+  1313→                  <CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+  1314→                    <Target className="w-3.5 h-3.5" />
+  1315→                    Supertrend ({params.supertrendPeriod},{params.supertrendMultiplier})
+  1316→                  </CardTitle>
+  1317→                </CardHeader>
+  1318→                <CardContent>
+  1319→                  <div className="flex items-center gap-4">
+  1320→                    <div
+  1321→                      className={`flex items-center justify-center w-20 h-20 rounded-full border-2 ${
+  1322→                        currentSTDir === 1
+  1323→                          ? 'border-emerald-500/40 bg-emerald-500/10'
+  1324→                          : 'border-red-500/40 bg-red-500/10'
+  1325→                      }`}
+  1326→                    >
+  1327→                      <div className="text-center">
+  1328→                        {currentSTDir === 1 ? (
+  1329→                          <TrendingUp className={`w-6 h-6 mx-auto ${currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'}`} />
+  1330→                        ) : (
+  1331→                          <TrendingDown className="w-6 h-6 mx-auto text-red-400" />
+  1332→                        )}
+  1333→                        <span
+  1334→                          className={`text-[10px] font-medium ${
+  1335→                            currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'
+  1336→                          }`}
+  1337→                        >
+  1338→                          {currentSTDir === 1 ? 'Bullish' : 'Bearish'}
+  1339→                        </span>
+  1340→                      </div>
+  1341→                    </div>
+  1342→                    <div className="space-y-1.5 text-xs">
+  1343→                      <div className="flex items-center gap-2">
+  1344→                        <span className="text-slate-500">Value:</span>
+  1345→                        <span className={`font-medium ${currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+  1346→                          {formatINR(currentSTValue)}
+  1347→                        </span>
+  1348→                      </div>
+  1349→                      <div className="flex items-center gap-2">
+  1350→                        <span className="text-slate-500">Period:</span>
+  1351→                        <span className="text-slate-300">{params.supertrendPeriod}</span>
+  1352→                      </div>
+  1353→                      <div className="flex items-center gap-2">
+  1354→                        <span className="text-slate-500">Multiplier:</span>
+  1355→                        <span className="text-slate-300">{params.supertrendMultiplier}</span>
+  1356→                      </div>
+  1357→                    </div>
+  1358→                  </div>
+  1359→                </CardContent>
+  1360→              </Card>
+  1361→            </div>
+  1362→
+  1363→            {/* ===== CURRENT SIGNAL CARD ===== */}
+  1364→            {latestSignal && (
+  1365→              <Card
+  1366→                className={`border py-4 gap-4 ${
+  1367→                  latestSignal.signal === 'STRONG_BUY'
+  1368→                    ? 'bg-emerald-950/40 border-emerald-500/30'
+  1369→                    : latestSignal.signal === 'BUY'
+  1370→                    ? 'bg-green-950/40 border-green-500/30'
+  1371→                    : latestSignal.signal === 'HOLD'
+  1372→                    ? 'bg-amber-950/30 border-amber-500/30'
+  1373→                    : latestSignal.signal === 'SELL'
+  1374→                    ? 'bg-orange-950/30 border-orange-500/30'
+  1375→                    : 'bg-red-950/40 border-red-500/30'
+  1376→                }`}
+  1377→              >
+  1378→                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  1379→                  <div className="flex items-center gap-4">
+  1380→                    <div
+  1381→                      className={`flex items-center justify-center w-16 h-16 rounded-xl border-2 ${getSignalBg(
+  1382→                        latestSignal.signal
+  1383→                      )}`}
+  1384→                    >
+  1385→                      <span className="text-2xl">{getSignalIcon(latestSignal.signal)}</span>
+  1386→                    </div>
+  1387→                    <div>
+  1388→                      <div className="text-xs text-slate-400 mb-0.5">Latest Signal</div>
+  1389→                      <div className={`text-2xl font-bold ${getSignalColor(latestSignal.signal)}`}>
+  1390→                        {latestSignal.signal.replace('_', ' ')}
+  1391→                      </div>
+  1392→                      <div className="text-xs text-slate-400 mt-1 max-w-md">
+  1393→                        {latestSignal.reason}
+  1394→                      </div>
+  1395→                    </div>
+  1396→                  </div>
+  1397→                  <div className="text-right">
+  1398→                    <div className="text-xs text-slate-400">Current Price</div>
+  1399→                    <div className="text-2xl font-bold text-white">
+  1400→                      {formatINR(latestSignal.close)}
+  1401→                    </div>
+  1402→                    <div
+  1403→                      className={`text-sm font-medium ${
+  1404→                        priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+  1405→                      }`}
+  1406→                    >
+  1407→                      {priceChange >= 0 ? '+' : ''}
+  1408→                      {priceChangePct.toFixed(2)}%
+  1409→                    </div>
+  1410→                    <div className="text-[10px] text-slate-500 mt-1">{formatDate(latestSignal.date)}</div>
+  1411→                  </div>
+  1412→                </CardContent>
+  1413→              </Card>
+  1414→            )}
+  1415→
+  1416→            {/* ===== BACKTEST RESULTS ===== */}
+  1417→            {backtest && (
+  1418→              <>
+  1419→                <div className="flex items-center gap-2">
+  1420→                  <BarChart3 className="w-4 h-4 text-slate-400" />
+  1421→                  <h2 className="text-sm font-semibold text-slate-300">Backtest Results</h2>
+  1422→                </div>
+  1423→                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1424→                  <MetricCard
+  1425→                    icon={<TrendingUp className="w-4 h-4" />}
+  1426→                    label="Total Return"
+  1427→                    value={`${backtest.totalReturnPct >= 0 ? '+' : ''}${backtest.totalReturnPct.toFixed(2)}%`}
+  1428→                    color={backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}
+  1429→                  />
+  1430→                  <MetricCard
+  1431→                    icon={<Trophy className="w-4 h-4" />}
+  1432→                    label="Win Rate"
+  1433→                    value={`${backtest.winRate.toFixed(1)}%`}
+  1434→                    color={backtest.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}
+  1435→                  />
+  1436→                  <MetricCard
+  1437→                    icon={<Activity className="w-4 h-4" />}
+  1438→                    label="Total Trades"
+  1439→                    value={String(backtest.totalTrades)}
+  1440→                    color="text-slate-200"
+  1441→                  />
+  1442→                  <MetricCard
+  1443→                    icon={<Zap className="w-4 h-4" />}
+  1444→                    label="Winning"
+  1445→                    value={String(backtest.winningTrades)}
+  1446→                    color="text-emerald-400"
+  1447→                  />
+  1448→                  <MetricCard
+  1449→                    icon={<Flame className="w-4 h-4" />}
+  1450→                    label="Losing"
+  1451→                    value={String(backtest.losingTrades)}
+  1452→                    color="text-red-400"
+  1453→                  />
+  1454→                  <MetricCard
+  1455→                    icon={<ArrowUp className="w-4 h-4" />}
+  1456→                    label="Avg Win"
+  1457→                    value={`+${backtest.avgWinPct.toFixed(2)}%`}
+  1458→                    color="text-emerald-400"
+  1459→                  />
+  1460→                  <MetricCard
+  1461→                    icon={<ArrowDown className="w-4 h-4" />}
+  1462→                    label="Avg Loss"
+  1463→                    value={`${backtest.avgLossPct.toFixed(2)}%`}
+  1464→                    color="text-red-400"
+  1465→                  />
+  1466→                  <MetricCard
+  1467→                    icon={<AlertTriangle className="w-4 h-4" />}
+  1468→                    label="Max Drawdown"
+  1469→                    value={`-${backtest.maxDrawdownPct.toFixed(2)}%`}
+  1470→                    color={backtest.maxDrawdownPct > 10 ? 'text-red-400' : 'text-amber-400'}
+  1471→                  />
+  1472→                  <MetricCard
+  1473→                    icon={<Scale className="w-4 h-4" />}
+  1474→                    label="Profit Factor"
+  1475→                    value={backtest.profitFactor >= 999 ? '∞' : backtest.profitFactor.toFixed(2)}
+  1476→                    color={backtest.profitFactor >= 1.5 ? 'text-emerald-400' : backtest.profitFactor >= 1 ? 'text-amber-400' : 'text-red-400'}
+  1477→                  />
+  1478→                </div>
+  1479→
+  1480→                {/* ===== TRADE HISTORY TABLE ===== */}
+  1481→                <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+  1482→                  <CardHeader className="pb-0">
+  1483→                    <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+  1484→                      <Shield className="w-4 h-4 text-slate-400" />
+  1485→                      Trade History (Last {backtest.trades.length} Trades)
+  1486→                    </CardTitle>
+  1487→                  </CardHeader>
+  1488→                  <CardContent>
+  1489→                    <div className="max-h-96 overflow-y-auto rounded-md border border-slate-800">
+  1490→                      <Table>
+  1491→                        <TableHeader>
+  1492→                          <TableRow className="border-slate-800 hover:bg-slate-800/50">
+  1493→                            <TableHead className="text-slate-400 text-xs">Entry Date</TableHead>
+  1494→                            <TableHead className="text-slate-400 text-xs">Exit Date</TableHead>
+  1495→                            <TableHead className="text-slate-400 text-xs text-right">Entry Price</TableHead>
+  1496→                            <TableHead className="text-slate-400 text-xs text-right">Exit Price</TableHead>
+  1497→                            <TableHead className="text-slate-400 text-xs text-right">P&L %</TableHead>
+  1498→                            <TableHead className="text-slate-400 text-xs">Signal</TableHead>
+  1499→                          </TableRow>
+  1500→                        </TableHeader>
+  1501→                        <TableBody>
+  1502→                          {backtest.trades.map((trade, idx) => (
+  1503→                            <TableRow
+  1504→                              key={idx}
+  1505→                              className="border-slate-800 hover:bg-slate-800/50"
+  1506→                            >
+  1507→                              <TableCell className="text-slate-300 text-xs font-mono">
+  1508→                                {formatDate(trade.entryDate)}
+  1509→                              </TableCell>
+  1510→                              <TableCell className="text-slate-300 text-xs font-mono">
+  1511→                                {formatDate(trade.exitDate)}
+  1512→                              </TableCell>
+  1513→                              <TableCell className="text-slate-300 text-xs text-right font-mono">
+  1514→                                {formatINR(trade.entryPrice)}
+  1515→                              </TableCell>
+  1516→                              <TableCell className="text-slate-300 text-xs text-right font-mono">
+  1517→                                {formatINR(trade.exitPrice)}
+  1518→                              </TableCell>
+  1519→                              <TableCell
+  1520→                                className={`text-xs text-right font-semibold font-mono ${
+  1521→                                  trade.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400'
+  1522→                                }`}
+  1523→                              >
+  1524→                                {trade.pnlPct >= 0 ? '+' : ''}{trade.pnlPct.toFixed(2)}%
+  1525→                              </TableCell>
+  1526→                              <TableCell>
+  1527→                                <Badge
+  1528→                                  variant="outline"
+  1529→                                  className={`text-[10px] px-1.5 py-0 ${getSignalBg(trade.signal)}`}
+  1530→                                >
+  1531→                                  {trade.signal}
+  1532→                                </Badge>
+  1533→                              </TableCell>
+  1534→                            </TableRow>
+  1535→                          ))}
+  1536→                          {backtest.trades.length === 0 && (
+  1537→                            <TableRow className="border-slate-800">
+  1538→                              <TableCell className="text-slate-500 text-center py-8" colSpan={6}>
+  1539→                                No trades executed in this period
+  1540→                              </TableCell>
+  1541→                            </TableRow>
+  1542→                          )}
+  1543→                        </TableBody>
+  1544→                      </Table>
+  1545→                    </div>
+  1546→                  </CardContent>
+  1547→                </Card>
+  1548→              </>
+  1549→            )}
+  1550→
+  1551→            {/* ===== STRATEGY PARAMETERS ===== */}
+  1552→            <Accordion type="single" collapsible className="w-full">
+  1553→              <AccordionItem value="params" className="border-slate-800">
+  1554→                <AccordionTrigger className="text-sm font-medium text-slate-300 hover:no-underline py-3">
+  1555→                  <div className="flex items-center gap-2">
+  1556→                    <Settings2 className="w-4 h-4 text-slate-400" />
+  1557→                    Strategy Parameters
+  1558→                    {recalculating && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+  1559→                  </div>
+  1560→                </AccordionTrigger>
+  1561→                <AccordionContent>
+  1562→                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+  1563→                    <ParamSlider
+  1564→                      label="Supertrend Period"
+  1565→                      value={params.supertrendPeriod}
+  1566→                      min={5}
+  1567→                      max={20}
+  1568→                      step={1}
+  1569→                      onChange={(v) => handleParamChange('supertrendPeriod', v)}
+  1570→                    />
+  1571→                    <ParamSlider
+  1572→                      label="Supertrend Multiplier"
+  1573→                      value={params.supertrendMultiplier}
+  1574→                      min={1}
+  1575→                      max={5}
+  1576→                      step={0.5}
+  1577→                      onChange={(v) => handleParamChange('supertrendMultiplier', v)}
+  1578→                    />
+  1579→                    <ParamSlider
+  1580→                      label="RSI Period"
+  1581→                      value={params.rsiPeriod}
+  1582→                      min={5}
+  1583→                      max={30}
+  1584→                      step={1}
+  1585→                      onChange={(v) => handleParamChange('rsiPeriod', v)}
+  1586→                    />
+  1587→                    <ParamSlider
+  1588→                      label="RSI Overbought"
+  1589→                      value={params.rsiOverbought}
+  1590→                      min={60}
+  1591→                      max={90}
+  1592→                      step={1}
+  1593→                      onChange={(v) => handleParamChange('rsiOverbought', v)}
+  1594→                    />
+  1595→                    <ParamSlider
+  1596→                      label="RSI Oversold"
+  1597→                      value={params.rsiOversold}
+  1598→                      min={10}
+  1599→                      max={40}
+  1600→                      step={1}
+  1601→                      onChange={(v) => handleParamChange('rsiOversold', v)}
+  1602→                    />
+  1603→                    <ParamSlider
+  1604→                      label="MACD Fast"
+  1605→                      value={params.macdFast}
+  1606→                      min={5}
+  1607→                      max={20}
+  1608→                      step={1}
+  1609→                      onChange={(v) => handleParamChange('macdFast', v)}
+  1610→                    />
+  1611→                    <ParamSlider
+  1612→                      label="MACD Slow"
+  1613→                      value={params.macdSlow}
+  1614→                      min={15}
+  1615→                      max={40}
+  1616→                      step={1}
+  1617→                      onChange={(v) => handleParamChange('macdSlow', v)}
+  1618→                    />
+  1619→                    <ParamSlider
+  1620→                      label="MACD Signal"
+  1621→                      value={params.macdSignal}
+  1622→                      min={3}
+  1623→                      max={15}
+  1624→                      step={1}
+  1625→                      onChange={(v) => handleParamChange('macdSignal', v)}
+  1626→                    />
+  1627→                  </div>
+  1628→                  <div className="flex items-center gap-3">
+  1629→                    <Button
+  1630→                      onClick={handleApplyParams}
+  1631→                      disabled={recalculating}
+  1632→                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+  1633→                    >
+  1634→                      {recalculating ? (
+  1635→                        <Loader2 className="w-4 h-4 animate-spin" />
+  1636→                      ) : (
+  1637→                        <RefreshCw className="w-4 h-4" />
+  1638→                      )}
+  1639→                      Apply & Recalculate
+  1640→                    </Button>
+  1641→                    <Button
+  1642→                      variant="ghost"
+  1643→                      onClick={() => setParams({ ...DEFAULT_PARAMS })}
+  1644→                      className="text-slate-400 hover:text-white"
+  1645→                    >
+  1646→                      Reset to Defaults
+  1647→                    </Button>
+  1648→                  </div>
+  1649→                </AccordionContent>
+  1650→              </AccordionItem>
+  1651→            </Accordion>
+  1652→          </>
+  1653→        )}
+  1654→      </main>
+  1655→
+  1656→      {/* ===== FOOTER ===== */}
+  1657→      <footer className="border-t border-slate-800 mt-auto">
+  1658→        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4">
+  1659→          <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+  1660→            ⚠️ This is a simulated strategy for educational purposes. Not financial advice.
+  1661→            Always do your own research before trading. Past performance does not guarantee future results.
+  1662→          </p>
+  1663→        </div>
+  1664→      </footer>
+  1665→    </div>
+  1666→  );
+  1667→}
+  1668→
+  1669→// ==================== SUB-COMPONENTS ====================
+  1670→
+  1671→function MetricCard({
+  1672→  icon,
+  1673→  label,
+  1674→  value,
+  1675→  color,
+  1676→}: {
+  1677→  icon: React.ReactNode;
+  1678→  label: string;
+  1679→  value: string;
+  1680→  color: string;
+  1681→}) {
+  1682→  return (
+  1683→    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-1.5">
+  1684→      <div className="flex items-center gap-1.5 text-slate-400">
+  1685→        {icon}
+  1686→        <span className="text-[11px] font-medium">{label}</span>
+  1687→      </div>
+  1688→      <div className={`text-lg font-bold ${color}`}>{value}</div>
+  1689→    </div>
+  1690→  );
+  1691→}
+  1692→
+  1693→function ParamSlider({
+  1694→  label,
+  1695→  value,
+  1696→  min,
+  1697→  max,
+  1698→  step,
+  1699→  onChange,
+  1700→}: {
+  1701→  label: string;
+  1702→  value: number;
+  1703→  min: number;
+  1704→  max: number;
+  1705→  step: number;
+  1706→  onChange: (value: number) => void;
+  1707→}) {
+  1708→  return (
+  1709→    <div className="space-y-2">
+  1710→      <div className="flex items-center justify-between">
+  1711→        <label className="text-xs text-slate-400 font-medium">{label}</label>
+  1712→        <Input
+  1713→          type="number"
+  1714→          value={value}
+  1715→          min={min}
+  1716→          max={max}
+  1717→          step={step}
+  1718→          onChange={(e) => onChange(Number(e.target.value))}
+  1719→          className="w-16 h-7 text-xs text-right bg-slate-800 border-slate-700 text-slate-200"
+  1720→        />
+  1721→      </div>
+  1722→      <Slider
+  1723→        value={[value]}
+  1724→        onValueChange={([v]) => onChange(v)}
+  1725→        min={min}
+  1726→        max={max}
+  1727→        step={step}
+  1728→        className="py-1"
+  1729→      />
+  1730→      <div className="flex justify-between text-[10px] text-slate-600">
+  1731→        <span>{min}</span>
+  1732→        <span>{max}</span>
+  1733→      </div>
+  1734→    </div>
+  1735→  );
+  1736→}
+  1737→
+  1738→function DashboardSkeleton() {
+  1739→  return (
+  1740→    <div className="space-y-5">
+  1741→      {/* Chart Skeleton */}
+  1742→      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+  1743→        <Skeleton className="h-6 w-48 mb-4 bg-slate-800" />
+  1744→        <Skeleton className="h-[350px] w-full bg-slate-800 rounded-lg" />
+  1745→      </div>
+  1746→      {/* Indicators Skeleton */}
+  1747→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  1748→        {[1, 2, 3].map((i) => (
+  1749→          <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+  1750→            <Skeleton className="h-4 w-32 mb-3 bg-slate-800" />
+  1751→            <Skeleton className="h-20 w-full bg-slate-800 rounded-lg" />
+  1752→          </div>
+  1753→        ))}
+  1754→      </div>
+  1755→      {/* Signal Skeleton */}
+  1756→      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+  1757→        <Skeleton className="h-20 w-full bg-slate-800 rounded-lg" />
+  1758→      </div>
+  1759→      {/* Backtest Skeleton */}
+  1760→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1761→        {Array.from({ length: 8 }).map((_, i) => (
+  1762→          <div key={i} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+  1763→            <Skeleton className="h-4 w-20 mb-2 bg-slate-800" />
+  1764→            <Skeleton className="h-6 w-16 bg-slate-800" />
+  1765→          </div>
+  1766→        ))}
+  1767→      </div>
+  1768→    </div>
+  1769→  );
+  1770→}

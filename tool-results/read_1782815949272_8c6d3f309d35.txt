@@ -1,0 +1,1215 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useCallback, useMemo } from 'react';
+     4→import {
+     5→  ComposedChart,
+     6→  Area,
+     7→  Line,
+     8→  XAxis,
+     9→  YAxis,
+    10→  CartesianGrid,
+    11→  Tooltip as RechartsTooltip,
+    12→  ResponsiveContainer,
+    13→  ReferenceDot,
+    14→  Bar,
+    15→  Cell,
+    16→} from 'recharts';
+    17→import {
+    18→  TrendingUp,
+    19→  Loader2,
+    20→  ArrowUp,
+    21→  ArrowDown,
+    22→  Activity,
+    23→  BarChart3,
+    24→  Target,
+    25→  Trophy,
+    26→  TrendingDown,
+    27→  AlertTriangle,
+    28→  Zap,
+    29→  Shield,
+    30→  Flame,
+    31→  Scale,
+    32→  ChevronDown,
+    33→  Settings2,
+    34→  RefreshCw,
+    35→} from 'lucide-react';
+    36→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    37→import { Badge } from '@/components/ui/badge';
+    38→import { Button } from '@/components/ui/button';
+    39→import { Skeleton } from '@/components/ui/skeleton';
+    40→import { Slider } from '@/components/ui/slider';
+    41→import { Input } from '@/components/ui/input';
+    42→import {
+    43→  Accordion,
+    44→  AccordionContent,
+    45→  AccordionItem,
+    46→  AccordionTrigger,
+    47→} from '@/components/ui/accordion';
+    48→import {
+    49→  Table,
+    50→  TableBody,
+    51→  TableCell,
+    52→  TableHead,
+    53→  TableHeader,
+    54→  TableRow,
+    55→} from '@/components/ui/table';
+    56→import {
+    57→  Popover,
+    58→  PopoverContent,
+    59→  PopoverTrigger,
+    60→} from '@/components/ui/popover';
+    61→import {
+    62→  Command,
+    63→  CommandEmpty,
+    64→  CommandGroup,
+    65→  CommandInput,
+    66→  CommandItem,
+    67→  CommandList,
+    68→} from '@/components/ui/command';
+    69→
+    70→// ==================== TYPES ====================
+    71→
+    72→interface StockInfo {
+    73→  symbol: string;
+    74→  name: string;
+    75→  sector: string;
+    76→  basePrice: number;
+    77→  volatility: number;
+    78→}
+    79→
+    80→interface OHLCV {
+    81→  date: string;
+    82→  open: number;
+    83→  high: number;
+    84→  low: number;
+    85→  close: number;
+    86→  volume: number;
+    87→}
+    88→
+    89→type SignalType = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
+    90→
+    91→interface StrategySignal {
+    92→  date: string;
+    93→  close: number;
+    94→  signal: SignalType;
+    95→  supertrend: number;
+    96→  supertrendDir: number;
+    97→  rsi: number;
+    98→  macd: number;
+    99→  macdSignal: number;
+   100→  macdHistogram: number;
+   101→  reason: string;
+   102→}
+   103→
+   104→interface TradeRecord {
+   105→  entryDate: string;
+   106→  exitDate: string;
+   107→  entryPrice: number;
+   108→  exitPrice: number;
+   109→  type: 'LONG' | 'SHORT';
+   110→  pnl: number;
+   111→  pnlPct: number;
+   112→  signal: SignalType;
+   113→}
+   114→
+   115→interface BacktestResult {
+   116→  totalReturn: number;
+   117→  totalReturnPct: number;
+   118→  winRate: number;
+   119→  totalTrades: number;
+   120→  winningTrades: number;
+   121→  losingTrades: number;
+   122→  avgWinPct: number;
+   123→  avgLossPct: number;
+   124→  maxDrawdownPct: number;
+   125→  profitFactor: number;
+   126→  trades: TradeRecord[];
+   127→}
+   128→
+   129→interface StrategyParams {
+   130→  supertrendPeriod: number;
+   131→  supertrendMultiplier: number;
+   132→  rsiPeriod: number;
+   133→  rsiOverbought: number;
+   134→  rsiOversold: number;
+   135→  macdFast: number;
+   136→  macdSlow: number;
+   137→  macdSignal: number;
+   138→}
+   139→
+   140→interface ChartDataPoint {
+   141→  date: string;
+   142→  open: number;
+   143→  high: number;
+   144→  low: number;
+   145→  close: number;
+   146→  volume: number;
+   147→  supertrend: number | null;
+   148→  supertrendDir: number | null;
+   149→  rsi: number | null;
+   150→  macd: number | null;
+   151→  macdSignal: number | null;
+   152→  macdHistogram: number | null;
+   153→  signal: SignalType | null;
+   154→}
+   155→
+   156→// ==================== DEFAULTS ====================
+   157→
+   158→const DEFAULT_PARAMS: StrategyParams = {
+   159→  supertrendPeriod: 10,
+   160→  supertrendMultiplier: 3,
+   161→  rsiPeriod: 14,
+   162→  rsiOverbought: 70,
+   163→  rsiOversold: 30,
+   164→  macdFast: 12,
+   165→  macdSlow: 26,
+   166→  macdSignal: 9,
+   167→};
+   168→
+   169→// ==================== FORMATTERS ====================
+   170→
+   171→function formatINR(value: number): string {
+   172→  return '₹' + value.toLocaleString('en-IN', {
+   173→    minimumFractionDigits: 2,
+   174→    maximumFractionDigits: 2,
+   175→  });
+   176→}
+   177→
+   178→function formatVolume(value: number): string {
+   179→  if (value >= 10000000) {
+   180→    return (value / 10000000).toFixed(2) + ' Cr';
+   181→  }
+   182→  if (value >= 100000) {
+   183→    return (value / 100000).toFixed(2) + ' L';
+   184→  }
+   185→  if (value >= 1000) {
+   186→    return (value / 1000).toFixed(1) + 'K';
+   187→  }
+   188→  return value.toString();
+   189→}
+   190→
+   191→function formatDate(dateStr: string): string {
+   192→  const d = new Date(dateStr);
+   193→  return d.toLocaleDateString('en-IN', {
+   194→    day: '2-digit',
+   195→    month: 'short',
+   196→    year: '2-digit',
+   197→  });
+   198→}
+   199→
+   200→function getSignalColor(signal: SignalType): string {
+   201→  switch (signal) {
+   202→    case 'STRONG_BUY': return 'text-emerald-400';
+   203→    case 'BUY': return 'text-green-400';
+   204→    case 'HOLD': return 'text-amber-400';
+   205→    case 'SELL': return 'text-orange-400';
+   206→    case 'STRONG_SELL': return 'text-red-400';
+   207→  }
+   208→}
+   209→
+   210→function getSignalBg(signal: SignalType): string {
+   211→  switch (signal) {
+   212→    case 'STRONG_BUY': return 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400';
+   213→    case 'BUY': return 'bg-green-500/20 border-green-500/40 text-green-400';
+   214→    case 'HOLD': return 'bg-amber-500/20 border-amber-500/40 text-amber-400';
+   215→    case 'SELL': return 'bg-orange-500/20 border-orange-500/40 text-orange-400';
+   216→    case 'STRONG_SELL': return 'bg-red-500/20 border-red-500/40 text-red-400';
+   217→  }
+   218→}
+   219→
+   220→function getSignalIcon(signal: SignalType): string {
+   221→  switch (signal) {
+   222→    case 'STRONG_BUY': return '⬆⬆';
+   223→    case 'BUY': return '⬆';
+   224→    case 'HOLD': return '⏸';
+   225→    case 'SELL': return '⬇';
+   226→    case 'STRONG_SELL': return '⬇⬇';
+   227→  }
+   228→}
+   229→
+   230→// ==================== MAIN COMPONENT ====================
+   231→
+   232→export default function Home() {
+   233→  const [stocks, setStocks] = useState<StockInfo[]>([]);
+   234→  const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE');
+   235→  const [loading, setLoading] = useState(true);
+   236→  const [popoverOpen, setPopoverOpen] = useState(false);
+   237→
+   238→  const [stockData, setStockData] = useState<OHLCV[]>([]);
+   239→  const [signals, setSignals] = useState<StrategySignal[]>([]);
+   240→  const [backtest, setBacktest] = useState<BacktestResult | null>(null);
+   241→  const [stockInfo, setStockInfo] = useState<StockInfo | null>(null);
+   242→  const [params, setParams] = useState<StrategyParams>({ ...DEFAULT_PARAMS });
+   243→
+   244→  const [chartOffset, setChartOffset] = useState(0);
+   245→  const [recalculating, setRecalculating] = useState(false);
+   246→
+   247→  // Fetch stocks list
+   248→  useEffect(() => {
+   249→    fetch('/api/stocks')
+   250→      .then((r) => r.json())
+   251→      .then(setStocks)
+   252→      .catch(console.error);
+   253→  }, []);
+   254→
+   255→  // Fetch signals data
+   256→  const fetchData = useCallback(
+   257→    async (symbol: string, p: StrategyParams) => {
+   258→      setLoading(true);
+   259→      setChartOffset(0);
+   260→      try {
+   261→        const sp = new URLSearchParams({ symbol, days: '200' });
+   262→        for (const [key, val] of Object.entries(p)) {
+   263→          sp.append(key, String(val));
+   264→        }
+   265→        const res = await fetch(`/api/signals?${sp.toString()}`);
+   266→        const data = await res.json();
+   267→        setStockData(data.stockData || []);
+   268→        setSignals(data.signals || []);
+   269→        setBacktest(data.backtest || null);
+   270→        setStockInfo(data.stockInfo || null);
+   271→        setParams(data.params || DEFAULT_PARAMS);
+   272→      } catch (err) {
+   273→        console.error('Failed to fetch signals:', err);
+   274→      } finally {
+   275→        setLoading(false);
+   276→        setRecalculating(false);
+   277→      }
+   278→    },
+   279→    []
+   280→  );
+   281→
+   282→  useEffect(() => {
+   283→    fetchData(selectedSymbol, params);
+   284→  }, [selectedSymbol]);
+   285→
+   286→  // Merge stock data with signals for chart
+   287→  const chartData = useMemo(() => {
+   288→    const signalMap = new Map<string, StrategySignal>();
+   289→    for (const s of signals) {
+   290→      signalMap.set(s.date, s);
+   291→    }
+   292→    return stockData.map((d) => {
+   293→      const sig = signalMap.get(d.date);
+   294→      return {
+   295→        date: d.date,
+   296→        open: d.open,
+   297→        high: d.high,
+   298→        low: d.low,
+   299→        close: d.close,
+   300→        volume: d.volume,
+   301→        supertrend: sig?.supertrend ?? null,
+   302→        supertrendDir: sig?.supertrendDir ?? null,
+   303→        rsi: sig?.rsi ?? null,
+   304→        macd: sig?.macd ?? null,
+   305→        macdSignal: sig?.macdSignal ?? null,
+   306→        macdHistogram: sig?.macdHistogram ?? null,
+   307→        signal: sig?.signal ?? null,
+   308→      };
+   309→    });
+   310→  }, [stockData, signals]);
+   311→
+   312→  // Visible chart slice (last 100 by default, with sliding)
+   313→  const visibleData = useMemo(() => {
+   314→    const maxVisible = 100;
+   315→    const end = chartData.length - chartOffset;
+   316→    const start = Math.max(0, end - maxVisible);
+   317→    return chartData.slice(start, end);
+   318→  }, [chartData, chartOffset]);
+   319→
+   320→  const canSlideLeft = chartOffset < chartData.length - 100;
+   321→  const canSlideRight = chartOffset > 0;
+   322→
+   323→  // Latest signal
+   324→  const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+   325→  const latestStockData = stockData.length > 0 ? stockData[stockData.length - 1] : null;
+   326→  const prevStockData =
+   327→    stockData.length > 1 ? stockData[stockData.length - 2] : null;
+   328→  const priceChange =
+   329→    latestStockData && prevStockData
+   330→      ? latestStockData.close - prevStockData.close
+   331→      : 0;
+   332→  const priceChangePct =
+   333→    prevStockData && prevStockData.close !== 0
+   334→      ? (priceChange / prevStockData.close) * 100
+   335→      : 0;
+   336→
+   337→  // Handle stock selection
+   338→  const handleStockSelect = (symbol: string) => {
+   339→    setSelectedSymbol(symbol);
+   340→    setPopoverOpen(false);
+   341→  };
+   342→
+   343→  // Handle parameter change with recalculation
+   344→  const handleParamChange = (key: keyof StrategyParams, value: number) => {
+   345→    setParams((prev) => ({ ...prev, [key]: value }));
+   346→  };
+   347→
+   348→  const handleApplyParams = () => {
+   349→    setRecalculating(true);
+   350→    fetchData(selectedSymbol, params);
+   351→  };
+   352→
+   353→  // Custom tooltip for main chart
+   354→  const MainChartTooltip = ({
+   355→    active,
+   356→    payload,
+   357→  }: {
+   358→    active?: boolean;
+   359→    payload?: Array<{ payload: ChartDataPoint }>;
+   360→  }) => {
+   361→    if (!active || !payload || payload.length === 0) return null;
+   362→    const d = payload[0].payload;
+   363→    return (
+   364→      <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl text-xs">
+   365→        <div className="font-semibold text-slate-200 mb-1.5">
+   366→          {formatDate(d.date)}
+   367→        </div>
+   368→        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-300">
+   369→          <span>O: {formatINR(d.open)}</span>
+   370→          <span>H: {formatINR(d.high)}</span>
+   371→          <span>L: {formatINR(d.low)}</span>
+   372→          <span>C: {formatINR(d.close)}</span>
+   373→          <span className="col-span-2 text-slate-400">Vol: {formatVolume(d.volume)}</span>
+   374→          {d.supertrend !== null && (
+   375→            <span className="col-span-2">
+   376→              ST:{' '}
+   377→              <span
+   378→                className={
+   379→                  d.supertrendDir === 1
+   380→                    ? 'text-emerald-400'
+   381→                    : 'text-red-400'
+   382→                }
+   383→              >
+   384→                {formatINR(d.supertrend)}
+   385→              </span>{' '}
+   386→              ({d.supertrendDir === 1 ? 'Bullish' : 'Bearish'})
+   387→            </span>
+   388→          )}
+   389→          {d.signal && d.signal !== 'HOLD' && (
+   390→            <span className={`col-span-2 font-semibold ${getSignalColor(d.signal)}`}>
+   391→              {d.signal.replace('_', ' ')}
+   392→            </span>
+   393→          )}
+   394→        </div>
+   395→      </div>
+   396→    );
+   397→  };
+   398→
+   399→  const currentRSI = latestSignal?.rsi ?? 0;
+   400→  const currentSTDir = latestSignal?.supertrendDir ?? 0;
+   401→  const currentSTValue = latestSignal?.supertrend ?? 0;
+   402→
+   403→  return (
+   404→    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+   405→      {/* ===== HEADER ===== */}
+   406→      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
+   407→        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
+   408→          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   409→            <div className="flex items-center gap-2.5">
+   410→              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+   411→                <TrendingUp className="w-5 h-5 text-emerald-400" />
+   412→              </div>
+   413→              <div>
+   414→                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white">
+   415→                  NSE Trading Strategy Dashboard
+   416→                </h1>
+   417→                <p className="text-xs text-slate-400 hidden sm:block">
+   418→                  Supertrend + RSI + MACD Confluence Strategy for Zerodha
+   419→                </p>
+   420→              </div>
+   421→            </div>
+   422→            {/* Stock Selector */}
+   423→            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+   424→              <PopoverTrigger asChild>
+   425→                <Button
+   426→                  variant="outline"
+   427→                  className="w-full sm:w-[280px] justify-between bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
+   428→                >
+   429→                  {stockInfo
+   430→                    ? `${stockInfo.symbol} - ${stockInfo.name}`
+   431→                    : 'Select Stock...'}
+   432→                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+   433→                </Button>
+   434→              </PopoverTrigger>
+   435→              <PopoverContent className="w-[320px] p-0 bg-slate-900 border-slate-700" align="end">
+   436→                <Command className="bg-slate-900">
+   437→                  <CommandInput placeholder="Search stocks..." />
+   438→                  <CommandList className="max-h-[300px]">
+   439→                    <CommandEmpty>No stock found.</CommandEmpty>
+   440→                    <CommandGroup>
+   441→                      {stocks.map((stock) => (
+   442→                        <CommandItem
+   443→                          key={stock.symbol}
+   444→                          value={`${stock.symbol} ${stock.name}`}
+   445→                          onSelect={() => handleStockSelect(stock.symbol)}
+   446→                          className="text-slate-200 data-[selected=true]:bg-slate-800 data-[selected=true]:text-white"
+   447→                        >
+   448→                          <span className="font-medium text-emerald-400 w-24 shrink-0">
+   449→                            {stock.symbol}
+   450→                          </span>
+   451→                          <span className="text-slate-400 text-xs truncate">
+   452→                            {stock.name}{' '}
+   453→                            <Badge
+   454→                              variant="outline"
+   455→                              className="ml-1 text-[10px] px-1.5 py-0 border-slate-600 text-slate-400"
+   456→                            >
+   457→                              {stock.sector}
+   458→                            </Badge>
+   459→                          </span>
+   460→                        </CommandItem>
+   461→                      ))}
+   462→                    </CommandGroup>
+   463→                  </CommandList>
+   464→                </Command>
+   465→              </PopoverContent>
+   466→            </Popover>
+   467→          </div>
+   468→        </div>
+   469→      </header>
+   470→
+   471→      {/* ===== MAIN CONTENT ===== */}
+   472→      <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-4 sm:py-6 space-y-5">
+   473→        {loading ? (
+   474→          <DashboardSkeleton />
+   475→        ) : (
+   476→          <>
+   477→            {/* ===== MAIN CHART ===== */}
+   478→            <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+   479→              <CardHeader className="pb-0">
+   480→                <div className="flex items-center justify-between">
+   481→                  <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+   482→                    <Activity className="w-4 h-4 text-emerald-400" />
+   483→                    Price Chart with Supertrend
+   484→                    {latestStockData && (
+   485→                      <span className="ml-2">
+   486→                        <span className="text-white font-semibold text-base">
+   487→                          {formatINR(latestStockData.close)}
+   488→                        </span>
+   489→                        <span
+   490→                          className={`ml-1.5 text-sm font-medium ${
+   491→                            priceChange >= 0
+   492→                              ? 'text-emerald-400'
+   493→                              : 'text-red-400'
+   494→                          }`}
+   495→                        >
+   496→                          {priceChange >= 0 ? '+' : ''}
+   497→                          {formatINR(priceChange)} ({priceChangePct >= 0 ? '+' : ''}
+   498→                          {priceChangePct.toFixed(2)}%)
+   499→                        </span>
+   500→                      </span>
+   501→                    )}
+   502→                  </CardTitle>
+   503→                  <div className="flex items-center gap-1">
+   504→                    <Button
+   505→                      variant="ghost"
+   506→                      size="icon"
+   507→                      className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
+   508→                      disabled={!canSlideRight}
+   509→                      onClick={() => setChartOffset((p) => Math.max(0, p - 50))}
+   510→                    >
+   511→                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="rotate-180">
+   512→                        <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+   513→                      </svg>
+   514→                    </Button>
+   515→                    <Button
+   516→                      variant="ghost"
+   517→                      size="icon"
+   518→                      className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
+   519→                      disabled={!canSlideLeft}
+   520→                      onClick={() => setChartOffset((p) => p + 50)}
+   521→                    >
+   522→                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+   523→                        <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+   524→                      </svg>
+   525→                    </Button>
+   526→                  </div>
+   527→                </div>
+   528→              </CardHeader>
+   529→              <CardContent className="pt-2">
+   530→                <div className="h-[350px] sm:h-[420px]">
+   531→                  <ResponsiveContainer width="100%" height="100%">
+   532→                    <ComposedChart data={visibleData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+   533→                      <defs>
+   534→                        <linearGradient id="priceGradientBull" x1="0" y1="0" x2="0" y2="1">
+   535→                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+   536→                          <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+   537→                        </linearGradient>
+   538→                        <linearGradient id="priceGradientBear" x1="0" y1="0" x2="0" y2="1">
+   539→                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+   540→                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
+   541→                        </linearGradient>
+   542→                      </defs>
+   543→                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+   544→                      <XAxis
+   545→                        dataKey="date"
+   546→                        tick={{ fontSize: 10, fill: '#64748b' }}
+   547→                        tickFormatter={(v: string) => {
+   548→                          const d = new Date(v);
+   549→                          return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+   550→                        }}
+   551→                        axisLine={{ stroke: '#334155' }}
+   552→                        tickLine={false}
+   553→                        interval={Math.floor(visibleData.length / 8)}
+   554→                      />
+   555→                      <YAxis
+   556→                        domain={['auto', 'auto']}
+   557→                        tick={{ fontSize: 10, fill: '#64748b' }}
+   558→                        tickFormatter={(v: number) => '₹' + v.toLocaleString('en-IN')}
+   559→                        axisLine={{ stroke: '#334155' }}
+   560→                        tickLine={false}
+   561→                        width={75}
+   562→                      />
+   563→                      <RechartsTooltip content={<MainChartTooltip />} />
+   564→                      {/* Supertrend line */}
+   565→                      <Line
+   566→                        type="monotone"
+   567→                        dataKey="supertrend"
+   568→                        stroke="#8b5cf6"
+   569→                        strokeWidth={1.5}
+   570→                        dot={false}
+   571→                        name="Supertrend"
+   572→                        connectNulls={false}
+   573→                        strokeDasharray="4 2"
+   574→                      />
+   575→                      {/* Price area */}
+   576→                      <Area
+   577→                        type="monotone"
+   578→                        dataKey="close"
+   579→                        stroke="#e2e8f0"
+   580→                        strokeWidth={2}
+   581→                        fill="url(#priceGradientBull)"
+   582→                        name="Close"
+   583→                        isAnimationActive={false}
+   584→                      />
+   585→                      {/* Buy/Sell markers */}
+   586→                      {visibleData.map((d, idx) => {
+   587→                        if (d.signal === 'STRONG_BUY' || d.signal === 'BUY') {
+   588→                          return (
+   589→                            <ReferenceDot
+   590→                              key={`buy-${idx}`}
+   591→                              x={d.date}
+   592→                              y={d.close}
+   593→                              r={5}
+   594→                              fill="#10b981"
+   595→                              stroke="#064e3b"
+   596→                              strokeWidth={1}
+   597→                              shape={
+   598→                                <g>
+   599→                                  <polygon
+   600→                                    points={`${0},${6} ${-5},${-4} ${5},${-4}`}
+   601→                                    fill="#10b981"
+   602→                                    stroke="#064e3b"
+   603→                                    strokeWidth={1}
+   604→                                  />
+   605→                                </g>
+   606→                              }
+   607→                            />
+   608→                          );
+   609→                        }
+   610→                        if (d.signal === 'STRONG_SELL' || d.signal === 'SELL') {
+   611→                          return (
+   612→                            <ReferenceDot
+   613→                              key={`sell-${idx}`}
+   614→                              x={d.date}
+   615→                              y={d.close}
+   616→                              r={5}
+   617→                              fill="#ef4444"
+   618→                              stroke="#7f1d1d"
+   619→                              strokeWidth={1}
+   620→                              shape={
+   621→                                <g>
+   622→                                  <polygon
+   623→                                    points={`${0},${-6} ${-5},${4} ${5},${4}`}
+   624→                                    fill="#ef4444"
+   625→                                    stroke="#7f1d1d"
+   626→                                    strokeWidth={1}
+   627→                                  />
+   628→                                </g>
+   629→                              }
+   630→                            />
+   631→                          );
+   632→                        }
+   633→                        return null;
+   634→                      })}
+   635→                    </ComposedChart>
+   636→                  </ResponsiveContainer>
+   637→                </div>
+   638→              </CardContent>
+   639→            </Card>
+   640→
+   641→            {/* ===== INDICATOR PANELS ===== */}
+   642→            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   643→              {/* RSI Gauge */}
+   644→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+   645→                <CardHeader className="pb-0">
+   646→                  <CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+   647→                    <Activity className="w-3.5 h-3.5" />
+   648→                    RSI ({params.rsiPeriod})
+   649→                  </CardTitle>
+   650→                </CardHeader>
+   651→                <CardContent>
+   652→                  <div className="flex items-center gap-4">
+   653→                    <div className="relative w-20 h-20 shrink-0">
+   654→                      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+   655→                        <circle
+   656→                          cx="50" cy="50" r="42"
+   657→                          fill="none"
+   658→                          stroke="#1e293b"
+   659→                          strokeWidth="8"
+   660→                        />
+   661→                        <circle
+   662→                          cx="50" cy="50" r="42"
+   663→                          fill="none"
+   664→                          stroke={currentRSI < 30 ? '#ef4444' : currentRSI > 70 ? '#ef4444' : '#10b981'}
+   665→                          strokeWidth="8"
+   666→                          strokeDasharray={`${(currentRSI / 100) * 264} 264`}
+   667→                          strokeLinecap="round"
+   668→                        />
+   669→                      </svg>
+   670→                      <div className="absolute inset-0 flex items-center justify-center">
+   671→                        <span className={`text-lg font-bold ${currentRSI < 30 ? 'text-red-400' : currentRSI > 70 ? 'text-red-400' : 'text-emerald-400'}`}>
+   672→                          {currentRSI.toFixed(1)}
+   673→                        </span>
+   674→                      </div>
+   675→                    </div>
+   676→                    <div className="space-y-1.5 text-xs">
+   677→                      <div className="flex items-center gap-2">
+   678→                        <span className="text-slate-500">Zone:</span>
+   679→                        <span className={currentRSI < 30 ? 'text-red-400 font-medium' : currentRSI > 70 ? 'text-red-400 font-medium' : 'text-emerald-400 font-medium'}>
+   680→                          {currentRSI < 30 ? 'Oversold' : currentRSI > 70 ? 'Overbought' : 'Neutral'}
+   681→                        </span>
+   682→                      </div>
+   683→                      <div className="flex items-center gap-2">
+   684→                        <span className="text-slate-500">OB:</span>
+   685→                        <span className="text-slate-300">{params.rsiOverbought}</span>
+   686→                      </div>
+   687→                      <div className="flex items-center gap-2">
+   688→                        <span className="text-slate-500">OS:</span>
+   689→                        <span className="text-slate-300">{params.rsiOversold}</span>
+   690→                      </div>
+   691→                    </div>
+   692→                  </div>
+   693→                </CardContent>
+   694→              </Card>
+   695→
+   696→              {/* MACD Mini Chart */}
+   697→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+   698→                <CardHeader className="pb-0">
+   699→                  <CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+   700→                    <BarChart3 className="w-3.5 h-3.5" />
+   701→                    MACD ({params.macdFast},{params.macdSlow},{params.macdSignal})
+   702→                  </CardTitle>
+   703→                </CardHeader>
+   704→                <CardContent>
+   705→                  <div className="h-[80px]">
+   706→                    <ResponsiveContainer width="100%" height="100%">
+   707→                      <ComposedChart data={visibleData.slice(-50)} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
+   708→                        <Bar dataKey="macdHistogram" name="Histogram">
+   709→                          {visibleData.slice(-50).map((d, idx) => (
+   710→                            <Cell
+   711→                              key={idx}
+   712→                              fill={d.macdHistogram !== null && d.macdHistogram >= 0 ? '#10b981' : '#ef4444'}
+   713→                              opacity={0.7}
+   714→                            />
+   715→                          ))}
+   716→                        </Bar>
+   717→                        <Line
+   718→                          type="monotone"
+   719→                          dataKey="macd"
+   720→                          stroke="#3b82f6"
+   721→                          strokeWidth={1.5}
+   722→                          dot={false}
+   723→                          name="MACD"
+   724→                          connectNulls={false}
+   725→                        />
+   726→                        <Line
+   727→                          type="monotone"
+   728→                          dataKey="macdSignal"
+   729→                          stroke="#f59e0b"
+   730→                          strokeWidth={1.5}
+   731→                          dot={false}
+   732→                          name="Signal"
+   733→                          connectNulls={false}
+   734→                        />
+   735→                      </ComposedChart>
+   736→                    </ResponsiveContainer>
+   737→                  </div>
+   738→                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+   739→                    <span>
+   740→                      MACD:{' '}
+   741→                      <span className={latestSignal && latestSignal.macd >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+   742→                        {latestSignal?.macd?.toFixed(2) ?? '-'}
+   743→                      </span>
+   744→                    </span>
+   745→                    <span>
+   746→                      Sig:{' '}
+   747→                      <span className={latestSignal && latestSignal.macdSignal >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+   748→                        {latestSignal?.macdSignal?.toFixed(2) ?? '-'}
+   749→                      </span>
+   750→                    </span>
+   751→                  </div>
+   752→                </CardContent>
+   753→              </Card>
+   754→
+   755→              {/* Supertrend Status */}
+   756→              <Card className="bg-slate-900 border-slate-800 py-4 gap-3">
+   757→                <CardHeader className="pb-0">
+   758→                  <CardTitle className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+   759→                    <Target className="w-3.5 h-3.5" />
+   760→                    Supertrend ({params.supertrendPeriod},{params.supertrendMultiplier})
+   761→                  </CardTitle>
+   762→                </CardHeader>
+   763→                <CardContent>
+   764→                  <div className="flex items-center gap-4">
+   765→                    <div
+   766→                      className={`flex items-center justify-center w-20 h-20 rounded-full border-2 ${
+   767→                        currentSTDir === 1
+   768→                          ? 'border-emerald-500/40 bg-emerald-500/10'
+   769→                          : 'border-red-500/40 bg-red-500/10'
+   770→                      }`}
+   771→                    >
+   772→                      <div className="text-center">
+   773→                        {currentSTDir === 1 ? (
+   774→                          <TrendingUp className={`w-6 h-6 mx-auto ${currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'}`} />
+   775→                        ) : (
+   776→                          <TrendingDown className="w-6 h-6 mx-auto text-red-400" />
+   777→                        )}
+   778→                        <span
+   779→                          className={`text-[10px] font-medium ${
+   780→                            currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'
+   781→                          }`}
+   782→                        >
+   783→                          {currentSTDir === 1 ? 'Bullish' : 'Bearish'}
+   784→                        </span>
+   785→                      </div>
+   786→                    </div>
+   787→                    <div className="space-y-1.5 text-xs">
+   788→                      <div className="flex items-center gap-2">
+   789→                        <span className="text-slate-500">Value:</span>
+   790→                        <span className={`font-medium ${currentSTDir === 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+   791→                          {formatINR(currentSTValue)}
+   792→                        </span>
+   793→                      </div>
+   794→                      <div className="flex items-center gap-2">
+   795→                        <span className="text-slate-500">Period:</span>
+   796→                        <span className="text-slate-300">{params.supertrendPeriod}</span>
+   797→                      </div>
+   798→                      <div className="flex items-center gap-2">
+   799→                        <span className="text-slate-500">Multiplier:</span>
+   800→                        <span className="text-slate-300">{params.supertrendMultiplier}</span>
+   801→                      </div>
+   802→                    </div>
+   803→                  </div>
+   804→                </CardContent>
+   805→              </Card>
+   806→            </div>
+   807→
+   808→            {/* ===== CURRENT SIGNAL CARD ===== */}
+   809→            {latestSignal && (
+   810→              <Card
+   811→                className={`border py-4 gap-4 ${
+   812→                  latestSignal.signal === 'STRONG_BUY'
+   813→                    ? 'bg-emerald-950/40 border-emerald-500/30'
+   814→                    : latestSignal.signal === 'BUY'
+   815→                    ? 'bg-green-950/40 border-green-500/30'
+   816→                    : latestSignal.signal === 'HOLD'
+   817→                    ? 'bg-amber-950/30 border-amber-500/30'
+   818→                    : latestSignal.signal === 'SELL'
+   819→                    ? 'bg-orange-950/30 border-orange-500/30'
+   820→                    : 'bg-red-950/40 border-red-500/30'
+   821→                }`}
+   822→              >
+   823→                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+   824→                  <div className="flex items-center gap-4">
+   825→                    <div
+   826→                      className={`flex items-center justify-center w-16 h-16 rounded-xl border-2 ${getSignalBg(
+   827→                        latestSignal.signal
+   828→                      )}`}
+   829→                    >
+   830→                      <span className="text-2xl">{getSignalIcon(latestSignal.signal)}</span>
+   831→                    </div>
+   832→                    <div>
+   833→                      <div className="text-xs text-slate-400 mb-0.5">Latest Signal</div>
+   834→                      <div className={`text-2xl font-bold ${getSignalColor(latestSignal.signal)}`}>
+   835→                        {latestSignal.signal.replace('_', ' ')}
+   836→                      </div>
+   837→                      <div className="text-xs text-slate-400 mt-1 max-w-md">
+   838→                        {latestSignal.reason}
+   839→                      </div>
+   840→                    </div>
+   841→                  </div>
+   842→                  <div className="text-right">
+   843→                    <div className="text-xs text-slate-400">Current Price</div>
+   844→                    <div className="text-2xl font-bold text-white">
+   845→                      {formatINR(latestSignal.close)}
+   846→                    </div>
+   847→                    <div
+   848→                      className={`text-sm font-medium ${
+   849→                        priceChange >= 0 ? 'text-emerald-400' : 'text-red-400'
+   850→                      }`}
+   851→                    >
+   852→                      {priceChange >= 0 ? '+' : ''}
+   853→                      {priceChangePct.toFixed(2)}%
+   854→                    </div>
+   855→                    <div className="text-[10px] text-slate-500 mt-1">{formatDate(latestSignal.date)}</div>
+   856→                  </div>
+   857→                </CardContent>
+   858→              </Card>
+   859→            )}
+   860→
+   861→            {/* ===== BACKTEST RESULTS ===== */}
+   862→            {backtest && (
+   863→              <>
+   864→                <div className="flex items-center gap-2">
+   865→                  <BarChart3 className="w-4 h-4 text-slate-400" />
+   866→                  <h2 className="text-sm font-semibold text-slate-300">Backtest Results</h2>
+   867→                </div>
+   868→                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+   869→                  <MetricCard
+   870→                    icon={<TrendingUp className="w-4 h-4" />}
+   871→                    label="Total Return"
+   872→                    value={`${backtest.totalReturnPct >= 0 ? '+' : ''}${backtest.totalReturnPct.toFixed(2)}%`}
+   873→                    color={backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}
+   874→                  />
+   875→                  <MetricCard
+   876→                    icon={<Trophy className="w-4 h-4" />}
+   877→                    label="Win Rate"
+   878→                    value={`${backtest.winRate.toFixed(1)}%`}
+   879→                    color={backtest.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}
+   880→                  />
+   881→                  <MetricCard
+   882→                    icon={<Activity className="w-4 h-4" />}
+   883→                    label="Total Trades"
+   884→                    value={String(backtest.totalTrades)}
+   885→                    color="text-slate-200"
+   886→                  />
+   887→                  <MetricCard
+   888→                    icon={<Zap className="w-4 h-4" />}
+   889→                    label="Winning"
+   890→                    value={String(backtest.winningTrades)}
+   891→                    color="text-emerald-400"
+   892→                  />
+   893→                  <MetricCard
+   894→                    icon={<Flame className="w-4 h-4" />}
+   895→                    label="Losing"
+   896→                    value={String(backtest.losingTrades)}
+   897→                    color="text-red-400"
+   898→                  />
+   899→                  <MetricCard
+   900→                    icon={<ArrowUp className="w-4 h-4" />}
+   901→                    label="Avg Win"
+   902→                    value={`+${backtest.avgWinPct.toFixed(2)}%`}
+   903→                    color="text-emerald-400"
+   904→                  />
+   905→                  <MetricCard
+   906→                    icon={<ArrowDown className="w-4 h-4" />}
+   907→                    label="Avg Loss"
+   908→                    value={`${backtest.avgLossPct.toFixed(2)}%`}
+   909→                    color="text-red-400"
+   910→                  />
+   911→                  <MetricCard
+   912→                    icon={<AlertTriangle className="w-4 h-4" />}
+   913→                    label="Max Drawdown"
+   914→                    value={`-${backtest.maxDrawdownPct.toFixed(2)}%`}
+   915→                    color={backtest.maxDrawdownPct > 10 ? 'text-red-400' : 'text-amber-400'}
+   916→                  />
+   917→                  <MetricCard
+   918→                    icon={<Scale className="w-4 h-4" />}
+   919→                    label="Profit Factor"
+   920→                    value={backtest.profitFactor >= 999 ? '∞' : backtest.profitFactor.toFixed(2)}
+   921→                    color={backtest.profitFactor >= 1.5 ? 'text-emerald-400' : backtest.profitFactor >= 1 ? 'text-amber-400' : 'text-red-400'}
+   922→                  />
+   923→                </div>
+   924→
+   925→                {/* ===== TRADE HISTORY TABLE ===== */}
+   926→                <Card className="bg-slate-900 border-slate-800 py-4 gap-4">
+   927→                  <CardHeader className="pb-0">
+   928→                    <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+   929→                      <Shield className="w-4 h-4 text-slate-400" />
+   930→                      Trade History (Last {backtest.trades.length} Trades)
+   931→                    </CardTitle>
+   932→                  </CardHeader>
+   933→                  <CardContent>
+   934→                    <div className="max-h-96 overflow-y-auto rounded-md border border-slate-800">
+   935→                      <Table>
+   936→                        <TableHeader>
+   937→                          <TableRow className="border-slate-800 hover:bg-slate-800/50">
+   938→                            <TableHead className="text-slate-400 text-xs">Entry Date</TableHead>
+   939→                            <TableHead className="text-slate-400 text-xs">Exit Date</TableHead>
+   940→                            <TableHead className="text-slate-400 text-xs text-right">Entry Price</TableHead>
+   941→                            <TableHead className="text-slate-400 text-xs text-right">Exit Price</TableHead>
+   942→                            <TableHead className="text-slate-400 text-xs text-right">P&L %</TableHead>
+   943→                            <TableHead className="text-slate-400 text-xs">Signal</TableHead>
+   944→                          </TableRow>
+   945→                        </TableHeader>
+   946→                        <TableBody>
+   947→                          {backtest.trades.map((trade, idx) => (
+   948→                            <TableRow
+   949→                              key={idx}
+   950→                              className="border-slate-800 hover:bg-slate-800/50"
+   951→                            >
+   952→                              <TableCell className="text-slate-300 text-xs font-mono">
+   953→                                {formatDate(trade.entryDate)}
+   954→                              </TableCell>
+   955→                              <TableCell className="text-slate-300 text-xs font-mono">
+   956→                                {formatDate(trade.exitDate)}
+   957→                              </TableCell>
+   958→                              <TableCell className="text-slate-300 text-xs text-right font-mono">
+   959→                                {formatINR(trade.entryPrice)}
+   960→                              </TableCell>
+   961→                              <TableCell className="text-slate-300 text-xs text-right font-mono">
+   962→                                {formatINR(trade.exitPrice)}
+   963→                              </TableCell>
+   964→                              <TableCell
+   965→                                className={`text-xs text-right font-semibold font-mono ${
+   966→                                  trade.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400'
+   967→                                }`}
+   968→                              >
+   969→                                {trade.pnlPct >= 0 ? '+' : ''}{trade.pnlPct.toFixed(2)}%
+   970→                              </TableCell>
+   971→                              <TableCell>
+   972→                                <Badge
+   973→                                  variant="outline"
+   974→                                  className={`text-[10px] px-1.5 py-0 ${getSignalBg(trade.signal)}`}
+   975→                                >
+   976→                                  {trade.signal}
+   977→                                </Badge>
+   978→                              </TableCell>
+   979→                            </TableRow>
+   980→                          ))}
+   981→                          {backtest.trades.length === 0 && (
+   982→                            <TableRow className="border-slate-800">
+   983→                              <TableCell className="text-slate-500 text-center py-8" colSpan={6}>
+   984→                                No trades executed in this period
+   985→                              </TableCell>
+   986→                            </TableRow>
+   987→                          )}
+   988→                        </TableBody>
+   989→                      </Table>
+   990→                    </div>
+   991→                  </CardContent>
+   992→                </Card>
+   993→              </>
+   994→            )}
+   995→
+   996→            {/* ===== STRATEGY PARAMETERS ===== */}
+   997→            <Accordion type="single" collapsible className="w-full">
+   998→              <AccordionItem value="params" className="border-slate-800">
+   999→                <AccordionTrigger className="text-sm font-medium text-slate-300 hover:no-underline py-3">
+  1000→                  <div className="flex items-center gap-2">
+  1001→                    <Settings2 className="w-4 h-4 text-slate-400" />
+  1002→                    Strategy Parameters
+  1003→                    {recalculating && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+  1004→                  </div>
+  1005→                </AccordionTrigger>
+  1006→                <AccordionContent>
+  1007→                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+  1008→                    <ParamSlider
+  1009→                      label="Supertrend Period"
+  1010→                      value={params.supertrendPeriod}
+  1011→                      min={5}
+  1012→                      max={20}
+  1013→                      step={1}
+  1014→                      onChange={(v) => handleParamChange('supertrendPeriod', v)}
+  1015→                    />
+  1016→                    <ParamSlider
+  1017→                      label="Supertrend Multiplier"
+  1018→                      value={params.supertrendMultiplier}
+  1019→                      min={1}
+  1020→                      max={5}
+  1021→                      step={0.5}
+  1022→                      onChange={(v) => handleParamChange('supertrendMultiplier', v)}
+  1023→                    />
+  1024→                    <ParamSlider
+  1025→                      label="RSI Period"
+  1026→                      value={params.rsiPeriod}
+  1027→                      min={5}
+  1028→                      max={30}
+  1029→                      step={1}
+  1030→                      onChange={(v) => handleParamChange('rsiPeriod', v)}
+  1031→                    />
+  1032→                    <ParamSlider
+  1033→                      label="RSI Overbought"
+  1034→                      value={params.rsiOverbought}
+  1035→                      min={60}
+  1036→                      max={90}
+  1037→                      step={1}
+  1038→                      onChange={(v) => handleParamChange('rsiOverbought', v)}
+  1039→                    />
+  1040→                    <ParamSlider
+  1041→                      label="RSI Oversold"
+  1042→                      value={params.rsiOversold}
+  1043→                      min={10}
+  1044→                      max={40}
+  1045→                      step={1}
+  1046→                      onChange={(v) => handleParamChange('rsiOversold', v)}
+  1047→                    />
+  1048→                    <ParamSlider
+  1049→                      label="MACD Fast"
+  1050→                      value={params.macdFast}
+  1051→                      min={5}
+  1052→                      max={20}
+  1053→                      step={1}
+  1054→                      onChange={(v) => handleParamChange('macdFast', v)}
+  1055→                    />
+  1056→                    <ParamSlider
+  1057→                      label="MACD Slow"
+  1058→                      value={params.macdSlow}
+  1059→                      min={15}
+  1060→                      max={40}
+  1061→                      step={1}
+  1062→                      onChange={(v) => handleParamChange('macdSlow', v)}
+  1063→                    />
+  1064→                    <ParamSlider
+  1065→                      label="MACD Signal"
+  1066→                      value={params.macdSignal}
+  1067→                      min={3}
+  1068→                      max={15}
+  1069→                      step={1}
+  1070→                      onChange={(v) => handleParamChange('macdSignal', v)}
+  1071→                    />
+  1072→                  </div>
+  1073→                  <div className="flex items-center gap-3">
+  1074→                    <Button
+  1075→                      onClick={handleApplyParams}
+  1076→                      disabled={recalculating}
+  1077→                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+  1078→                    >
+  1079→                      {recalculating ? (
+  1080→                        <Loader2 className="w-4 h-4 animate-spin" />
+  1081→                      ) : (
+  1082→                        <RefreshCw className="w-4 h-4" />
+  1083→                      )}
+  1084→                      Apply & Recalculate
+  1085→                    </Button>
+  1086→                    <Button
+  1087→                      variant="ghost"
+  1088→                      onClick={() => setParams({ ...DEFAULT_PARAMS })}
+  1089→                      className="text-slate-400 hover:text-white"
+  1090→                    >
+  1091→                      Reset to Defaults
+  1092→                    </Button>
+  1093→                  </div>
+  1094→                </AccordionContent>
+  1095→              </AccordionItem>
+  1096→            </Accordion>
+  1097→          </>
+  1098→        )}
+  1099→      </main>
+  1100→
+  1101→      {/* ===== FOOTER ===== */}
+  1102→      <footer className="border-t border-slate-800 mt-auto">
+  1103→        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4">
+  1104→          <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+  1105→            ⚠️ This is a simulated strategy for educational purposes. Not financial advice.
+  1106→            Always do your own research before trading. Past performance does not guarantee future results.
+  1107→          </p>
+  1108→        </div>
+  1109→      </footer>
+  1110→    </div>
+  1111→  );
+  1112→}
+  1113→
+  1114→// ==================== SUB-COMPONENTS ====================
+  1115→
+  1116→function MetricCard({
+  1117→  icon,
+  1118→  label,
+  1119→  value,
+  1120→  color,
+  1121→}: {
+  1122→  icon: React.ReactNode;
+  1123→  label: string;
+  1124→  value: string;
+  1125→  color: string;
+  1126→}) {
+  1127→  return (
+  1128→    <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-1.5">
+  1129→      <div className="flex items-center gap-1.5 text-slate-400">
+  1130→        {icon}
+  1131→        <span className="text-[11px] font-medium">{label}</span>
+  1132→      </div>
+  1133→      <div className={`text-lg font-bold ${color}`}>{value}</div>
+  1134→    </div>
+  1135→  );
+  1136→}
+  1137→
+  1138→function ParamSlider({
+  1139→  label,
+  1140→  value,
+  1141→  min,
+  1142→  max,
+  1143→  step,
+  1144→  onChange,
+  1145→}: {
+  1146→  label: string;
+  1147→  value: number;
+  1148→  min: number;
+  1149→  max: number;
+  1150→  step: number;
+  1151→  onChange: (value: number) => void;
+  1152→}) {
+  1153→  return (
+  1154→    <div className="space-y-2">
+  1155→      <div className="flex items-center justify-between">
+  1156→        <label className="text-xs text-slate-400 font-medium">{label}</label>
+  1157→        <Input
+  1158→          type="number"
+  1159→          value={value}
+  1160→          min={min}
+  1161→          max={max}
+  1162→          step={step}
+  1163→          onChange={(e) => onChange(Number(e.target.value))}
+  1164→          className="w-16 h-7 text-xs text-right bg-slate-800 border-slate-700 text-slate-200"
+  1165→        />
+  1166→      </div>
+  1167→      <Slider
+  1168→        value={[value]}
+  1169→        onValueChange={([v]) => onChange(v)}
+  1170→        min={min}
+  1171→        max={max}
+  1172→        step={step}
+  1173→        className="py-1"
+  1174→      />
+  1175→      <div className="flex justify-between text-[10px] text-slate-600">
+  1176→        <span>{min}</span>
+  1177→        <span>{max}</span>
+  1178→      </div>
+  1179→    </div>
+  1180→  );
+  1181→}
+  1182→
+  1183→function DashboardSkeleton() {
+  1184→  return (
+  1185→    <div className="space-y-5">
+  1186→      {/* Chart Skeleton */}
+  1187→      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+  1188→        <Skeleton className="h-6 w-48 mb-4 bg-slate-800" />
+  1189→        <Skeleton className="h-[350px] w-full bg-slate-800 rounded-lg" />
+  1190→      </div>
+  1191→      {/* Indicators Skeleton */}
+  1192→      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  1193→        {[1, 2, 3].map((i) => (
+  1194→          <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+  1195→            <Skeleton className="h-4 w-32 mb-3 bg-slate-800" />
+  1196→            <Skeleton className="h-20 w-full bg-slate-800 rounded-lg" />
+  1197→          </div>
+  1198→        ))}
+  1199→      </div>
+  1200→      {/* Signal Skeleton */}
+  1201→      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+  1202→        <Skeleton className="h-20 w-full bg-slate-800 rounded-lg" />
+  1203→      </div>
+  1204→      {/* Backtest Skeleton */}
+  1205→      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  1206→        {Array.from({ length: 8 }).map((_, i) => (
+  1207→          <div key={i} className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+  1208→            <Skeleton className="h-4 w-20 mb-2 bg-slate-800" />
+  1209→            <Skeleton className="h-6 w-16 bg-slate-800" />
+  1210→          </div>
+  1211→        ))}
+  1212→      </div>
+  1213→    </div>
+  1214→  );
+  1215→}

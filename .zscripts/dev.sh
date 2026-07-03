@@ -125,10 +125,8 @@ echo "[BUN] Installing dependencies..."
 bun install
 log_step_end "bun install"
 
-log_step_start "bun run db:push"
-echo "[BUN] Setting up database..."
-bun run db:push
-log_step_end "bun run db:push"
+# Skip db:push - no Prisma schema needed for this project
+echo "[BUN] Skipping database setup (no Prisma schema)..."
 
 log_step_start "Building Next.js for production"
 echo "[BUN] Building Next.js production bundle (avoids dev mode OOM)..."

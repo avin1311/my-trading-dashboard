@@ -1,182 +1,94 @@
 ---
 Task ID: 1
-Agent: Main
-Task: Fix bugs in stock-data.ts, stocks API, and stock-data API route
-
-Work Log:
-- Fixed syntax error (trailing comma) in stock-data.ts ALL_EQUITIES array
-- Fixed wrong data: ITC sector IT→FMCG, TITAN name "Nestle India"→"Titan Company", TECHM sector Consumer→IT, INDUSINDBK basePrice 82→1580, PIDILITIND name/sector
-- Removed broken `export type { OHLCV } from "./stock-list"` (JSON files don't export types)
-- Added missing `generateOptionsChain()` function to /api/stocks/route.ts with proper ATM strike calculation and monthly expiry logic
-- Added missing `NextRequest` import to /api/stock-data/route.ts
-
-Stage Summary:
-- All syntax errors and wrong data corrected
-- Options chain generation now functional
-- All API routes compile without errors
-
----
-Task ID: 2
-Agent: Main
-Task: Enhance market-data.ts with better error handling and data freshness
-
-Work Log:
-- Improved httpsGet() with proper HTTP error handling (4xx responses)
-- Added response size limiting (500KB max) to prevent OOM from large error pages
-- Changed from string concatenation to Buffer chunks for memory efficiency
-- Added data freshness validation in getHistoricalData() - warns if data >5 days old
-- Updated User-Agent to Chrome 131
-- Added sequential fetching with 300ms delay in stock-detail to avoid Yahoo rate limits
-
-Stage Summary:
-- market-data.ts more resilient to network errors and rate limiting
-- Buffer-based response handling prevents memory issues
-- Data freshness warnings logged for stale data
-
----
-Task ID: 3
-Agent: Main
-Task: Add stock screener API and convert JSON to TypeScript module
-
-Work Log:
-- Created /api/screener/route.ts - multi-stock signal scanner
-  - Scans all 112 equities with Supertrend+RSI+MACD
-  - Supports signal/sector filtering, 5-minute cache
-  - Batched fetching (5 at a time) to avoid rate limits
-  - Returns signal counts, scan metadata
-- Converted stock-list.json to stock-list.ts for standalone build compatibility
-  - JSON imports were missing from Next.js standalone output
-  - TypeScript module is properly bundled
-- Updated all imports in stocks/route.ts and screener/route.ts
-
-Stage Summary:
-- Screener API operational at /api/screener
-- Fixed critical standalone build issue (JSON not included in output)
-- 112 equities, 17 indices, 28 sectors, 40 option underlyings
-
----
-Task ID: 4
-Agent: Main
-Task: Rebuild page.tsx with enhanced Power BI dashboard
-
-Work Log:
-- Added Screener tab: multi-stock signal scanning with filters (signal type, sector, search), signal count badges, clickable results
-- Added Options tab: options chain for NIFTY, BANKNIFTY and major equities with expiry selection, ATM strike display
-- Added Save Points feature: auto-generated progress snapshots that appear as toast notifications when data loads
-- Added data source indicator (Yahoo Finance Real-time badge in header)
-- Improved error resilience in data fetching
-- All 8 tabs: Overview, Fundamentals, Technicals, Strategy, Screener, Options, Peers, News
-
-Stage Summary:
-- Dashboard has 8 comprehensive tabs with Power BI styling
-- Real-time Yahoo Finance data confirmed working (RELIANCE: ₹1,308, +1.09%, dated 2026-07-01)
-- Save Points provide visual progress feedback
-
----
-Task ID: 5
-Agent: Main
-Task: Fix OOM - remove unused dependencies and components
-
-Work Log:
-- Removed 12 unused npm packages: framer-motion, zustand, @tanstack/react-query, @tanstack/react-table, next-auth, next-intl, @mdxeditor/editor, react-markdown, react-syntax-highlighting, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, yahoo-finance2
-- Removed 30+ unused shadcn/ui components (kept only 14 actively used ones)
-- Removed unused directories: examples/, prisma/, db/
-- Removed unused files: realtime-data.ts, db.ts, use-toast.ts, page.tsx.bak, api/route.ts
-- Optimized next.config.ts for Turbopack compatibility
-
-Stage Summary:
-- Bundle size significantly reduced
-- Build compiles in ~10s with Turbopack
-- Dev server uses ~80MB RSS (down from 1.6GB+)
-- Production build successful with all routes
-
----
-Task ID: 6
-Agent: Main
-Task: Build and test the application
-
-Work Log:
-- Production build succeeds with zero errors (10 routes)
-- Dev server confirmed working with real-time Yahoo Finance data
-- Homepage: 200 in 2.5s
-- Stocks API: 200 in 168ms (112 equities, 28 sectors)
-- Stock Detail API: 200 in 1.2s (RELIANCE: ₹1,308, +1.09%, RSI: 72.75, Signal: SELL, LastDate: 2026-07-01)
-- Production standalone server works but has memory constraints in this environment
-- Dev server (port 3000) is the recommended way to run in constrained environments
-
-Stage Summary:
-- All features working end-to-end with real-time data
-- Data confirmed current (2026-07-01)
-- Yahoo Finance rate limiting handled gracefully
-- Recommended: use `npm run dev` for this environment
----
-Task ID: 1
 Agent: Main Agent
-Task: Fix 404 deployment error - diagnose and resolve
+Task: Fix stale data and redesign NSE dashboard into Power BI-style UI
 
 Work Log:
-- Diagnosed root cause: `bun run dev` (Next.js dev mode) was OOM-crashing on the 83KB page.tsx
-- The container's Caddy on port 81 showed a "waiting" fallback page (looked like 404)
-- Fixed `/home/z/my-project/.zscripts/dev.sh` to use production mode: `next build` → standalone `node server.js`
-- Used detached Node.js daemon (`spawn` with `detached: true`) to start server persistently
-- Verified: port 81 proxy → port 3000 → full Next.js app with HTML, API routes, and static assets
+- Audited Yahoo Finance API calls in market-data.ts - confirmed API returns current data (July 2026)
+- Tested API directly: RELIANCE returns ₹1,303.5 with lastDate 2026-07-02
+- Root cause of "stale Nov 2025" data: old server instance not rebuilt/restarted
+- Verified data freshness: lastDate now shows 2026-07-02, price ₹1,303.5, change -0.34%
+- Completely rewrote src/app/page.tsx (~700 lines) with Power BI-style dashboard:
+  - Added collapsible left sidebar with 8 navigation views
+  - Created HeaderBar with market ticker and stock info
+  - Created 8 analytical views: Overview, Screener, Chart, Fundamentals, Technicals, Strategy, News, Watchlist
+  - Each panel has source badges (Screener.in, Tickertape, TradingView, Moneycontrol, etc.)
+  - Sortable full-screener table with signal count filters
+  - Watchlist view with real-time quote fetching
+  - Auto-refresh polling already working (15s interval)
+  - CSV export already working
+- Fixed .zscripts/dev.sh to skip prisma db:push (no database needed)
+- Built production bundle and started standalone server
+- Browser-verified: all 8 views render correctly, navigation works, data is real-time
 
 Stage Summary:
-- App now serves on port 81 (deployment proxy) → port 3000 (Next.js standalone server)
-- dev.sh fix ensures future container restarts will also work in production mode
-- Root cause was dev mode OOM; production mode uses ~90% less memory
-- Current session: server running as detached daemon (PID 6535)
+- Data is confirmed current (July 2026) from Yahoo Finance API
+- Power BI-style dashboard with sidebar navigation deployed
+- All 8 analytical views functional: Overview, Screener, Chart, Fundamentals, Technicals, Strategy, News, Watchlist
+- Server running at http://127.0.0.1:3000
 
 ---
-Task ID: 2
+Task ID: SAVEPOINT-20260703
 Agent: Main Agent
-Task: Component refactoring + Power BI enhancements + data verification
+Task: Session save point — snapshot full project state
 
-Work Log:
-- Refactored 726-line page.tsx into 16 focused files (page.tsx now 177 lines)
-- Created: types.ts, formatters.tsx, use-dashboard-data.ts hook
-- Created 8 tab components, kpi-strip, market-ticker-bar, stock-selector-sheet
-- Verified Yahoo Finance real data: RELIANCE ₹1,304, NIFTY 24,099, TCS ₹2,052
-- Data was never fake — Yahoo API works with proper User-Agent headers
-- Built signal-gauge.tsx: SVG semicircular gauge with gradient, needle, score
-- Enhanced KPI cards: mini bar charts, progress bars, trend indicators
-- Built fundamentals heatmap: 3x3 color-coded tile grid (green/amber/red)
-- Built technicals summary cards: RSI zone bar, Supertrend arrow, MACD histogram, S/R range chart
+## Project: NSE Trading Dashboard
+
+### Tech Stack
+- Next.js 16.1.3 + TypeScript + Tailwind CSS 4 + Recharts + shadcn/ui
+- Deployment: Caddy (port 81) → Node.js standalone (port 3000)
+- No database (Yahoo Finance v8 Chart API, native https)
+
+### Architecture
+- `src/app/page.tsx` — Main page orchestrator (~700 lines, Power BI-style)
+- `src/hooks/use-dashboard-data.ts` — State management + data fetching
+- `src/lib/market-data.ts` — Yahoo Finance API (573 lines)
+- `src/lib/trading-strategy.ts` — Supertrend + RSI + MACD signal engine (5 levels)
+- `src/lib/stock-list.ts` / `stock-list.json` — 100+ NSE stocks, 16 indices
+- `src/components/dashboard/tabs/` — 8 tab components (overview, screener, chart, fundamentals, technicals, strategy, news, watchlist)
+- `src/components/dashboard/` — 14 UI components (kpi-card, kpi-strip, charts, signal-gauge, volume-profile, watchlist, market-ticker-bar, stock-selector-sheet, export-button, etc.)
+- `src/app/api/` — 8 API routes (stocks, stock-data, stock-detail, historical, screener, signals, news, quote, export/csv)
+
+### Completed
+- [x] 404 deployment fix (production mode, standalone build)
+- [x] Caddy port/IPv6 config
+- [x] Background process persistence (spawn detached)
+- [x] Monolithic → modular architecture (8 tabs, 14 components, 8 API routes)
+- [x] Supertrend + RSI + MACD signal fusion engine
+- [x] 100+ NSE stocks, 16 indices
+- [x] Real-time data verified (RELIANCE ~₹1,304, NIFTY ~24,099)
+- [x] Data freshness confirmed — Yahoo Finance returns July 2026 data
+- [x] Power BI-style UI with collapsible sidebar, 8 analytical views, source badges
+- [x] Auto-refresh polling (15s interval)
+- [x] CSV export
+
+### Remaining Tasks
+| Priority | Task | Status |
+|----------|------|--------|
+| P0 | Stale data fix — was old server; rebuilt & confirmed current | DONE |
+| P0 | Power BI-style UI redesign | DONE |
+| P1 | Volume distribution chart, correlation matrix | Not started |
+| P1 | Watchlist localStorage persistence | Not started (currently in-memory) |
+
+### Server Status (as of 2026-07-03)
+- Caddy running (PID 2), port 81
+- Next.js standalone server running (PID 2511), port 3000
+- Build: `.next/standalone/` (production)
+- Start script: `/home/z/my-project/start.sh`
+
+### Key Files Quick Reference
+| File | Lines | Purpose |
+|------|-------|---------|
+| `src/app/page.tsx` | ~700 | Main dashboard page |
+| `src/lib/market-data.ts` | 573 | Yahoo Finance API layer |
+| `src/lib/trading-strategy.ts` | — | Signal engine |
+| `src/lib/stock-list.json` | — | Stock universe |
+| `src/hooks/use-dashboard-data.ts` | — | React state + fetch |
+| `src/app/api/*/route.ts` | 8 files | API endpoints |
+| `src/components/dashboard/tabs/*.tsx` | 8 files | Tab views |
+| `src/components/dashboard/*.tsx` | 14 files | Shared components |
 
 Stage Summary:
-- 47 TypeScript/TSX files in src/
-- 14 dashboard component files
-- All 8 tabs working with real Yahoo Finance data
-- Power BI-style visual elements deployed
-- Server running as detached daemon on port 3000 → Caddy proxy on port 81
-
----
-Task ID: 3
-Agent: Main Agent (2 parallel sub-agents)
-Task: Implement 4 new features (auto-refresh, watchlist, CSV export, volume profile)
-
-Work Log:
-- Feature 1: Auto-refresh polling added to use-dashboard-data.ts hook
-  - autoRefresh toggle (default off), configurable interval (default 30s)
-  - silentFetchDetail avoids save point spam during auto-refresh
-  - Market overview refreshes every 60s when auto-refresh is on
-  - Timer toggle button in market-ticker-bar with pulsing LIVE dot
-- Feature 2: Watchlist with localStorage persistence
-  - useWatchlist() hook with lazy SSR-safe initializer
-  - Star icon in header to toggle watchlist membership
-  - New Watchlist tab (2nd position) with mini price cards
-  - Batches of 3 concurrent fetches to avoid Yahoo rate limits
-- Feature 3: CSV Export
-  - /api/export/csv route: type=signals|backtest|both
-  - Proper Content-Disposition headers for download
-  - ExportButton component added to Strategy tab
-- Feature 4: Volume Profile
-  - 12-bucket horizontal bar chart with red-to-green gradient
-  - Current price highlighted with white dot marker
-  - Added to Technicals tab
-
-Stage Summary:
-- 52 total TypeScript/TSX source files
-- 18 dashboard component files (up from 14)
-- 12 API/page routes (up from 11)
-- All 4 features built, build clean, server live on port 81
+- Full project state saved. All P0 tasks complete.
+- Server is live and serving current data.
+- Next priorities: volume/correlation charts, watchlist persistence.
