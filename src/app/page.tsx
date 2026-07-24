@@ -49,7 +49,18 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'watchlist', label: 'Watchlist', icon: Star, source: 'Custom', color: 'from-amber-500/20 to-yellow-500/10' },
 ];
 
-// ==================== PANEL COMPONENT ====================
+const EMPTY_STOCK = (label: string) => (
+  <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+    <div className="w-16 h-16 rounded-2xl bg-slate-800/40 border border-slate-700/30 flex items-center justify-center mb-4">
+      <Search className="w-6 h-6 text-slate-500" />
+    </div>
+    <h3 className="text-base font-semibold text-slate-300 mb-1">No Stock Selected</h3>
+    <p className="text-xs text-slate-500 mb-4">Select a stock to view {label}</p>
+    <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => {}}>
+      <Search className="w-3.5 h-3.5 mr-1.5" /> Browse Stocks
+    </Button>
+  </div>
+);
 function P({ title, icon: Icon, badge, children, className, source, accent }: {
   title: string; icon?: React.ElementType; badge?: React.ReactNode;
   children: React.ReactNode; className?: string; source?: string; accent?: string;
@@ -189,6 +200,7 @@ function HeaderBar({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; w
 
       {/* Stock Header */}
       <div className="flex items-center justify-between px-4 py-2.5">
+        {d.selectedSymbol && d.q ? (
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-600/20 border border-emerald-500/20 flex items-center justify-center shrink-0">
             <TrendingUp className="w-5 h-5 text-emerald-400" />
@@ -210,24 +222,31 @@ function HeaderBar({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; w
               </Badge>
               {q?.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/80 border-slate-700 text-slate-400">{q.sector}</Badge>}
             </div>
-            {d.detailLoading && !q ? (
-              <Skeleton className="h-6 w-40 bg-slate-800 mt-1" />
-            ) : q ? (
-              <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{q.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', q.changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
-                  {q.changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
-                  {Math.abs(q.change).toFixed(2)} ({Math.abs(q.changePct).toFixed(2)}%)
-                </span>
-                <Badge variant="outline" className="text-[8px] px-1 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 gap-1">
-                  <Radio className="w-2 h-2 animate-pulse" /> LIVE
-                </Badge>
-                <span className="text-[10px] text-slate-500 hidden sm:inline">{q.exchange} &middot; {q.currency}</span>
-                <span className="text-[9px] text-slate-600 hidden lg:inline">{d.lastUpdated && `Updated: ${d.lastUpdated}`}</span>
-              </div>
-            ) : null}
+            <div className="flex items-center gap-3 mt-0.5">
+              <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{q.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', q.changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
+                {q.changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                {Math.abs(q.change).toFixed(2)} ({Math.abs(q.changePct).toFixed(2)}%)
+              </span>
+              <Badge variant="outline" className="text-[8px] px-1 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 gap-1">
+                <Radio className="w-2 h-2 animate-pulse" /> LIVE
+              </Badge>
+              <span className="text-[10px] text-slate-500 hidden sm:inline">{q.exchange} &middot; {q.currency}</span>
+              <span className="text-[9px] text-slate-600 hidden lg:inline">{d.lastUpdated && `Updated: ${d.lastUpdated}`}</span>
+            </div>
           </div>
         </div>
+        ) : (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-600/20 border border-emerald-500/20 flex items-center justify-center shrink-0">
+            <Activity className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-white">NSE Analytics Dashboard</h1>
+            <p className="text-xs text-slate-500">Select a stock to begin analysis</p>
+          </div>
+        </div>
+        )}
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs h-8" onClick={d.handleRefresh} disabled={d.detailLoading}>
             <RefreshCw className={cn('w-3.5 h-3.5 mr-1', d.detailLoading && 'animate-spin')} /> Refresh
@@ -257,7 +276,29 @@ function HeaderBar({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; w
 
 // ==================== OVERVIEW VIEW ====================
 function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
-  if (!d.q) return <div className="flex items-center justify-center h-96 text-slate-500"><Skeleton className="h-6 w-40" /></div>;
+  if (!d.selectedSymbol || !d.q) return (
+    <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
+        <Search className="w-8 h-8 text-emerald-400" />
+      </div>
+      <h2 className="text-xl font-bold text-white mb-2">Select a Stock to Analyze</h2>
+      <p className="text-sm text-slate-400 max-w-md mb-6">
+        Choose from {d.equities.length}+ NSE equities or {d.indices.length} indices.
+        Get real-time prices, Supertrend + RSI + MACD signals, AI-powered strategies, and more.
+      </p>
+      <Button onClick={() => d.setSheetOpen(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6">
+        <Search className="w-4 h-4 mr-2" /> Browse Stocks
+      </Button>
+      {d.overview && (
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-xl">
+          <MktTicker label="NIFTY 50" q={d.overview?.nifty50 ?? null} />
+          <MktTicker label="BANK NIFTY" q={d.overview?.bankNifty ?? null} />
+          <MktTicker label="NIFTY IT" q={d.overview?.niftyIT ?? null} />
+          <MktTicker label="INDIA VIX" q={d.overview?.indiaVix ?? null} />
+        </div>
+      )}
+    </div>
+  );
   return (
     <div className="space-y-3">
       <KPIStrip q={d.q} latestSignal={d.latestSignal} />
@@ -616,7 +657,7 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== CHART VIEW (TradingView Style) ====================
 function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.q) return <div className="flex items-center justify-center h-96 text-slate-500"><Skeleton className="h-6 w-40" /></div>;
+  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('price charts & indicators');
   return (
     <div className="space-y-3">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
@@ -647,7 +688,7 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== FUNDAMENTALS VIEW (Tickertape Style) ====================
 function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.q) return <div className="flex items-center justify-center h-96 text-slate-500"><Skeleton className="h-6 w-40" /></div>;
+  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('fundamentals & financials');
   const fundSections = [
     { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
       { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
@@ -704,7 +745,7 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== TECHNICALS VIEW (TradingView Style) ====================
 function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.q) return <div className="flex items-center justify-center h-96 text-slate-500"><Skeleton className="h-6 w-40" /></div>;
+  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('technical indicators');
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
@@ -814,7 +855,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== STRATEGY VIEW ====================
 function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.q) return <div className="flex items-center justify-center h-96 text-slate-500"><Skeleton className="h-6 w-40" /></div>;
+  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('trading strategies & signals');
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
@@ -908,6 +949,7 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== NEWS VIEW (Moneycontrol Style) ====================
 function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+  if (!d.selectedSymbol) return EMPTY_STOCK('news & headlines');
   return (
     <P title={`${d.selectedSymbol} — News & Headlines`} icon={Newspaper} badge={d.news.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-700 text-slate-400">{d.news.length} articles</Badge>} source="Moneycontrol / Google News">
       <Button size="sm" variant="ghost" className="h-7 text-[10px] mb-3 text-slate-400 hover:text-white" onClick={() => d.fetchNews(d.selectedSymbol)} disabled={d.newsLoading}>

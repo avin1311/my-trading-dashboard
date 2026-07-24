@@ -12,7 +12,7 @@ export function useDashboardData() {
   const [equities, setEquities] = useState<StockInfo[]>([]);
   const [indices, setIndices] = useState<StockInfo[]>([]);
   const [sectors, setSectors] = useState<string[]>([]);
-  const [selectedSymbol, setSelectedSymbol] = useState('RELIANCE');
+  const [selectedSymbol, setSelectedSymbol] = useState('');
   const [selectedType, setSelectedType] = useState('equity');
   const [signalsLoading, setSignalsLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(true);
@@ -157,6 +157,7 @@ export function useDashboardData() {
 
   // When symbol changes: fetch detail + signals + news
   useEffect(() => {
+    if (!selectedSymbol) return;
     fetchDetail(selectedSymbol);
     fetchSignals(selectedSymbol, params);
     fetchNews(selectedSymbol);
@@ -170,7 +171,7 @@ export function useDashboardData() {
 
   // Auto-refresh polling
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !selectedSymbol) return;
     const detailInterval = setInterval(() => {
       silentFetchDetail(selectedSymbol);
     }, refreshInterval * 1000);
@@ -186,6 +187,7 @@ export function useDashboardData() {
   }, [autoRefresh, refreshInterval, selectedSymbol, silentFetchDetail]);
 
   const handleRefresh = () => {
+    if (!selectedSymbol) return;
     fetchDetail(selectedSymbol);
     fetchSignals(selectedSymbol, params);
     fetchNews(selectedSymbol);
