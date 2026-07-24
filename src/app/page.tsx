@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import { SavePoints, MetricRow, OwnershipDonut, SentimentBadge, KPICard, MktTick
 import { StockSelectorSheet } from '@/components/dashboard/stock-selector-sheet';
 import { KPIStrip } from '@/components/dashboard/kpi-strip';
 import { SignalGauge } from '@/components/dashboard/signal-gauge';
+import { AIStrategyPanel } from '@/components/dashboard/ai-strategy-panel';
 import ChartSection from '@/components/dashboard/charts';
 import { ExportButton } from '@/components/dashboard/export-button';
 import { VolumeProfile } from '@/components/dashboard/volume-profile';
@@ -867,6 +868,22 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </P>
         </div>
       </div>
+      {/* AI Trading Advisor */}
+      <P title="AI Trading Advisor" icon={Bot} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-violet-500/10 border-violet-500/20 text-violet-400">By Vrushal Bhilpawar</Badge>} source="5 Workflows" className="min-h-[400px]">
+        {d.q ? (
+          <AIStrategyPanel
+            symbol={d.selectedSymbol}
+            name={d.equities.find(e => e.symbol === d.selectedSymbol)?.name || d.selectedSymbol}
+            sector={d.q.sector || ''}
+            price={d.q.regularMarketPrice || 0}
+            changePct={d.q.regularMarketChangePercent || 0}
+            rsi={d.latestSignal?.rsi ?? null}
+            signal={d.latestSignal?.signal ?? ''}
+            supertrendDir={d.latestSignal?.supertrendDir ?? 0}
+            macdHistogram={d.latestSignal?.macdHistogram ?? null}
+          />
+        ) : <div className="text-center py-8 text-slate-500 text-xs">Loading...</div>}
+      </P>
       {/* Strategy Parameters */}
       <P title="Strategy Parameters" icon={Settings2} source="Customizable">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
