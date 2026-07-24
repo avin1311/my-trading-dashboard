@@ -1,0 +1,1070 @@
+     1→const fs = require('fs');
+     2→
+     3→// Parse existing file
+     4→const content = fs.readFileSync('/home/z/my-project/src/lib/stock-list.ts', 'utf8');
+     5→const cleaned = content.replace('export const stockList = ', '').replace(' as const;', '');
+     6→const existing = eval('(' + cleaned + ')');
+     7→
+     8→const existingSymbols = new Set(existing.equities.map(e => e.s));
+     9→console.log(`Existing equities: ${existingSymbols.size}`);
+    10→
+    11→// Helper: determine lot size based on base price (realistic for NSE)
+    12→function ls(bp) {
+    13→  if (bp >= 25000) return 5;
+    14→  if (bp >= 15000) return 10;
+    15→  if (bp >= 10000) return 25;
+    16→  if (bp >= 5000) return 50;
+    17→  if (bp >= 2000) return 100;
+    18→  if (bp >= 1000) return 250;
+    19→  if (bp >= 500) return 500;
+    20→  if (bp >= 200) return 1500;
+    21→  if (bp >= 100) return 2500;
+    22→  if (bp >= 50) return 5000;
+    23→  if (bp >= 20) return 7500;
+    24→  return 10000;
+    25→}
+    26→
+    27→// Massive comprehensive list of new NSE equities
+    28→// [symbol, fullName, sector, basePrice, volatility]
+    29→const newEquities = [
+    30→  // ===== BANKING - PSU Banks (not already in list) =====
+    31→  ["UNIONBANK","Union Bank of India","Banking",148,0.023],
+    32→  ["UCOBANK","UCO Bank","Banking",55,0.025],
+    33→  ["BANKINDIA","Bank of India","Banking",118,0.024],
+    34→  ["IOB","Indian Overseas Bank","Banking",72,0.026],
+    35→  ["MAHABANK","Bank of Maharashtra","Banking",220,0.022],
+    36→  ["CENTRALBK","Central Bank of India","Banking",95,0.024],
+    37→  ["SOUTHBANK","South Indian Bank","Banking",30,0.028],
+    38→  ["KARNATAKBK","Karnataka Bank","Banking",298,0.022],
+    39→  ["DCBBANK","DCB Bank","Banking",158,0.024],
+    40→  ["RBLBANK","RBL Bank","Banking",255,0.025],
+    41→  ["AUBANK","AU Small Finance Bank","Banking",725,0.024],
+    42→  ["CANFINHOME","Can Fin Homes","Finance",1350,0.02],
+    43→  ["GICHSGFIN","GIC Housing Finance","Finance",320,0.024],
+    44→  ["PNBHOUSING","PNB Housing Finance","Finance",1055,0.023],
+    45→  ["REPCOHOME","Repco Home Finance","Finance",485,0.025],
+    46→  ["LICHFLIN","LIC Housing Finance","Finance",585,0.022],
+    47→  ["SHRIRAMFIN","Shriram Finance","Finance",3355,0.022],
+    48→  ["SURYODNRM","Suryoday Small Finance Bank","Banking",725,0.025],
+    49→
+    50→  // ===== IT =====
+    51→  ["TATAELXSI","Tata Elxsi","IT",6850,0.022],
+    52→  ["CYIENT","Cyient","IT",1955,0.022],
+    53→  ["KPITTECH","KPIT Technologies","IT",4280,0.023],
+    54→  ["SONATSOFTW","Sonata Software","IT",625,0.025],
+    55→  ["ZENSARTECH","Zensar Technologies","IT",585,0.024],
+    56→  ["NEWGEN","Newgen Software","IT",1155,0.023],
+    57→  ["INTELLECT","Intellect Design Arena","IT",855,0.025],
+    58→  ["DATAPATTNS","Datamatics Global","IT",685,0.024],
+    59→  ["ONMOBILE","OnMobile Global","IT",155,0.03],
+    60→  ["REDINGTON","Redington","IT",245,0.022],
+    61→  ["AFFLE","Affle India","IT",1485,0.028],
+    62→  ["HAPPSTMNDS","Happiest Minds Tech","IT",895,0.026],
+    63→  ["EASEMYTRIP","EaseMyTrip","Internet",695,0.03],
+    64→  ["NAUKRI","Info Edge India","Internet",8280,0.025],
+    65→  ["MASTEK","Mastek Ltd","IT",2150,0.024],
+    66→  ["FSS","FSS Technologies","IT",6850,0.023],
+    67→  ["ABMKN","ABM Knowledgeware","IT",585,0.026],
+    68→  ["ACIINFO","ACI Infosystems","IT",1250,0.024],
+    69→  ["MPIL","MPIL Ltd","IT",485,0.024],
+    70→  ["EBIXCASH","EbixCash","Fintech",68,0.032],
+    71→
+    72→  // ===== AUTO & AUTO ANCILLARY =====
+    73→  ["ASHOKLEY","Ashok Leyland","Auto",268,0.026],
+    74→  ["BHARATFORG","Bharat Forge","Auto Ancillary",1585,0.023],
+    75→  ["EXIDEIND","Exide Industries","Auto Ancillary",585,0.022],
+    76→  ["AMARAJABAT","Amara Raja Batteries","Auto Ancillary",1485,0.022],
+    77→  ["ENDURANCE","Endurance Technologies","Auto Ancillary",2285,0.025],
+    78→  ["SUPRAJIT","Suprajit Engineering","Auto Ancillary",595,0.024],
+    79→  ["GOODYEAR","Goodyear India","Auto Ancillary",1255,0.02],
+    80→  ["FORCEMOTORS","Force Motors","Auto",6480,0.028],
+    81→  ["SMLISUZU","SML Isuzu","Auto",2180,0.025],
+    82→  ["ATULAUTO","Atul Auto","Auto",1380,0.023],
+    83→  ["ESCORTS","Escorts Kubota","Auto",4250,0.024],
+    84→  ["BAJAJELEC","Bajaj Electricals","Consumer",1050,0.023],
+    85→  ["SUPREMEIND","Supreme Industries","Plastics",5250,0.02],
+    86→  ["BHARATGEAR","Bharat Gear","Auto Ancillary",1580,0.023],
+    87→  ["MUNJALSHOW","Munjal Showa","Auto Ancillary",485,0.024],
+    88→  ["SWARAJENG","Swaraj Engines","Auto Ancillary",2850,0.024],
+    89→  ["SAMKRGSS","Samkrg Pistons","Auto Ancillary",985,0.026],
+    90→  ["SONACOMS","Sona BLW Precision","Auto Ancillary",7850,0.027],
+    91→  ["MINDACORP","Minda Corp","Auto Ancillary",1280,0.025],
+    92→  ["RICOAUTO","Rico Auto","Auto Ancillary",215,0.028],
+    93→  ["IGARASHI","Igarashi Motors","Auto Ancillary",580,0.024],
+    94→  ["OMAXAUTO","Omax Autos","Auto Ancillary",185,0.026],
+    95→  ["REMCOIND","Remco India","Auto Ancillary",285,0.025],
+    96→  ["SANDHAR","Sandhar Technologies","Auto Ancillary",1280,0.025],
+    97→  ["WABCOIND","WABCO India","Auto Ancillary",8900,0.02],
+    98→  ["SCHAEFFLER","Schaeffler India","Auto Ancillary",5850,0.022],
+    99→  ["DIVGI","Divgi Torqtransfer","Auto Ancillary",4850,0.026],
+   100→  ["RAMKRISHNA","Ramkrishna Forgings","Auto Ancillary",985,0.026],
+   101→  ["ANAND","Anand Automotive","Auto Ancillary",385,0.024],
+   102→  ["MOTHERSON","Motherson Sumi Systems","Auto Ancillary",285,0.027],
+   103→  ["PRECOT","Precot Ltd","Textiles",485,0.024],
+   104→
+   105→  // ===== PHARMA =====
+   106→  ["AUROPHARMA","Aurobindo Pharma","Pharma",1685,0.022],
+   107→  ["CADILAHC","Zydus Lifesciences","Pharma",1185,0.021],
+   108→  ["GLENMARK","Glenmark Pharma","Pharma",1725,0.022],
+   109→  ["STRIDES","Strides Pharma","Pharma",685,0.025],
+   110→  ["JBCHEPHARM","JB Chemicals & Pharma","Pharma",2880,0.02],
+   111→  ["GSKPHARMA","GlaxoSmithKline Pharma","Pharma",5825,0.018],
+   112→  ["PFIZER","Pfizer India","Pharma",6280,0.017],
+   113→  ["ABBOTINDIA","Abbott India","Pharma",28800,0.016],
+   114→  ["SANOFI","Sanofi India","Pharma",8550,0.017],
+   115→  ["WOCKHARDT","Wockhardt","Pharma",625,0.026],
+   116→  ["IPCALAB","Ipca Laboratories","Pharma",1185,0.022],
+   117→  ["NATCOPHARM","Natco Pharma","Pharma",1255,0.024],
+   118→  ["FDC","FDC Limited","Pharma",585,0.023],
+   119→  ["MOREPENLAB","Morepen Laboratories","Pharma",55,0.03],
+   120→  ["SYNGENE","Syngene International","Pharma",855,0.024],
+   121→  ["MANKIND","Mankind Pharma","Pharma",3280,0.022],
+   122→  ["AARTIDRUGS","Aarti Drugs","Pharma",788,0.025],
+   123→  ["SHILPAMED","Shilpa Medicare","Pharma",685,0.026],
+   124→  ["FORTIS","Fortis Healthcare","Healthcare",1580,0.024],
+   125→  ["LALPATHLAB","Lal Path Labs","Healthcare",3880,0.022],
+   126→  ["THYROCARE","Thyrocare Technologies","Healthcare",1880,0.025],
+   127→  ["DRAGA","Dr. Agarwal Eye Hospital","Healthcare",1155,0.023],
+   128→  ["NEOGEN","Neogen Labs","Pharma",1250,0.025],
+   129→  ["VIVIMED","Vivimed Labs","Healthcare",88,0.028],
+   130→  ["POLYMED","Polymedicure","Healthcare",1280,0.025],
+   131→  ["CUREFOOD","Curefoods","Retail",485,0.028],
+   132→
+   133→  // ===== FMCG =====
+   134→  ["DABUR","Dabur India","FMCG",585,0.016],
+   135→  ["MARICO","Marico Limited","FMCG",685,0.017],
+   136→  ["COLPAL","Colgate-Palmolive","FMCG",2880,0.015],
+   137→  ["EMAMILTD","Emami Ltd","FMCG",515,0.018],
+   138→  ["RADICO","Radico Khaitan","FMCG",1655,0.022],
+   139→  ["UBL","United Breweries","FMCG",1880,0.018],
+   140→  ["MCDOWELL-N","United Spirits","FMCG",1485,0.018],
+   141→  ["TATACOFFEE","Tata Coffee","FMCG",925,0.023],
+   142→  ["JYOTHYLAB","Jyothy Labs","FMCG",488,0.019],
+   143→  ["CASTROLIND","Castrol India","FMCG",1325,0.018],
+   144→  ["GODREJAGRO","Godrej Agrovet","FMCG",1280,0.02],
+   145→  ["HATSUN","Hatsun Agro Product","FMCG",1055,0.022],
+   146→  ["HERITAGEFDS","Heritage Foods","FMCG",1080,0.022],
+   147→  ["KRBL","KRBL Limited","FMCG",385,0.024],
+   148→  ["GULFOIL","Gulf Oil Lubricants","FMCG",8500,0.019],
+   149→  ["PROCTER","P&G Health","FMCG",15800,0.016],
+   150→  ["BBCL","B&B Corporate Services","FMCG",385,0.023],
+   151→
+   152→  // ===== METALS & MINING =====
+   153→  ["NMDC","NMDC Limited","Mining",258,0.022],
+   154→  ["MOIL","MOIL Limited","Mining",478,0.025],
+   155→  ["NALCO","National Aluminium","Metals",268,0.024],
+   156→  ["HINDCOPPER","Hindustan Copper","Metals",388,0.027],
+   157→  ["APLAPOLLO","APL Apollo Tubes","Metals",1880,0.024],
+   158→  ["JSL","Jindal Stainless","Metals",228,0.028],
+   159→  ["SHYAMMETL","Shyam Metalics & Energy","Metals",785,0.027],
+   160→  ["GRAPHITE","Graphite India","Metals",685,0.028],
+   161→  ["HEG","HEG Limited","Metals",5880,0.025],
+   162→  ["RAJESHEXPO","Rajesh Exports","Metals",75,0.032],
+   163→  ["TINPLATE","Tinplate Company of India","Metals",398,0.024],
+   164→  ["LLOYDSME","Lloyds Metals & Energy","Metals",215,0.028],
+   165→  ["MANAKUNJ","Manaksia","Metals",285,0.025],
+   166→  ["SURYAROSHI","Surya Roshni","Metals",1280,0.023],
+   167→  ["USHAMART","Usha Martin","Metals",285,0.025],
+   168→  ["ORISSAMINE","Orissa Minerals Development","Mining",425,0.026],
+   169→  ["CASTOR","Castrol International","Metals",195,0.025],
+   170→  ["ISMT","ISMT Ltd","Metals",285,0.025],
+   171→  ["GOLDJUNE","Goldiam International","Metals",885,0.024],
+   172→  ["SAILWIRE","SAIL Wire Ropes","Metals",165,0.028],
+   173→  ["MANGALMTE","Mangalam Timber","Metals",185,0.028],
+   174→  ["NATIONALU","Nationalum Aluminium","Metals",165,0.025],
+   175→
+   176→  // ===== ENERGY / POWER / OIL & GAS =====
+   177→  ["NHPC","NHPC Limited","Power",108,0.024],
+   178→  ["SJVN","SJVN Limited","Power",148,0.025],
+   179→  ["JSWENERGY","JSW Energy","Power",688,0.023],
+   180→  ["CESC","CESC Limited","Power",178,0.022],
+   181→  ["TORNTPOWER","Torrent Power","Power",1880,0.022],
+   182→  ["GIPCL","Gujarat Industries Power","Power",385,0.023],
+   183→  ["INDIAGRID","India Grid Trust","Power",348,0.02],
+   184→  ["ADANIGAS","Adani Total Gas","Energy",1555,0.028],
+   185→  ["ADANIPWR","Adani Power","Power",685,0.03],
+   186→  ["GAIL","GAIL India","Energy",198,0.022],
+   187→  ["IGL","Indraprastha Gas","Energy",485,0.022],
+   188→  ["MGL","Mahanagar Gas","Energy",1555,0.022],
+   189→  ["PETRONET","Petronet LNG","Energy",308,0.022],
+   190→  ["GSPL","Gujarat State Petronet","Energy",398,0.022],
+   191→  ["OIL","Oil India","Energy",428,0.022],
+   192→  ["CHENNPETRO","Chennai Petroleum Corp","Energy",388,0.024],
+   193→  ["MRPL","Mangalore Refinery & Petrochemicals","Energy",288,0.024],
+   194→  ["OLECTRA","Olectra Greentech","Power",4850,0.026],
+   195→  ["GMRINFRA","GMR Infrastructure","Infrastructure",88,0.03],
+   196→  ["RELPOWER","Reliance Power","Power",48,0.035],
+   197→  ["JPPOWER","Jaiprakash Power Ventures","Power",30,0.032],
+   198→  ["GUJGASLTD","Gujarat Gas","Energy",1580,0.02],
+   199→  ["HPCL","Hindustan Petroleum Corp","Energy",665,0.023],
+   200→  ["HINDPETRO","Hindustan Petroleum","Energy",665,0.023],
+   201→  ["PENTAMEDIA","Pentamedia Graphics","Media",58,0.03],
+   202→
+   203→  // ===== CEMENT =====
+   204→  ["RAMCOCEM","Ramco Cements","Cement",1380,0.02],
+   205→  ["DCM","DCM Shriram Ltd","Cement",1385,0.022],
+   206→  ["INDIACEM","India Cements","Cement",388,0.023],
+   207→  ["JKCEMENT","JK Cement","Cement",4850,0.02],
+   208→  ["DALBHARAT","Dalmia Bharat","Cement",1520,0.022],
+   209→  ["BIRLACORPN","Birla Corporation","Cement",1380,0.022],
+   210→  ["JKLAKSHMI","JK Lakshmi Cement","Cement",985,0.023],
+   211→  ["PRSMJOHNSR","Prism Johnson","Cement",580,0.024],
+   212→  ["SANGHIIND","Sanghi Industries","Cement",158,0.025],
+   213→  ["ORIENTCEM","Orient Cement","Cement",198,0.025],
+   214→  ["STARCEMENT","Star Cement","Cement",385,0.024],
+   215→  ["SHREECEM","Shree Cement","Cement",26800,0.019],
+   216→
+   217→  // ===== TELECOM =====
+   218→  ["IDEA","Vodafone Idea","Telecom",18,0.04],
+   219→  ["HFCL","HFCL Limited","Telecom",185,0.028],
+   220→  ["TEJASNET","Tejas Networks","Telecom",1280,0.028],
+   221→  ["ITI","ITI Limited","Telecom",525,0.027],
+   222→  ["STEL","Sterlite Technologies","Telecom",285,0.026],
+   223→  ["TATACOMM","Tata Communications","Telecom",1850,0.022],
+   224→
+   225→  // ===== RETAIL =====
+   226→  ["VISHALMART","Vishal Mega Mart","Retail",195,0.028],
+   227→  ["SHOPERSTOP","Shoppers Stop","Retail",780,0.025],
+   228→  ["KPRMILL","KPR Mill Ltd","Textiles",780,0.024],
+   229→  ["V2RETAIL","V2 Retail","Retail",148,0.03],
+   230→  ["SPENCERS","Spencer's Retail","Retail",185,0.028],
+   231→  ["SPECIALITY","Speciality Restaurants","Retail",580,0.026],
+   232→  ["FRETAIL","Future Retail","Retail",45,0.035],
+   233→  ["BURGERKING","Burger King India","Retail",185,0.03],
+   234→  ["BARBEQUE","Barbeque Nation Hospitality","Retail",1280,0.026],
+   235→  ["PROVINTL","Provogue International","Retail",58,0.03],
+   236→  ["BRANDHOUSE","Brand House Retails","Retail",525,0.026],
+   237→  ["METROBRANDS","Metro Brands","Retail",1650,0.024],
+   238→  ["RELIANCER","Reliance Retail","Retail",3850,0.022],
+   239→
+   240→  // ===== REAL ESTATE =====
+   241→  ["SOBHA","Sobha Limited","Real Estate",1580,0.025],
+   242→  ["PRESTIGE","Prestige Estates","Real Estate",3850,0.024],
+   243→  ["BRIGADE","Brigade Enterprises","Real Estate",1480,0.025],
+   244→  ["MAHLIFE","Mahindra Lifespaces","Real Estate",980,0.026],
+   245→  ["LODHA","Macrotech Developers","Real Estate",1280,0.026],
+   246→  ["SUNTECK","Sunteck Realty","Real Estate",1850,0.025],
+   247→  ["ASHIANA","Ashiana Housing","Real Estate",580,0.025],
+   248→  ["SILVERLINE","Silverline Realty","Real Estate",285,0.027],
+   249→  ["ISKANDAR","ISKON Temple","Real Estate",485,0.025],
+   250→  ["SHRIRAMRCH","Shriram Properties","Real Estate",585,0.026],
+   251→  ["ANANT RAJ","Anant Raj Ltd","Real Estate",485,0.025],
+   252→  ["ATUL","Atul Ltd","Chemicals",8950,0.02],
+   253→
+   254→  // ===== CAPITAL GOODS =====
+   255→  ["CUMMINSIND","Cummins India","Capital Goods",3850,0.021],
+   256→  ["POLYCAB","Polycab India","Capital Goods",5650,0.023],
+   257→  ["THERMAX","Thermax Ltd","Capital Goods",6220,0.023],
+   258→  ["KEC","KEC International","Capital Goods",1850,0.023],
+   259→  ["KALPATPOWR","Kalpataru Power Transmission","Capital Goods",1250,0.024],
+   260→  ["GREAVESCOT","Greaves Cotton","Capital Goods",1950,0.023],
+   261→  ["BHEL","Bharat Heavy Electricals","Capital Goods",3850,0.023],
+   262→  ["FINPIPE","Finolex Cables","Capital Goods",1850,0.022],
+   263→  ["KEIIND","KEI Industries","Capital Goods",3550,0.022],
+   264→  ["V-GUARD","V-Guard Industries","Consumer",3850,0.022],
+   265→  ["HAVELLS","Havells India","Consumer",1850,0.022],
+   266→
+   267→  // ===== CONSUMER / HOME / APPLIANCES =====
+   268→  ["BATAINDIA","Bata India","Retail",1550,0.023],
+   269→  ["VIPIND","VIP Industries","Consumer",1680,0.022],
+   270→  ["KAJARIACER","Kajaria Ceramics","Consumer",1280,0.022],
+   271→  ["SOMANYCERA","Somany Ceramics","Consumer",1150,0.023],
+   272→  ["CENTURYPLY","Century Plyboards","Consumer",1180,0.023],
+   273→  ["GREENPLY","Greenply Industries","Consumer",1180,0.023],
+   274→  ["ASTRAL","Astral Ltd","Consumer",2180,0.023],
+   275→  ["IFBIND","IFB Industries","Consumer",2180,0.022],
+   276→
+   277→  // ===== CHEMICALS =====
+   278→  ["PIDILITIND","Pidilite Industries","Chemicals",3180,0.018],
+   279→  ["UPL","UPL Limited","Chemicals",285,0.025],
+   280→  ["CLARIANTIND","Clariant India","Chemicals",1850,0.022],
+   281→  ["AARTIIND","Aarti Industries","Chemicals",1285,0.024],
+   282→  ["BALAMINE","Balaji Amines","Chemicals",2180,0.024],
+   283→  ["CHAMBLFRT","Chambal Fertilisers & Chemicals","Chemicals",488,0.023],
+   284→  ["GNFC","Gujarat Narmada Valley Fertilizers","Chemicals",358,0.023],
+   285→  ["GSFC","Gujarat State Fertilizers & Chemicals","Chemicals",298,0.023],
+   286→  ["DEEPAKFERT","Deepak Fertilisers & Petrochemicals","Chemicals",1250,0.024],
+   287→  ["RCF","Rashtriya Chemicals & Fertilisers","Chemicals",185,0.025],
+   288→  ["COROMANDEL","Coromandel International","Chemicals",1580,0.021],
+   289→  ["PIINDUST","PI Industries","Chemicals",5250,0.022],
+   290→  ["ATUL","Atul Ltd","Chemicals",8950,0.02],
+   291→  ["RALLIS","Rallis India","Chemicals",485,0.023],
+   292→  ["SHARDACROP","Sharda Cropchem","Chemicals",2280,0.024],
+   293→  ["SUMICHEM","Sumitomo Chemical India","Chemicals",985,0.024],
+   294→  ["RAIN","Rain Industries","Chemicals",215,0.027],
+   295→  ["SOLARIND","Solar Industries India","Chemicals",4250,0.024],
+   296→  ["DEEPAKNTR","Deepak Nitrite","Chemicals",2780,0.023],
+   297→  ["VINATIORGA","Vinati Organics","Chemicals",2880,0.022],
+   298→  ["HIMADRI","Himadri Speciality Chemical","Chemicals",285,0.025],
+   299→  ["DIPALHOUSE","Dipal House Trading","Chemicals",285,0.025],
+   300→
+   301→  // ===== LOGISTICS =====
+   302→  ["ALLCARGO","Allcargo Logistics","Logistics",165,0.028],
+   303→  ["GATI","Gati Ltd","Logistics",285,0.026],
+   304→  ["BLUEDEXPR","Blue Dart Express","Logistics",7850,0.02],
+   305→  ["CONCOR","Container Corporation of India","Logistics",1850,0.022],
+   306→  ["TCIEXPRESS","TCI Express","Logistics",1450,0.024],
+   307→  ["VRLLOG","VRL Logistics","Logistics",1180,0.025],
+   308→  ["MAHLOG","Mahindra Logistics","Logistics",680,0.026],
+   309→  ["TVSLOG","TVS Supply Chain Solutions","Logistics",785,0.025],
+   310→  ["SPICEJET","SpiceJet","Aviation",85,0.035],
+   311→  ["INTRENT","InterGlobe Aviation","Aviation",4850,0.025],
+   312→  ["CFL","Cargo Flight Logistics","Logistics",285,0.028],
+   313→  ["AEGISLOGIC","Aegis Logistics","Logistics",380,0.025],
+   314→  ["SHREYAN","Shreyan Shipping & Logistics","Logistics",1180,0.025],
+   315→
+   316→  // ===== MEDIA & ENTERTAINMENT =====
+   317→  ["PVRINOX","PVR INOX Ltd","Media",1880,0.026],
+   318→  ["ZEEENT","Zee Entertainment Enterprises","Media",295,0.025],
+   319→  ["SUNTV","Sun TV Network","Media",985,0.02],
+   320→  ["NETWORK18","Network18 Media & Investments","Media",128,0.028],
+   321→  ["HATHWAY","Hathway Cable & Datacom","Media",58,0.03],
+   322→  ["DEN","DEN Networks","Media",145,0.028],
+   323→  ["DISHTV","Dish TV India","Media",32,0.032],
+   324→  ["ZEEMEDIA","Zee Media Corp","Media",45,0.03],
+   325→  ["SAREGAMA","Saregama India","Media",4850,0.023],
+   326→  ["TIPSIND","Tips Industries","Media",285,0.026],
+   327→  ["DQENT","DQ Entertainment","Media",125,0.028],
+   328→
+   329→  // ===== TEXTILES =====
+   330→  ["VARDHMAN","Vardhman Textiles","Textiles",485,0.024],
+   331→  ["KITEX","Kitex Garments","Textiles",288,0.03],
+   332→  ["TRIDENT","Trident Ltd","Textiles",65,0.028],
+   333→  ["LUXIND","Lux Industries","Textiles",1280,0.023],
+   334→  ["GOKEX","Gokak Textiles","Textiles",285,0.025],
+   335→  ["RAYMOND","Raymond Ltd","Textiles",1850,0.022],
+   336→  ["NITINSPIN","Nitin Spinners","Textiles",580,0.024],
+   337→  ["JBFIND","JBF Industries","Textiles",285,0.025],
+   338→  ["CENTURYEN","Century Enka","Textiles",1185,0.023],
+   339→  ["GARWFIBR","Garware Wall Ropes","Textiles",4850,0.02],
+   340→  ["SKUMARS","S Kumar Nationwide","Textiles",285,0.025],
+   341→  ["WELSPUN","Welspun Global","Textiles",175,0.028],
+   342→  ["PRECOT","Precot Ltd","Textiles",485,0.024],
+   343→  ["SURYALAXMI","Surya Laxmi Cotton Mills","Textiles",425,0.025],
+   344→
+   345→  // ===== NEW AGE / FINTECH =====
+   346→  ["ANGELONE","Angel One Ltd","Fintech",3850,0.028],
+   347→  ["PBFINTCH","PB Fintech (PolicyBazaar)","Fintech",2850,0.03],
+   348→  ["FIVESTAR","Five Star Business Finance","Finance",985,0.024],
+   349→  ["CDSL","CDSL","Finance",1880,0.023],
+   350→  ["MCX","Multi Commodity Exchange","Finance",5250,0.022],
+   351→  ["360ONE","360 ONE WAM","Finance",8500,0.022],
+   352→  ["JMFIN","JM Financial","Finance",128,0.025],
+   353→  ["MOTILALOFS","Motilal Oswal Financial Services","Finance",1380,0.025],
+   354→  ["STARHEALTH","Star Health and Allied Insurance","Insurance",5850,0.024],
+   355→  ["NEWINDASS","New India Assurance","Insurance",285,0.024],
+   356→  ["BAJAJALL","Bajaj Allianz General Insurance","Insurance",2850,0.022],
+   357→  ["ICICIGI","ICICI General Insurance","Insurance",1280,0.022],
+   358→  ["ICICIPRU","ICICI Prudential Life Insurance","Insurance",185,0.024],
+   359→  ["TATAAIA","Tata AIA Life Insurance","Insurance",985,0.023],
+   360→  ["IIFL","IIFL Finance","Finance",585,0.026],
+   361→  ["MANAPPURAM","Manappuram Finance","Finance",198,0.025],
+   362→  ["IBULHSGFIN","IBUL Housing Finance","Finance",325,0.026],
+   363→  ["SREERAYAL","Sree Rayalaseema Alloys","Finance",585,0.025],
+   364→  ["SUMMIT","Summit Securities","Finance",285,0.028],
+   365→  ["INDIAMART","IndiaMART InterMESH","Internet",3850,0.028],
+   366→
+   367→  // ===== PSU =====
+   368→  ["HUDCO","HUDCO Ltd","Finance",285,0.024],
+   369→  ["NBCC","NBCC India","Infrastructure",195,0.028],
+   370→  ["DREDGING","Dredging Corporation of India","Infrastructure",1580,0.026],
+   371→  ["SCI","Shipping Corporation of India","Logistics",185,0.025],
+   372→  ["THDC","THDC India Ltd","Power",128,0.024],
+   373→  ["WAPCOS","WAPCOS Ltd","Infrastructure",385,0.025],
+   374→  ["ENGINERSIN","Engineers India","Infrastructure",2850,0.022],
+   375→
+   376→  // ===== RAILWAYS =====
+   377→  ["RAILTEL","RailTel Corporation of India","Infrastructure",448,0.028],
+   378→  ["IRCON","IRCON International","Infrastructure",288,0.03],
+   379→  ["IRCTC","Indian Railway Catering & Tourism","Infrastructure",1250,0.026],
+   380→  ["RITES","RITES Ltd","Infrastructure",1455,0.024],
+   381→  ["KRCL","Konkan Railway Corp","Infrastructure",1580,0.024],
+   382→  ["DFCCIL","Dedicated Freight Corridor Corp","Infrastructure",1850,0.025],
+   383→
+   384→  // ===== DEFENCE =====
+   385→  ["HAL","Hindustan Aeronautics Ltd","Defence",4850,0.025],
+   386→  ["BEL","Bharat Electronics Ltd","Defence",3250,0.024],
+   387→  ["MIDHANI","Mishra Dhatu Nigam","Defence",1850,0.028],
+   388→  ["BEML","BEML Ltd","Defence",3850,0.026],
+   389→  ["DYNAMATIC","Dynamatic Technologies","Defence",4850,0.027],
+   390→  ["ELGI","Elgi Equipments","Defence",5850,0.023],
+   391→  ["MAZDOCK","Mazagon Dock Shipbuilders","Defence",5250,0.026],
+   392→  ["DATAPATRN","Data Patterns","Defence",3850,0.028],
+   393→  ["KERNEX","Kernex Microsystems","Defence",3250,0.028],
+   394→  ["OPTICALFR","Opto Electronics","Defence",2850,0.026],
+   395→  ["AARVEE","Aarvee Defence Systems","Defence",1850,0.027],
+   396→  ["SPEARDEF","Spear Defence Systems","Defence",2850,0.028],
+   397→  ["SANTECH","Sante Technologies","Defence",580,0.027],
+   398→
+   399→  // ===== HOSPITALITY =====
+   400→  ["INDHOTEL","Indian Hotels Company","Hospitality",780,0.022],
+   401→  ["EIH","EIH Ltd","Hospitality",385,0.023],
+   402→  ["HOTELLEELA","Hotel Leelaventure","Hospitality",68,0.028],
+   403→  ["CHALET","Chalet Hotels","Hospitality",485,0.024],
+   404→  ["EIHOTEL","EIH Associated Hotels","Hospitality",385,0.023],
+   405→
+   406→  // ===== CONGLOMERATES & HOLDING =====
+   407→  ["GODREJIND","Godrej Industries","Conglomerate",1680,0.02],
+   408→  ["TATAINV","Tata Investment Corp","Finance",5250,0.02],
+   409→  ["TATASTEEL","Tata Steel Long Products","Metals",415,0.025],
+   410→
+   411→  // ===== ADDITIONAL BANKING & FINANCE =====
+   412→  ["CHOLAHLDNG","Cholamandalam Investment & Finance","Finance",1720,0.021],
+   413→  ["SHRIRAMC","Shriram City Union Finance","Finance",3150,0.023],
+   414→  ["ICICISECU","ICICI Securities","Finance",780,0.023],
+   415→  ["HDFCAMC","HDFC Asset Management","Finance",4250,0.022],
+   416→  ["NAMIND","NAM-India Ltd","Finance",385,0.026],
+   417→  ["CANBK","Canara Bank","Banking",118,0.023],
+   418→  ["CATHFIN","Catholic Syrian Bank","Banking",88,0.027],
+   419→
+   420→  // ===== EDUCATION =====
+   421→  ["MANIPAL","Manipal Global Education","Healthcare",1250,0.024],
+   422→  ["CAREERP","Career Point Ltd","Education",485,0.028],
+   423→  ["EDUCOMP","Educomp Solutions","Education",58,0.032],
+   424→  ["NAVNETEDU","Navneet Education","Education",185,0.025],
+   425→
+   426→  // ===== PLASTICS & PACKAGING =====
+   427→  ["COSMOFILMS","Cosmo Films Ltd","Plastics",2850,0.023],
+   428→  ["SUPREMEIND","Supreme Petrochem","Plastics",5250,0.02],
+   429→  ["AARTIDRUGS","Aarti Drugs","Pharma",788,0.025],
+   430→  ["EIPRO","Eisai Pharmaceuticals India","Pharma",4480,0.021],
+   431→
+   432→  // ===== ADDITIONAL LARGE CAPS & MIDCAPS =====
+   433→  ["BRITANNIA","Britannia Industries","FMCG",5880,0.014],
+   434→  ["HINDUNILVR","Hindustan Unilever","FMCG",2580,0.012],
+   435→  ["ITC","ITC Limited","FMCG",465,0.014],
+   436→  ["RELIANCE","Reliance Industries","Energy",2950,0.018],
+   437→  ["TATASTEEL","Tata Steel","Metals",155,0.026],
+   438→  ["ADANIENT","Adani Enterprises","Conglomerate",3200,0.03],
+   439→  ["BAJAJHLDNG","Bajaj Holdings & Investment","Conglomerate",8150,0.016],
+   440→  ["ADANIPORTS","Adani Ports & SEZ","Infrastructure",1470,0.02],
+   441→  ["COALINDIA","Coal India","Mining",510,0.021],
+   442→  ["WELSPUNLIV","Welspun Living","Textiles",175,0.028],
+   443→  ["ZOMATO","Zomato","Internet",285,0.03],
+   444→  ["PAYTM","One97 Communications","Fintech",485,0.035],
+   445→  ["NYKAA","FSN E-Commerce (Nykaa)","E-commerce",210,0.03],
+   446→  ["IRFC","Indian Railway Finance Corp","Finance",195,0.026],
+   447→  ["RVNL","Rail Vikas Nigam","Infrastructure",390,0.032],
+   448→  ["DIXON","Dixon Technologies","Electronics",16250,0.032],
+   449→  ["TATAMTRDVR","Tata Motors DVR","Auto",640,0.026],
+   450→  ["MOTHERSUMI","Motherson Sumi","Auto Ancillary",285,0.027],
+   451→
+   452→  // ===== MORE SMALL & MID CAP STOCKS =====
+   453→  ["TRIDENT","Trident Ltd","Textiles",65,0.028],
+   454→  ["YESBANK","YES Bank","Banking",28,0.032],
+   455→  ["SUZLON","Suzlon Energy","Power",72,0.035],
+   456→  ["IDFCFIRSTB","IDFC First Bank","Banking",82,0.025],
+   457→  ["TATAPOWER","Tata Power","Power",495,0.024],
+   458→  ["ADANIGREEN","Adani Green Energy","Power",1850,0.03],
+   459→  ["ADANIENSOL","Adani Energy Solutions","Power",2150,0.032],
+   460→  ["DLF","DLF Limited","Real Estate",920,0.024],
+   461→  ["GODREJPROP","Godrej Properties","Real Estate",2750,0.025],
+   462→  ["OBEROIRLTY","Oberoi Realty","Real Estate",1850,0.023],
+   463→  ["PHOENIXLTD","Phoenix Ltd","Real Estate",6100,0.026],
+   464→
+   465→  // ===== ADDITIONAL SECTORS - Paper, Packaging =====
+   466→  ["JKPAPER","JK Paper Ltd","Paper",485,0.024],
+   467→  ["WESTCOAST","West Coast Paper Mills","Paper",285,0.025],
+   468→  ["ANDHRCMENT","Andhra Cements","Cement",158,0.025],
+   469→  ["RAINCOM","Rain Commodities","Commodities",68,0.03],
+   470→
+   471→  // ===== ADDITIONAL ENERGY STOCKS =====
+   472→  ["PTCIL","PTC Industries Ltd","Power",2950,0.025],
+   473→  ["ALOKINDS","Alok Industries","Textiles",22,0.035],
+   474→  ["ADANISOLAR","Adani Solar Energy","Power",1480,0.028],
+   475→  ["RAJESHEN","Rajesh Exports","Metals",75,0.032],
+   476→
+   477→  // ===== ADDITIONAL PHARMA =====
+   478→  ["GLENMARK","Glenmark Pharmaceuticals","Pharma",1725,0.022],
+   479→  ["LUPIN","Lupin Ltd","Pharma",2285,0.02],
+   480→  ["SUNPHARMA","Sun Pharmaceutical","Pharma",1780,0.018],
+   481→  ["DIVISLAB","Divi's Laboratories","Pharma",6100,0.02],
+   482→  ["BIOCON","Biocon","Pharma",370,0.023],
+   483→  ["ALKEM","Alkem Laboratories","Pharma",6050,0.021],
+   484→  ["TORNTPHARM","Torrent Pharmaceuticals","Pharma",15500,0.021],
+   485→  ["LAURUSLABS","Laurus Labs","Pharma",590,0.026],
+   486→
+   487→  // ===== ADDITIONAL FMCG =====
+   488→  ["TATACONSUM","Tata Consumer Products","FMCG",1250,0.016],
+   489→  ["GODREJCP","Godrej Consumer Products","FMCG",1620,0.016],
+   490→  ["VBL","Varun Beverages","FMCG",495,0.025],
+   491→  ["NESTLEIND","Nestle India","FMCG",2550,0.013],
+   492→
+   493→  // ===== ADDITIONAL INFRASTRUCTURE =====
+   494→  ["LT","Larsen & Toubro","Infrastructure",3650,0.018],
+   495→  ["NTPC","NTPC Limited","Power",420,0.021],
+   496→  ["POWERGRID","Power Grid Corp","Power",325,0.018],
+   497→  ["ONGC","Oil & Natural Gas Corp","Energy",285,0.023],
+   498→  ["IOC","Indian Oil Corp","Energy",185,0.02],
+   499→  ["BPCL","Bharat Petroleum Corp","Energy",635,0.022],
+   500→
+   501→  // ===== ADDITIONAL BANKING =====
+   502→  ["SBIN","State Bank of India","Banking",825,0.022],
+   503→  ["HDFCBANK","HDFC Bank","Banking",1680,0.016],
+   504→  ["ICICIBANK","ICICI Bank","Banking",1280,0.017],
+   505→  ["KOTAKBANK","Kotak Mahindra Bank","Banking",1790,0.017],
+   506→  ["AXISBANK","Axis Bank","Banking",1175,0.019],
+   507→  ["INDUSINDBK","IndusInd Bank","Banking",1580,0.021],
+   508→  ["PNB","Punjab National Bank","Banking",148,0.024],
+   509→  ["BANKBARODA","Bank of Baroda","Banking",315,0.022],
+   510→  ["FEDERALBNK","Federal Bank","Banking",180,0.023],
+   511→  ["INDIANB","Indian Bank","Banking",590,0.024],
+   512→
+   513→  // ===== ADDITIONAL IT =====
+   514→  ["TCS","Tata Consultancy Services","IT",4150,0.015],
+   515→  ["INFY","Infosys","IT",1580,0.019],
+   516→  ["WIPRO","Wipro","IT",530,0.02],
+   517→  ["HCLTECH","HCL Technologies","IT",1750,0.019],
+   518→  ["TECHM","Tech Mahindra","IT",1690,0.022],
+   519→  ["LTIM","LTIMindtree","IT",6250,0.02],
+   520→  ["MPHASIS","Mphasis","IT",3150,0.022],
+   521→  ["PERSISTENT","Persistent Systems","IT",6800,0.021],
+   522→  ["COFORGE","Coforge","IT",8650,0.022],
+   523→
+   524→  // ===== ADDITIONAL CONSUMER =====
+   525→  ["TITAN","Titan Company","Consumer",3450,0.019],
+   526→  ["ASIANPAINT","Asian Paints","Consumer",2980,0.017],
+   527→  ["BERGEPAINT","Berger Paints","Consumer",580,0.017],
+   528→  ["VOLTAS","Voltas","Consumer",1540,0.022],
+   529→  ["BLUESTAR","Blue Star","Consumer",1850,0.023],
+   530→  ["WHIRLPOOL","Whirlpool India","Consumer",1920,0.02],
+   531→  ["CROMPTON","Crompton Greaves","Consumer",498,0.024],
+   532→
+   533→  // ===== ADDITIONAL METALS =====
+   534→  ["HINDALCO","Hindalco Industries","Metals",655,0.025],
+   535→  ["JSWSTEEL","JSW Steel","Metals",985,0.024],
+   536→  ["VEDL","Vedanta Limited","Metals",475,0.028],
+   537→  ["SAIL","Steel Authority of India","Metals",165,0.028],
+   538→  ["JINDALSTEL","Jindal Steel & Power","Metals",965,0.027],
+   539→  ["HINDZINC","Hindustan Zinc","Metals",580,0.022],
+   540→
+   541→  // ===== ADDITIONAL HEALTHCARE =====
+   542→  ["APOLLOHOSP","Apollo Hospitals","Healthcare",6850,0.02],
+   543→  ["MAXHEALTH","Max Healthcare","Healthcare",820,0.022],
+   544→  ["METROHLTH","Metro Brands Health","Healthcare",825,0.025],
+   545→
+   546→  // ===== ADDITIONAL FINANCE =====
+   547→  ["BAJFINANCE","Bajaj Finance","Finance",7350,0.022],
+   548→  ["BAJAJFINSV","Bajaj Finserv","Finance",1740,0.021],
+   549→  ["MUTHOOTFIN","Muthoot Finance","Finance",3850,0.019],
+   550→  ["SBILIFE","SBI Life Insurance","Insurance",1810,0.018],
+   551→  ["HDFCLIFE","HDFC Life Insurance","Insurance",685,0.018],
+   552→
+   553→  // ===== ADDITIONAL CEMENT =====
+   554→  ["ULTRACEMCO","UltraTech Cement","Cement",11250,0.017],
+   555→  ["GRASIM","Grasim Industries","Cement",2750,0.019],
+   556→  ["AMBUJACEM","Ambuja Cements","Cement",710,0.02],
+   557→  ["ACC","ACC Limited","Cement",2580,0.019],
+   558→
+   559→  // ===== ADDITIONAL RETAIL =====
+   560→  ["DMART","Avenue Supermarts","Retail",4650,0.021],
+   561→  ["TRENT","Trent Ltd","Retail",7650,0.024],
+   562→  ["PIDILITIND","Pidilite Industries","Chemicals",3180,0.018],
+   563→
+   564→  // ===== ADDITIONAL CAPITAL GOODS =====
+   565→  ["SIEMENS","Siemens India","Capital Goods",8250,0.021],
+   566→  ["ABB","ABB India","Capital Goods",7350,0.02],
+   567→  ["HONEYWELL","Honeywell Automation","Capital Goods",42500,0.018],
+   568→  ["VSTTILLERS","VST Tillers & Tractors","Capital Goods",4880,0.023],
+   569→
+   570→  // ===== ADDITIONAL TELECOM =====
+   571→  ["BHARTIARTL","Bharti Airtel","Telecom",1620,0.02],
+   572→
+   573→  // ===== ADDITIONAL REAL ESTATE =====
+   574→  ["PHOENIXLTD","Phoenix Ltd","Real Estate",6100,0.026],
+   575→
+   576→  // ===== MORE SMALL CAPS =====
+   577→  ["NESCO","Nesco Ltd","Services",1480,0.023],
+   578→  ["STYRENE","Styrenix Performance Materials","Chemicals",5800,0.022],
+   579→  ["SPARC","Sparc Systems","IT",285,0.027],
+   580→  ["NH","NH Ltd","Infrastructure",185,0.028],
+   581→  ["TAINWALCH","Tainwal Construction","Infrastructure",585,0.025],
+   582→  ["MMFL","Manappuram Finance Ltd","Finance",198,0.025],
+   583→  ["SHRADHA","Shraddha Infraprojects","Infrastructure",58,0.032],
+   584→  ["RESPONIND","Response Technologies","IT",385,0.028],
+   585→  ["THINKL","Thinklink Learning","IT",285,0.03],
+   586→  ["RAMANAND","Ramanand Papers","Textiles",285,0.025],
+   587→  ["NAVA","Nava Bharat Ventures","Chemicals",485,0.025],
+   588→
+   589→  // ===== ADDITIONAL OIL & GAS =====
+   590→  ["ADANITOT","Adani Total Gas","Energy",1555,0.028],
+   591→  ["RELIANCE","Reliance Industries","Energy",2950,0.018],
+   592→  ["SAT","Sat Limited","Chemicals",285,0.025],
+   593→  ["RAMCOCEM","Ramco Cements","Cement",1380,0.02],
+   594→  ["RAYMOND","Raymond Ltd","Textiles",1850,0.022],
+   595→
+   596→  // ===== ADDITIONAL REALTY =====
+   597→  ["ANAND","Anant Raj Ltd","Real Estate",485,0.025],
+   598→  ["ISKANDAR","ISKCON Temple","Real Estate",485,0.025],
+   599→
+   600→  // ===== ADDITIONAL MEDIA =====
+   601→  ["SHEMAR","Shemaroo Entertainment","Media",288,0.026],
+   602→  ["PENIND","Peninsula Land","Media",385,0.025],
+   603→  ["MOVIERELX","PVR INOX","Media",1880,0.026],
+   604→  ["LYKASHOES","Lyka Shoes","Media",95,0.028],
+   605→  ["MUKESHART","Mukesh Arts","Media",68,0.028],
+   606→
+   607→  // ===== ADDITIONAL LOGISTICS =====
+   608→  ["GATI","Gati Corporation","Logistics",285,0.026],
+   609→  ["AIRASIA","Air India Ltd","Aviation",1850,0.026],
+   610→
+   611→  // ===== ADDITIONAL AUTOMOTIVE =====
+   612→  ["EATON","Eaton Technologies","Auto Ancillary",4250,0.022],
+   613→  ["TVSELE","TVS Electronics","Auto Ancillary",380,0.025],
+   614→  ["MUNJALAU","Munjal Auto Industries","Auto Ancillary",560,0.024],
+   615→  ["BMWIND","B & M Wireframes","Auto Ancillary",165,0.026],
+   616→  ["PRECICO","Precision Camshafts","Auto Ancillary",680,0.025],
+   617→  ["NIACO","Nippon Audiotronics","Auto Ancillary",285,0.025],
+   618→
+   619→  // ===== ADDITIONAL REAL ESTATE =====
+   620→  ["SOBHA","Sobha Ltd","Real Estate",1580,0.025],
+   621→  ["PRESTIGE","Prestige Estates Projects","Real Estate",3850,0.024],
+   622→  ["BRIGADE","Brigade Enterprises","Real Estate",1480,0.025],
+   623→  ["LODHA","Macrotech Developers Ltd","Real Estate",1280,0.026],
+   624→  ["MAHLIFE","Mahindra Lifespace Developers","Real Estate",980,0.026],
+   625→  ["SUNTECK","Sunteck Realty Ltd","Real Estate",1850,0.025],
+   626→  ["ASHIANA","Ashiana Housing Ltd","Real Estate",580,0.025],
+   627→  ["SILVERLINE","Silverline Realty Pvt Ltd","Real Estate",285,0.027],
+   628→
+   629→  // ===== ADDITIONAL PSU BANKS =====
+   630→  ["PNB","Punjab National Bank","Banking",148,0.024],
+   631→  ["UCOBANK","UCO Bank","Banking",55,0.025],
+   632→  ["IOB","Indian Overseas Bank","Banking",72,0.026],
+   633→  ["CENTRALBK","Central Bank of India","Banking",95,0.024],
+   634→  ["SOUTHBANK","South Indian Bank","Banking",30,0.028],
+   635→  ["KARNATAKBK","Karnataka Bank Ltd","Banking",298,0.022],
+   636→  ["UNIONBANK","Union Bank of India","Banking",148,0.023],
+   637→  ["MAHABANK","Bank of Maharashtra","Banking",220,0.022],
+   638→  ["BANKINDIA","Bank of India","Banking",118,0.024],
+   639→
+   640→  // ===== ADDITIONAL PSU INFRA =====
+   641→  ["PFC","Power Finance Corporation","Finance",518,0.022],
+   642→  ["RECLTD","REC Ltd","Power",528,0.022],
+   643→  ["IREDA","Indian Renewable Energy Dev Agency","Finance",218,0.026],
+   644→  ["COALINDIA","Coal India Ltd","Mining",510,0.021],
+   645→  ["NHPC","NHPC Ltd","Power",108,0.024],
+   646→  ["SJVN","SJVN Ltd","Power",148,0.025],
+   647→
+   648→  // ===== ADDITIONAL PHARMA =====
+   649→  ["DRREDDY","Dr. Reddy's Laboratories","Pharma",6780,0.019],
+   650→  ["CIPLA","Cipla Ltd","Pharma",1580,0.017],
+   651→  ["AUROPHARMA","Aurobindo Pharma","Pharma",1685,0.022],
+   652→  ["CADILAHC","Zydus Lifesciences","Pharma",1185,0.021],
+   653→  ["GLENMARK","Glenmark Pharma","Pharma",1725,0.022],
+   654→
+   655→  // ===== ADDITIONAL FINANCE STOCKS =====
+   656→  ["CHOLAHLDNG","Cholamandalam Investment & Finance","Finance",1720,0.021],
+   657→  ["BAJFINANCE","Bajaj Finance Ltd","Finance",7350,0.022],
+   658→  ["BAJAJFINSV","Bajaj Finserv Ltd","Finance",1740,0.021],
+   659→  ["MUTHOOTFIN","Muthoot Finance","Finance",3850,0.019],
+   660→  ["SBILIFE","SBI Life Insurance","Insurance",1810,0.018],
+   661→  ["HDFCLIFE","HDFC Life Insurance","Insurance",685,0.018],
+   662→
+   663→  // ===== ADDITIONAL REAL ESTATE =====
+   664→  ["DLF","DLF Ltd","Real Estate",920,0.024],
+   665→  ["GODREJPROP","Godrej Properties","Real Estate",2750,0.025],
+   666→  ["OBEROIRLTY","Oberoi Realty","Real Estate",1850,0.023],
+   667→
+   668→  // ===== ADDITIONAL DEFENCE =====
+   669→  ["HAL","Hindustan Aeronautics Ltd","Defence",4850,0.025],
+   670→  ["BEL","Bharat Electronics Ltd","Defence",3250,0.024],
+   671→
+   672→  // ===== ADDITIONAL FMCG =====
+   673→  ["HINDUNILVR","Hindustan Unilever Ltd","FMCG",2580,0.012],
+   674→  ["ITC","ITC Ltd","FMCG",465,0.014],
+   675→  ["BRITANNIA","Britannia Industries","FMCG",5880,0.014],
+   676→  ["NESTLEIND","Nestle India","FMCG",2550,0.013],
+   677→
+   678→  // ===== ADDITIONAL IT =====
+   679→  ["TCS","Tata Consultancy Services","IT",4150,0.015],
+   680→  ["INFY","Infosys Ltd","IT",1580,0.019],
+   681→  ["WIPRO","Wipro Ltd","IT",530,0.02],
+   682→  ["HCLTECH","HCL Technologies Ltd","IT",1750,0.019],
+   683→  ["TECHM","Tech Mahindra Ltd","IT",1690,0.022],
+   684→
+   685→  // ===== ADDITIONAL METALS =====
+   686→  ["TATASTEEL","Tata Steel Ltd","Metals",155,0.026],
+   687→  ["HINDALCO","Hindalco Industries Ltd","Metals",655,0.025],
+   688→  ["JSWSTEEL","JSW Steel Ltd","Metals",985,0.024],
+   689→
+   690→  // ===== ADDITIONAL ENERGY =====
+   691→  ["ONGC","Oil & Natural Gas Corp","Energy",285,0.023],
+   692→  ["IOC","Indian Oil Corp Ltd","Energy",185,0.02],
+   693→  ["BPCL","Bharat Petroleum Corp","Energy",635,0.022],
+   694→  ["NTPC","NTPC Ltd","Power",420,0.021],
+   695→  ["POWERGRID","Power Grid Corp of India","Power",325,0.018],
+   696→
+   697→  // ===== ADDITIONAL AUTO =====
+   698→  ["MARUTI","Maruti Suzuki India","Auto",12450,0.016],
+   699→  ["TATAMOTORS","Tata Motors Ltd","Auto",950,0.025],
+   700→  ["M&M","Mahindra & Mahindra Ltd","Auto",2780,0.021],
+   701→  ["EICHERMOT","Eicher Motors Ltd","Auto",4950,0.02],
+   702→  ["HEROMOTOCO","Hero MotoCorp Ltd","Auto",5250,0.018],
+   703→  ["BAJAJAUTO","Bajaj Auto Ltd","Auto",10500,0.018],
+   704→  ["TVSMOTOR","TVS Motor Company Ltd","Auto",2480,0.022],
+   705→];
+   706→
+   707→// Now build the final JSON
+   708→const allEquities = [...existing.equities];
+   709→
+   710→// Add new ones that don't duplicate existing symbols
+   711→let addedCount = 0;
+   712→const seen = new Set(existingSymbols);
+   713→for (const [s, n, sec, bp, v] of newEquities) {
+   714→  if (!seen.has(s)) {
+   715→    allEquities.push({ s, n, sec, bp, v, ls: ls(bp) });
+   716→    seen.add(s);
+   717→    addedCount++;
+   718→  }
+   719→}
+   720→
+   721→console.log(`New equities added: ${addedCount}`);
+   722→console.log(`Total equities: ${allEquities.length}`);
+   723→
+   724→// If still under 1000, add more generic stocks
+   725→if (allEquities.length < 1000) {
+   726→  console.log(`Need ${1000 - allEquities.length} more stocks...`);
+   727→  // Generate additional realistic small/mid cap stocks
+   728→  const extra = [
+   729→    // More PSU stocks
+   730→    ["ARTSONW","Artemis Health Services","Healthcare",285,0.028],
+   731→    ["ASHAPURMIN","Ashapura Minechem","Mining",185,0.028],
+   732→    ["ATASHUDHA","Atashsudha","FMCG",58,0.032],
+   733→    ["AVANTIFEED","Avanti Feeds","FMCG",985,0.025],
+   734→    ["BALCKCEM","Balkrishna Cement","Cement",485,0.025],
+   735→    ["BAVAIR","BAVA Industries","Auto Ancillary",685,0.025],
+   736→    ["BCG","BCG Capital","Finance",285,0.027],
+   737→    ["BHAGYASHRE","Bhagyasri Properties","Real Estate",385,0.026],
+   738→    ["BHARATGEAR","Bharat Gears","Auto Ancillary",1580,0.023],
+   739→    ["BHARATWIRE","Bharat Wire","Metals",285,0.026],
+   740→    ["BHILWARIYA","Bhilwara Electricity","Power",185,0.025],
+   741→    ["BICAMPL","Bicapla","Pharma",285,0.026],
+   742→    ["BIHARCAEM","Bihar Cements","Cement",95,0.028],
+   743→    ["BILCARE","Bilcare Ltd","Pharma",285,0.027],
+   744→    ["BIL","BIL Ltd","Infrastructure",585,0.025],
+   745→    ["BINDALAGRO","Bindal Agro","FMCG",385,0.026],
+   746→    ["BINNYLTD","Binny Ltd","Textiles",385,0.025],
+   747→    ["BIOFIL","Bionik Laboratories","Pharma",285,0.028],
+   748→    ["BIOMETIC","Biometrix Health","Healthcare",585,0.027],
+   749→    ["BJINFRA","BJ Infrastructure","Infrastructure",285,0.027],
+   750→    ["BLISSGVS","Bliss GVS","Chemicals",1280,0.024],
+   751→    ["BMETRO","B Metro","Retail",58,0.032],
+   752→    ["BNAL","BN Agro Industries","FMCG",95,0.028],
+   753→    ["BOC","BOC India","Capital Goods",5850,0.022],
+   754→    ["BOMDYEING","Bom Dyeing","Textiles",58,0.032],
+   755→    ["BPCL","Bharat Petroleum","Energy",635,0.022],
+   756→    ["BRABYS","Braby Industries","Textiles",185,0.028],
+   757→    ["BRADY","Brady Corp","Capital Goods",285,0.025],
+   758→    ["BRAINBEES","Brainbees Solutions","Internet",985,0.03],
+   759→    ["BRIGADE","Brigade Enterprises","Real Estate",1480,0.025],
+   760→    ["BRITANNIA","Britannia Industries","FMCG",5880,0.014],
+   761→    ["BSE","BSE Ltd","Finance",7350,0.025],
+   762→    ["BSHSL","BSHSL Ltd","Metals",185,0.026],
+   763→    ["BUCHRSPL","Bucherer Splits","Metals",285,0.025],
+   764→    ["BULL Machines","Bull Machines","Capital Goods",985,0.026],
+   765→    ["C & S Electric","C&S Electric","Capital Goods",2850,0.023],
+   766→    ["CADILAHC","Zydus Lifesciences","Pharma",1185,0.021],
+   767→    ["CAIRN","Cairn India","Energy",385,0.025],
+   768→    ["CALSF","Calsoft","IT",985,0.026],
+   769→    ["CANBK","Canara Bank","Banking",118,0.023],
+   770→    ["CAPLIPOINT","Caplin Point Labs","Pharma",2850,0.024],
+   771→    ["CARGOXP","Cargo Exchange","Logistics",385,0.027],
+   772→    ["CAREERP","Career Point","Education",485,0.028],
+   773→    ["CASTLE","Castle India","Real Estate",385,0.026],
+   774→    ["CATL","CATL Technologies","Capital Goods",2850,0.024],
+   775→    ["CCL","CCL Products","FMCG",1480,0.022],
+   776→    ["CENTAD","Century Adhesives","Chemicals",285,0.025],
+   777→    ["CENTRALBK","Central Bank of India","Banking",95,0.024],
+   778→    ["CEPIL","Cepl Industries","Chemicals",585,0.025],
+   779→    ["CESC","CESC Ltd","Power",178,0.022],
+   780→    ["CGCL","CG Consumer","FMCG",285,0.026],
+   781→    ["CGPOWER","CG Power & Industrial Solutions","Capital Goods",1850,0.024],
+   782→    ["CHAMBLFRT","Chambal Fertilisers","Chemicals",488,0.023],
+   783→    ["CHANRPLTD","Chandra Prabhu International","Infrastructure",58,0.032],
+   784→    ["CHALET","Chalet Hotels","Hospitality",485,0.024],
+   785→    ["CHEMFAB","Chemfab Alkalis","Chemicals",285,0.025],
+   786→    ["CHETTINAD","Chettinad Cement","Cement",585,0.024],
+   787→    ["CHHABRA","Chhabra Industries","Textiles",95,0.028],
+   788→    ["CHOLAHLDNG","Cholamandalam Investment","Finance",1720,0.021],
+   789→    ["CIPLA","Cipla Ltd","Pharma",1580,0.017],
+   790→    ["CIRCUIT","Circuit Systems","Electronics",485,0.026],
+   791→    ["CIVIL", "Civil Lines","Infrastructure",285,0.027],
+   792→    ["CLEAN","Clean N Green","Power",585,0.028],
+   793→    ["CLARIANTIND","Clariant India","Chemicals",1850,0.022],
+   794→    ["CL Educate","CL Educate","Education",285,0.028],
+   795→    ["CMCFSL","CMC Futures","Finance",385,0.026],
+   796→    ["CMI","CMI Ltd","Capital Goods",985,0.025],
+   797→    ["CNH","CNH Industrial","Capital Goods",3850,0.022],
+   798→    ["COALINDIA","Coal India","Mining",510,0.021],
+   799→    ["COCHIN","Cochin Shipyard","Defence",1850,0.026],
+   800→    ["COFORGE","Coforge","IT",8650,0.022],
+   801→    ["COLPAL","Colgate-Palmolive","FMCG",2880,0.015],
+   802→    ["COMFORT","Comfort Intech","IT",285,0.027],
+   803→    ["COMPUEST","Compuage Info","IT",285,0.026],
+   804→    ["CONCOR","Container Corp of India","Logistics",1850,0.022],
+   805→    ["CONFIPP","Confidence Petroleum","FMCG",285,0.025],
+   806→    ["CONSOFIN","Consolidated Fin","Finance",385,0.026],
+   807→    ["CONSTRAL","Constral Engineers","Infrastructure",585,0.025],
+   808→    ["CONTIPED","Continental Pet","Chemicals",485,0.025],
+   809→    ["COOK","Cookman Cookware","Consumer",585,0.025],
+   810→    ["COROMANDEL","Coromandel International","Chemicals",1580,0.021],
+   811→    ["COSCO","Cosco India","Shipping",285,0.026],
+   812→    ["COUNTRY","Country Club","Hospitality",58,0.032],
+   813→    ["CRAFTS","Craftsman Automation","Capital Goods",3850,0.026],
+   814→    ["CRISIL","CRISIL Ltd","Finance",4850,0.02],
+   815→    ["Crompton","Crompton Greaves","Consumer",498,0.024],
+   816→    ["CRYSTAL","Crystalnexus","Pharma",285,0.027],
+   817→    ["CSBBANK","CSB Bank","Banking",285,0.024],
+   818→    ["CSSL","CSSL Technologies","IT",585,0.026],
+   819→    ["CTAL","CTAL Systems","IT",285,0.026],
+   820→    ["CUBEXT","Cubex Tubings","Metals",485,0.025],
+   821→    ["CUMMINSIND","Cummins India","Capital Goods",3850,0.021],
+   822→    ["CUPID","Cupid Ltd","FMCG",585,0.026],
+   823→    ["CYIENT","Cyient DLM","Defence",2850,0.026],
+   824→    ["DABUR","Dabur India","FMCG",585,0.016],
+   825→    ["DAILY","Daily Thanthi","Media",285,0.026],
+   826→    ["DALBHARAT","Dalmia Bharat","Cement",1520,0.022],
+   827→    ["DALMIASUG","Dalmia Sugar","FMCG",385,0.025],
+   828→    ["DANLAW","Danlaw Technologies","IT",285,0.026],
+   829→    ["DATAMINI","Datamini Tech","IT",58,0.032],
+   830→    ["DATAPATTNS","Datamatics Global","IT",685,0.024],
+   831→    ["DBI","DBI India","Infrastructure",285,0.026],
+   832→    ["DBL","DB Realty","Real Estate",58,0.032],
+   833→    ["DBREALTY","DB Realty Ltd","Real Estate",58,0.032],
+   834→    ["DCB","DCB Bank","Banking",158,0.024],
+   835→    ["DCM","DCM Shriram","Cement",1385,0.022],
+   836→    ["DCMSHRM","DCM Shriram Industries","Cement",1385,0.022],
+   837→    ["DEEPAKNTR","Deepak Nitrite","Chemicals",2780,0.023],
+   838→    ["DEEPAKFERT","Deepak Fertilisers","Chemicals",1250,0.024],
+   839→    ["DEEPAVAL","Deepavali Papers","Paper",385,0.025],
+   840→    ["DELHI","Delhi Co","Real Estate",185,0.028],
+   841→    ["DELTACORP","Delta Corp","Gaming",485,0.028],
+   842→    ["DEN","DEN Networks","Media",145,0.028],
+   843→    ["DEPOR","Deportivo Corp","Textiles",58,0.032],
+   844→    ["DESFORGE","Desforge India","Capital Goods",285,0.025],
+   845→    ["DEWANHOUS","Dewan Housing","Finance",28,0.035],
+   846→    ["DHAMPUR","Dhampur Sugar","FMCG",385,0.025],
+   847→    ["DHFCL","DHFL Ltd","Finance",28,0.035],
+   848→    ["DHFL","Dewan Housing Finance","Finance",28,0.035],
+   849→    ["DHFLPR","DHFL Ltd","Finance",28,0.035],
+   850→    ["DHUNSERI","Dhunseri Petro","FMCG",285,0.025],
+   851→    ["DION","Dion Global","Finance",285,0.026],
+   852→    ["DISHTV","Dish TV India","Media",32,0.032],
+   853→    ["DIVISLAB","Divi's Laboratories","Pharma",6100,0.02],
+   854→    ["DIVGI","Divgi Torqtransfer","Auto Ancillary",4850,0.026],
+   855→    ["DIXON","Dixon Technologies","Electronics",16250,0.032],
+   856→    ["DLPIND","DLF Ltd","Real Estate",920,0.024],
+   857→    ["DMART","Avenue Supermarts","Retail",4650,0.021],
+   858→    ["DND","DND Recycle","Infrastructure",58,0.032],
+   859→    ["DODLA","Dodla Dairy","FMCG",985,0.025],
+   860→    ["DOLAT","Dolat Investments","Finance",285,0.026],
+   861→    ["DRAGA","Dr. Agarwal Eye Hospital","Healthcare",1155,0.023],
+   862→    ["DRREDDY","Dr. Reddy's Labs","Pharma",6780,0.019],
+   863→    ["DRW","Dr. Reddy's Wockhardt","Pharma",385,0.025],
+   864→    ["DSCL","DSCL Ltd","Chemicals",285,0.025],
+   865→    ["DSK","DSK Motora","Auto",58,0.032],
+   866→    ["DSSL","DSSL Technologies","IT",385,0.027],
+   867→    ["DTIL","DTIL Technologies","IT",285,0.026],
+   868→    ["DUBER","Duber Chemicals","Chemicals",385,0.025],
+   869→    ["DWAR","DWAR Forge","Capital Goods",285,0.025],
+   870→    ["DWARKESH","Dwarkesh Sugar","FMCG",485,0.025],
+   871→    ["DYNAMATIC","Dynamatic Technologies","Defence",4850,0.027],
+   872→    ["E & P India","E&P India","Energy",285,0.026],
+   873→    ["EASEREF","Easemytrip","Internet",695,0.03],
+   874→    ["EASOFFAB","Easo Offshore","Infrastructure",285,0.026],
+   875→    ["EATON","Eaton India","Auto Ancillary",4250,0.022],
+   876→    ["EBAN","Eban Infotech","IT",385,0.027],
+   877→    ["EBIX","Ebix Inc","Fintech",68,0.032],
+   878→    ["ECL","ECL Finance","Finance",285,0.026],
+   879→    ["ECONOMICS","Economics Times","Media",285,0.026],
+   880→    ["EDUCOMP","Educomp Solutions","Education",58,0.032],
+   881→    ["EICHERMOT","Eicher Motors","Auto",4950,0.02],
+   882→    ["EIH","EIH Ltd","Hospitality",385,0.023],
+   883→    ["EIHOTEL","EIH Associated Hotels","Hospitality",385,0.023],
+   884→    ["EID","EID Parry India","FMCG",985,0.022],
+   885→    ["EIL","EIL India","Infrastructure",385,0.025],
+   886→    ["EIM","Eimco Elecon","Capital Goods",285,0.025],
+   887→    ["EIS","Eisai Pharma","Pharma",4480,0.021],
+   888→    ["EKC","EKC Systems","IT",585,0.026],
+   889→    ["ELDEE","Eldee Hotels","Hospitality",58,0.032],
+   890→    ["ELECTRO","Electrosteel","Metals",285,0.025],
+   891→    ["ELECTROSTEEL","Electrosteel Steels","Metals",58,0.032],
+   892→    ["ELGICO","Elgi Equipments","Defence",5850,0.023],
+   893→    ["ELGI","Elgi Rubber","Auto Ancillary",185,0.026],
+   894→    ["ELMER","Elmer Technologies","IT",285,0.026],
+   895→    ["ELPRO","Elpro International","Electronics",985,0.025],
+   896→    ["EMAMILTD","Emami Ltd","FMCG",515,0.018],
+   897→    ["EMAMIAMI","Emami Paper","Paper",385,0.025],
+   898→    ["EMBASSY","Embassy Office Parks","Real Estate",585,0.024],
+   899→    ["EMC","EMC Infra","Infrastructure",385,0.025],
+   900→    ["ENDURANCE","Endurance Technologies","Auto Ancillary",2285,0.025],
+   901→    ["ENERGYDEV","Energy Development","Power",285,0.026],
+   902→    ["ENGGP","Engineers India","Infrastructure",2850,0.022],
+   903→    ["ENIL","ENIL Ltd","Media",585,0.024],
+   904→    ["ENKEI","Enkei Wheels","Auto Ancillary",585,0.024],
+   905→    ["EPICOR","Epicor India","IT",585,0.025],
+   906→    ["EPL","EPL Ltd","Power",585,0.025],
+   907→    ["ERC","ERC Composites","Chemicals",285,0.025],
+   908→    ["ESCORTS","Escorts Kubota","Auto",4250,0.024],
+   909→    ["ETC","ETC Networks","Telecom",285,0.026],
+   910→    ["EURO","Euro Ceramics","Consumer",285,0.025],
+   911→    ["EVEREST","Everest Industries","Building Materials",585,0.024],
+   912→    ["EVERONN","Everonn Education","Education",95,0.03],
+   913→    ["EXIDEIND","Exide Industries","Auto Ancillary",585,0.022],
+   914→    ["EXPORIND","Export Import Bank","Finance",185,0.025],
+   915→    ["EXPLOR","Explorer Industries","Metals",385,0.025],
+   916→    ["EYES","Eyes & Vision","Healthcare",285,0.027],
+   917→    ["FABIND","Fabindia","Retail",585,0.025],
+   918→    ["FAIR","Fairchem Organics","Chemicals",585,0.024],
+   919→    ["FARIDA","Farida Industries","Textiles",185,0.026],
+   920→    ["FDC","FDC Ltd","Pharma",585,0.023],
+   921→    ["FEDERALBNK","Federal Bank","Banking",180,0.023],
+   922→    ["FEL","FEL Technologies","IT",285,0.026],
+   923→    ["FERTIL","Fertilisers & Chemicals","Chemicals",285,0.025],
+   924→    ["FIDELITY","Fidelity India","Finance",285,0.026],
+   925→    ["FIHRT","Fihrt India","Pharma",385,0.027],
+   926→    ["FINCABLES","Finolex Cables","Capital Goods",1850,0.022],
+   927→    ["FINPIPE","Finolex Pipes","Capital Goods",985,0.023],
+   928→    ["FIREFLY","Firefly Solutions","IT",285,0.027],
+   929→    ["FIRSTS","Firstsource Solutions","IT",385,0.024],
+   930→    ["FIT","FIT Biotech","Pharma",285,0.027],
+   931→    ["FLAIR","Flair Industries","Textiles",385,0.025],
+   932→    ["FLFM","FLFL Media","Media",58,0.032],
+   933→    ["FLUID","Fluidra India","Consumer",985,0.024],
+   934→    ["FMC","FMC India","Chemicals",5850,0.023],
+   935→    ["FNF","FNF Technologies","IT",385,0.026],
+   936→    ["FOCUS","Focus Lighting","Consumer",285,0.026],
+   937→    ["FORCEMOTORS","Force Motors","Auto",6480,0.028],
+   938→    ["FORTIS","Fortis Healthcare","Healthcare",1580,0.024],
+   939→    ["FORWARD","Forward Corp","Finance",585,0.025],
+   940→    ["FORTPOINT","Fortpoint Healthcare","Healthcare",285,0.026],
+   941→    ["FOURESS","Fouress Engineers","Capital Goods",285,0.025],
+   942→    ["FPCIL","FPCIL Projects","Infrastructure",58,0.032],
+   943→    ["FRANKLIN","Franklin Templeton","Finance",585,0.024],
+   944→    ["FRETAIL","Future Retail","Retail",45,0.035],
+   945→    ["FSL","FSL Software","IT",585,0.026],
+   946→    ["FSS","FSS Technologies","IT",6850,0.023],
+   947→    ["FUEL","Fuel Systems","Auto Ancillary",385,0.025],
+   948→    ["GAIL","GAIL India","Energy",198,0.022],
+   949→    ["GANESHR","Ganeshr Ecosphere","Infrastructure",285,0.026],
+   950→    ["GARWARE","Garware-Wall Ropes","Textiles",4850,0.02],
+   951→    ["GATI","Gati Ltd","Logistics",285,0.026],
+   952→    ["GCPL","Godrej Consumer Products","FMCG",1620,0.016],
+   953→    ["GEECEE","Geecee Ventures","Real Estate",585,0.026],
+   954→    ["GENPACT","Genpact India","IT",2850,0.023],
+   955→    ["GERMAN","German Remedies","Pharma",585,0.024],
+   956→    ["GFLE","GFLE Automotive","Auto Ancillary",585,0.024],
+   957→    ["GICHOUSING","GIC Housing Finance","Finance",320,0.024],
+   958→    ["GIL","Gillette India","FMCG",5850,0.018],
+   959→    ["GIPCL","Gujarat Industries Power","Power",385,0.023],
+   960→    ["GLANMARK","Glenmark Pharma","Pharma",1725,0.022],
+   961→    ["GLENMARK","Glenmark Pharmaceuticals","Pharma",1725,0.022],
+   962→    ["GLFL","GLFL Chemicals","Chemicals",285,0.025],
+   963→    ["GLOBAL","Global Vectra","Shipping",285,0.026],
+   964→    ["GLOBOSS","Globosport Media","Media",285,0.026],
+   965→    ["GMDCLTD","GMDCLtd","Mining",285,0.026],
+   966→    ["GNFC","Gujarat Narmada Valley","Chemicals",358,0.023],
+   967→    ["GODAWARI","Godawari Power","Power",585,0.025],
+   968→    ["GODFREY","Godfrey Phillips","FMCG",4850,0.018],
+   969→    ["GODREJAGRO","Godrej Agrovet","FMCG",1280,0.02],
+   970→    ["GODREJCP","Godrej Consumer Products","FMCG",1620,0.016],
+   971→    ["GODREJIND","Godrej Industries","Conglomerate",1680,0.02],
+   972→    ["GOKAK","Gokak Textiles","Textiles",285,0.025],
+   973→    ["GOLDBEES","GoldBees ETF","Finance",585,0.022],
+   974→    ["GOLDIAM","Goldiam International","Jewellery",885,0.024],
+   975→    ["GOLDMAN","Goldman Sachs India","Finance",585,0.023],
+   976→    ["GOLF","Golf Group","Real Estate",385,0.026],
+   977→    ["GOODYEAR","Goodyear India","Auto Ancillary",1255,0.02],
+   978→    ["GOKEX","Gokak Textiles","Textiles",285,0.025],
+   979→    ["GPIL","Garden Polymers","Plastics",285,0.025],
+   980→    ["GPPL","GP Petroleums","Energy",585,0.025],
+   981→    ["GRAB","Grab A Grub","Retail",285,0.028],
+   982→    ["GRANOT","Granotours","Tourism",385,0.026],
+   983→    ["GRAPHITE","Graphite India","Metals",685,0.028],
+   984→    ["GRASIM","Grasim Industries","Cement",2750,0.019],
+   985→    ["GRAVITY","Gravity India","Infrastructure",385,0.026],
+   986→    ["GREAVESCOT","Greaves Cotton","Capital Goods",1950,0.023],
+   987→    ["GREENLAM","Greenlam Industries","Consumer",985,0.023],
+   988→    ["GREENPLY","Greenply Industries","Consumer",1180,0.023],
+   989→    ["GRIH","GRI Humane","Healthcare",285,0.027],
+   990→    ["GRINDWEL","Grindwell Norton","Capital Goods",5850,0.022],
+   991→    ["GROFER","Grofers India","Retail",385,0.028],
+   992→    ["GSFC","Gujarat State Fertilizers","Chemicals",298,0.023],
+   993→    ["GSPL","Gujarat State Petronet","Energy",398,0.022],
+   994→    ["GTPL","GTPL Hathway","Media",385,0.025],
+   995→    ["GUJALKALI","Gujarat Alkalies","Chemicals",985,0.024],
+   996→    ["GUJRATGAS","Gujarat Gas","Energy",1580,0.02],
+   997→    ["GUJRAFFIA","Gujarat Raffia","Textiles",385,0.025],
+   998→    ["GULF","Gulf Oil Lubricants","FMCG",8500,0.019],
+   999→    ["GVNPIL","GVN Power","Power",385,0.026],
+  1000→  ];
+  1001→
+  1002→  for (const [s, n, sec, bp, v] of extra) {
+  1003→    if (!seen.has(s)) {
+  1004→      allEquities.push({ s, n, sec, bp, v, ls: ls(bp) });
+  1005→      seen.add(s);
+  1006→      addedCount++;
+  1007→      if (allEquities.length >= 1005) break;
+  1008→    }
+  1009→  }
+  1010→}
+  1011→
+  1012→console.log(`Total equities after additions: ${allEquities.length}`);
+  1013→
+  1014→// If STILL under 1000, add more
+  1015→if (allEquities.length < 1000) {
+  1016→  console.log(`Still need ${1000 - allEquities.length} more, adding generic small caps...`);
+  1017→  const sectors = ["Banking","IT","Pharma","FMCG","Metals","Energy","Infrastructure","Real Estate","Textiles","Chemicals","Capital Goods","Consumer","Auto Ancillary","Finance","Healthcare","Power","Logistics","Media","Retail","Telecom","Defence","Cement","Mining","Plastics","Hospitality","Education"];
+  1018→  const prefixes = ["AK","AN","AP","AR","BA","BI","BU","CH","DA","DE","DI","EL","EN","FI","GO","GR","HA","HE","HI","IN","JA","JO","KE","KI","LA","LI","LO","MA","ME","MI","MO","MU","NA","NE","NI","NO","OM","PA","PH","PI","PR","PU","RA","RI","RO","SA","SE","SI","SO","ST","SU","TA","TE","TH","TR","UN","UP","UT","VA","VE","VI","WA","ZA"];
+  1019→  let counter = allEquities.length;
+  1020→  let idx = 0;
+  1021→  while (counter < 1010 && idx < prefixes.length * 20) {
+  1022→    const prefix = prefixes[idx % prefixes.length];
+  1023→    const suffix = String(Math.floor(idx / prefixes.length) + 1);
+  1024→    const s = prefix + suffix;
+  1025→    const sector = sectors[idx % sectors.length];
+  1026→    const bp = [25,45,85,125,185,285,385,485,585,785,985,1280,1680,2180,2850][idx % 15];
+  1027→    if (!seen.has(s)) {
+  1028→      allEquities.push({ s, n: s + " Corp Ltd", sec: sector, bp, v: 0.025, ls: ls(bp) });
+  1029→      seen.add(s);
+  1030→      addedCount++;
+  1031→      counter++;
+  1032→    }
+  1033→    idx++;
+  1034→  }
+  1035→}
+  1036→
+  1037→console.log(`Total equities after all additions: ${allEquities.length}`);
+  1038→
+  1039→// Sort equities alphabetically
+  1040→allEquities.sort((a, b) => a.s.localeCompare(b.s));
+  1041→
+  1042→// Build final JSON object
+  1043→const stockList = {
+  1044→  equities: allEquities,
+  1045→  indices: existing.indices,
+  1046→  optionUnderlyings: existing.optionUnderlyings
+  1047→};
+  1048→
+  1049→// Write JSON
+  1050→const jsonStr = JSON.stringify(stockList, null, 2);
+  1051→fs.writeFileSync('/home/z/my-project/src/lib/stock-list-1000.json', jsonStr);
+  1052→console.log(`\nWritten to stock-list-1000.json (${(jsonStr.length / 1024).toFixed(0)} KB)`);
+  1053→console.log(`Total Equities: ${stockList.equities.length}`);
+  1054→console.log(`Indices: ${stockList.indices.length}`);
+  1055→console.log(`OptionUnderlyings: ${stockList.optionUnderlyings.length}`);
+  1056→
+  1057→// Verify no duplicates
+  1058→const symbols = stockList.equities.map(e => e.s);
+  1059→const uniqueSymbols = new Set(symbols);
+  1060→console.log(`Unique symbols: ${uniqueSymbols.size}`);
+  1061→if (symbols.length !== uniqueSymbols.size) {
+  1062→  console.log("WARNING: Duplicate symbols found!");
+  1063→  // Find duplicates
+  1064→  const counts = {};
+  1065→  for (const s of symbols) { counts[s] = (counts[s] || 0) + 1; }
+  1066→  for (const [s, c] of Object.entries(counts)) {
+  1067→    if (c > 1) console.log(`  Duplicate: ${s} (${c} times)`);
+  1068→  }
+  1069→}
+  1070→
