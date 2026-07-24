@@ -1,0 +1,8263 @@
+{
+  "equities": [
+    {
+      "s": "360ONE",
+      "n": "360 ONE WAM",
+      "sec": "Finance",
+      "bp": 8500,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "AARTIDRUGS",
+      "n": "Aarti Drugs",
+      "sec": "Pharma",
+      "bp": 788,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "AARTIIND",
+      "n": "Aarti Industries",
+      "sec": "Chemicals",
+      "bp": 1285,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "AARVEE",
+      "n": "Aarvee Defence Systems",
+      "sec": "Defence",
+      "bp": 1850,
+      "v": 0.027,
+      "ls": 250
+    },
+    {
+      "s": "ABB",
+      "n": "ABB India",
+      "sec": "Capital Goods",
+      "bp": 7350,
+      "v": 0.02,
+      "ls": 75
+    },
+    {
+      "s": "ABBOTINDIA",
+      "n": "Abbott India",
+      "sec": "Pharma",
+      "bp": 28800,
+      "v": 0.016,
+      "ls": 5
+    },
+    {
+      "s": "ABMKN",
+      "n": "ABM Knowledgeware",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "ACC",
+      "n": "ACC Limited",
+      "sec": "Cement",
+      "bp": 2580,
+      "v": 0.019,
+      "ls": 350
+    },
+    {
+      "s": "ACIINFO",
+      "n": "ACI Infosystems",
+      "sec": "IT",
+      "bp": 1250,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "ADANIENSOL",
+      "n": "Adani Energy Sol",
+      "sec": "Power",
+      "bp": 2150,
+      "v": 0.032,
+      "ls": 400
+    },
+    {
+      "s": "ADANIENT",
+      "n": "Adani Enterprises",
+      "sec": "Conglomerate",
+      "bp": 3200,
+      "v": 0.03,
+      "ls": 250
+    },
+    {
+      "s": "ADANIGAS",
+      "n": "Adani Total Gas",
+      "sec": "Energy",
+      "bp": 1555,
+      "v": 0.028,
+      "ls": 250
+    },
+    {
+      "s": "ADANIGREEN",
+      "n": "Adani Green Energy",
+      "sec": "Power",
+      "bp": 1850,
+      "v": 0.03,
+      "ls": 500
+    },
+    {
+      "s": "ADANIPORTS",
+      "n": "Adani Ports",
+      "sec": "Infrastructure",
+      "bp": 1470,
+      "v": 0.02,
+      "ls": 500
+    },
+    {
+      "s": "ADANIPWR",
+      "n": "Adani Power",
+      "sec": "Power",
+      "bp": 685,
+      "v": 0.03,
+      "ls": 500
+    },
+    {
+      "s": "ADANISOLAR",
+      "n": "Adani Solar Energy",
+      "sec": "Power",
+      "bp": 1480,
+      "v": 0.028,
+      "ls": 250
+    },
+    {
+      "s": "ADANITOT",
+      "n": "Adani Total Gas",
+      "sec": "Energy",
+      "bp": 1555,
+      "v": 0.028,
+      "ls": 250
+    },
+    {
+      "s": "AEGISLOGIC",
+      "n": "Aegis Logistics",
+      "sec": "Logistics",
+      "bp": 380,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "AFFLE",
+      "n": "Affle India",
+      "sec": "IT",
+      "bp": 1485,
+      "v": 0.028,
+      "ls": 250
+    },
+    {
+      "s": "AIRASIA",
+      "n": "Air India Ltd",
+      "sec": "Aviation",
+      "bp": 1850,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "AK1",
+      "n": "AK1 Corp Ltd",
+      "sec": "Banking",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "AK2",
+      "n": "AK2 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "AK3",
+      "n": "AK3 Corp Ltd",
+      "sec": "Mining",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "AK4",
+      "n": "AK4 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "AK5",
+      "n": "AK5 Corp Ltd",
+      "sec": "Retail",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "AK6",
+      "n": "AK6 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "ALKEM",
+      "n": "Alkem Laboratories",
+      "sec": "Pharma",
+      "bp": 6050,
+      "v": 0.021,
+      "ls": 100
+    },
+    {
+      "s": "ALLCARGO",
+      "n": "Allcargo Logistics",
+      "sec": "Logistics",
+      "bp": 165,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "ALOKINDS",
+      "n": "Alok Industries",
+      "sec": "Textiles",
+      "bp": 22,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "AMARAJABAT",
+      "n": "Amara Raja Batteries",
+      "sec": "Auto Ancillary",
+      "bp": 1485,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "AMBUJACEM",
+      "n": "Ambuja Cements",
+      "sec": "Cement",
+      "bp": 710,
+      "v": 0.02,
+      "ls": 1000
+    },
+    {
+      "s": "AN1",
+      "n": "AN1 Corp Ltd",
+      "sec": "IT",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "AN2",
+      "n": "AN2 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "AN3",
+      "n": "AN3 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "AN4",
+      "n": "AN4 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "AN5",
+      "n": "AN5 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "AN6",
+      "n": "AN6 Corp Ltd",
+      "sec": "Metals",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "ANAND",
+      "n": "Anand Automotive",
+      "sec": "Auto Ancillary",
+      "bp": 385,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "ANANT RAJ",
+      "n": "Anant Raj Ltd",
+      "sec": "Real Estate",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ANDHRCMENT",
+      "n": "Andhra Cements",
+      "sec": "Cement",
+      "bp": 158,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "ANGELONE",
+      "n": "Angel One Ltd",
+      "sec": "Fintech",
+      "bp": 3850,
+      "v": 0.028,
+      "ls": 100
+    },
+    {
+      "s": "AP1",
+      "n": "AP1 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "AP2",
+      "n": "AP2 Corp Ltd",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "AP3",
+      "n": "AP3 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "AP4",
+      "n": "AP4 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "AP5",
+      "n": "AP5 Corp Ltd",
+      "sec": "Defence",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "AP6",
+      "n": "AP6 Corp Ltd",
+      "sec": "Energy",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "APLAPOLLO",
+      "n": "APL Apollo Tubes",
+      "sec": "Metals",
+      "bp": 1880,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "APOLLOHOSP",
+      "n": "Apollo Hospitals",
+      "sec": "Healthcare",
+      "bp": 6850,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "AR1",
+      "n": "AR1 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "AR2",
+      "n": "AR2 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "AR3",
+      "n": "AR3 Corp Ltd",
+      "sec": "Education",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "AR4",
+      "n": "AR4 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "AR5",
+      "n": "AR5 Corp Ltd",
+      "sec": "Cement",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "AR6",
+      "n": "AR6 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "ARTSONW",
+      "n": "Artemis Health Services",
+      "sec": "Healthcare",
+      "bp": 285,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "ASHAPURMIN",
+      "n": "Ashapura Minechem",
+      "sec": "Mining",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "ASHIANA",
+      "n": "Ashiana Housing",
+      "sec": "Real Estate",
+      "bp": 580,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ASHOKLEY",
+      "n": "Ashok Leyland",
+      "sec": "Auto",
+      "bp": 268,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "ASIANPAINT",
+      "n": "Asian Paints",
+      "sec": "Consumer",
+      "bp": 2980,
+      "v": 0.017,
+      "ls": 200
+    },
+    {
+      "s": "ASTRAL",
+      "n": "Astral Ltd",
+      "sec": "Consumer",
+      "bp": 2180,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "ATASHUDHA",
+      "n": "Atashsudha",
+      "sec": "FMCG",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "ATUL",
+      "n": "Atul Ltd",
+      "sec": "Chemicals",
+      "bp": 8950,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "ATULAUTO",
+      "n": "Atul Auto",
+      "sec": "Auto",
+      "bp": 1380,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "AUBANK",
+      "n": "AU Small Finance Bank",
+      "sec": "Banking",
+      "bp": 725,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "AUROPHARMA",
+      "n": "Aurobindo Pharma",
+      "sec": "Pharma",
+      "bp": 1685,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "AVANTIFEED",
+      "n": "Avanti Feeds",
+      "sec": "FMCG",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "AXISBANK",
+      "n": "Axis Bank",
+      "sec": "Banking",
+      "bp": 1175,
+      "v": 0.019,
+      "ls": 900
+    },
+    {
+      "s": "BA1",
+      "n": "BA1 Corp Ltd",
+      "sec": "Metals",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "BA2",
+      "n": "BA2 Corp Ltd",
+      "sec": "Power",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BA3",
+      "n": "BA3 Corp Ltd",
+      "sec": "Banking",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "BA4",
+      "n": "BA4 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "BA5",
+      "n": "BA5 Corp Ltd",
+      "sec": "Mining",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "BAJAJALL",
+      "n": "Bajaj Allianz General Insurance",
+      "sec": "Insurance",
+      "bp": 2850,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "BAJAJAUTO",
+      "n": "Bajaj Auto",
+      "sec": "Auto",
+      "bp": 10500,
+      "v": 0.018,
+      "ls": 75
+    },
+    {
+      "s": "BAJAJELEC",
+      "n": "Bajaj Electricals",
+      "sec": "Consumer",
+      "bp": 1050,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "BAJAJFINSV",
+      "n": "Bajaj Finserv",
+      "sec": "Finance",
+      "bp": 1740,
+      "v": 0.021,
+      "ls": 125
+    },
+    {
+      "s": "BAJAJHLDNG",
+      "n": "Bajaj Holdings",
+      "sec": "Conglomerate",
+      "bp": 8150,
+      "v": 0.016,
+      "ls": 75
+    },
+    {
+      "s": "BAJFINANCE",
+      "n": "Bajaj Finance",
+      "sec": "Finance",
+      "bp": 7350,
+      "v": 0.022,
+      "ls": 125
+    },
+    {
+      "s": "BALAMINE",
+      "n": "Balaji Amines",
+      "sec": "Chemicals",
+      "bp": 2180,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "BALCKCEM",
+      "n": "Balkrishna Cement",
+      "sec": "Cement",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BANKBARODA",
+      "n": "Bank of Baroda",
+      "sec": "Banking",
+      "bp": 315,
+      "v": 0.022,
+      "ls": 2850
+    },
+    {
+      "s": "BANKINDIA",
+      "n": "Bank of India",
+      "sec": "Banking",
+      "bp": 118,
+      "v": 0.024,
+      "ls": 2500
+    },
+    {
+      "s": "BARBEQUE",
+      "n": "Barbeque Nation Hospitality",
+      "sec": "Retail",
+      "bp": 1280,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "BATAINDIA",
+      "n": "Bata India",
+      "sec": "Retail",
+      "bp": 1550,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "BAVAIR",
+      "n": "BAVA Industries",
+      "sec": "Auto Ancillary",
+      "bp": 685,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "BBCL",
+      "n": "B&B Corporate Services",
+      "sec": "FMCG",
+      "bp": 385,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "BCG",
+      "n": "BCG Capital",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "BEL",
+      "n": "Bharat Electronics Ltd",
+      "sec": "Defence",
+      "bp": 3250,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "BEML",
+      "n": "BEML Ltd",
+      "sec": "Defence",
+      "bp": 3850,
+      "v": 0.026,
+      "ls": 100
+    },
+    {
+      "s": "BERGEPAINT",
+      "n": "Berger Paints",
+      "sec": "Consumer",
+      "bp": 580,
+      "v": 0.017,
+      "ls": 900
+    },
+    {
+      "s": "BHAGYASHRE",
+      "n": "Bhagyasri Properties",
+      "sec": "Real Estate",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "BHARATFORG",
+      "n": "Bharat Forge",
+      "sec": "Auto Ancillary",
+      "bp": 1585,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "BHARATGEAR",
+      "n": "Bharat Gear",
+      "sec": "Auto Ancillary",
+      "bp": 1580,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "BHARATWIRE",
+      "n": "Bharat Wire",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "BHARTIARTL",
+      "n": "Bharti Airtel",
+      "sec": "Telecom",
+      "bp": 1620,
+      "v": 0.02,
+      "ls": 475
+    },
+    {
+      "s": "BHEL",
+      "n": "Bharat Heavy Electricals",
+      "sec": "Capital Goods",
+      "bp": 3850,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "BHILWARIYA",
+      "n": "Bhilwara Electricity",
+      "sec": "Power",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "BI1",
+      "n": "BI1 Corp Ltd",
+      "sec": "Energy",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BI2",
+      "n": "BI2 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "BI3",
+      "n": "BI3 Corp Ltd",
+      "sec": "IT",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "BI4",
+      "n": "BI4 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "BI5",
+      "n": "BI5 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "BICAMPL",
+      "n": "Bicapla",
+      "sec": "Pharma",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "BIHARCAEM",
+      "n": "Bihar Cements",
+      "sec": "Cement",
+      "bp": 95,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "BIL",
+      "n": "BIL Ltd",
+      "sec": "Infrastructure",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "BILCARE",
+      "n": "Bilcare Ltd",
+      "sec": "Pharma",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "BINDALAGRO",
+      "n": "Bindal Agro",
+      "sec": "FMCG",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "BINNYLTD",
+      "n": "Binny Ltd",
+      "sec": "Textiles",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BIOCON",
+      "n": "Biocon",
+      "sec": "Pharma",
+      "bp": 370,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "BIOFIL",
+      "n": "Bionik Laboratories",
+      "sec": "Pharma",
+      "bp": 285,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "BIOMETIC",
+      "n": "Biometrix Health",
+      "sec": "Healthcare",
+      "bp": 585,
+      "v": 0.027,
+      "ls": 500
+    },
+    {
+      "s": "BIRLACORPN",
+      "n": "Birla Corporation",
+      "sec": "Cement",
+      "bp": 1380,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "BJINFRA",
+      "n": "BJ Infrastructure",
+      "sec": "Infrastructure",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "BLISSGVS",
+      "n": "Bliss GVS",
+      "sec": "Chemicals",
+      "bp": 1280,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "BLUEDEXPR",
+      "n": "Blue Dart Express",
+      "sec": "Logistics",
+      "bp": 7850,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "BLUESTAR",
+      "n": "Blue Star",
+      "sec": "Consumer",
+      "bp": 1850,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "BMETRO",
+      "n": "B Metro",
+      "sec": "Retail",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "BMWIND",
+      "n": "B & M Wireframes",
+      "sec": "Auto Ancillary",
+      "bp": 165,
+      "v": 0.026,
+      "ls": 2500
+    },
+    {
+      "s": "BNAL",
+      "n": "BN Agro Industries",
+      "sec": "FMCG",
+      "bp": 95,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "BOC",
+      "n": "BOC India",
+      "sec": "Capital Goods",
+      "bp": 5850,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "BOMDYEING",
+      "n": "Bom Dyeing",
+      "sec": "Textiles",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "BOSCHLTD",
+      "n": "Bosch Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 34500,
+      "v": 0.018,
+      "ls": 15
+    },
+    {
+      "s": "BPCL",
+      "n": "Bharat Petroleum",
+      "sec": "Energy",
+      "bp": 635,
+      "v": 0.022,
+      "ls": 900
+    },
+    {
+      "s": "BRABYS",
+      "n": "Braby Industries",
+      "sec": "Textiles",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "BRADY",
+      "n": "Brady Corp",
+      "sec": "Capital Goods",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BRAINBEES",
+      "n": "Brainbees Solutions",
+      "sec": "Internet",
+      "bp": 985,
+      "v": 0.03,
+      "ls": 500
+    },
+    {
+      "s": "BRANDHOUSE",
+      "n": "Brand House Retails",
+      "sec": "Retail",
+      "bp": 525,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "BRIGADE",
+      "n": "Brigade Enterprises",
+      "sec": "Real Estate",
+      "bp": 1480,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "BRITANNIA",
+      "n": "Britannia Industries",
+      "sec": "FMCG",
+      "bp": 5880,
+      "v": 0.014,
+      "ls": 50
+    },
+    {
+      "s": "BSE",
+      "n": "BSE Ltd",
+      "sec": "Finance",
+      "bp": 7350,
+      "v": 0.025,
+      "ls": 50
+    },
+    {
+      "s": "BSHSL",
+      "n": "BSHSL Ltd",
+      "sec": "Metals",
+      "bp": 185,
+      "v": 0.026,
+      "ls": 2500
+    },
+    {
+      "s": "BU1",
+      "n": "BU1 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BU2",
+      "n": "BU2 Corp Ltd",
+      "sec": "Media",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "BU3",
+      "n": "BU3 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "BU4",
+      "n": "BU4 Corp Ltd",
+      "sec": "Finance",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "BU5",
+      "n": "BU5 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "BUCHRSPL",
+      "n": "Bucherer Splits",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "BULL Machines",
+      "n": "Bull Machines",
+      "sec": "Capital Goods",
+      "bp": 985,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "BURGERKING",
+      "n": "Burger King India",
+      "sec": "Retail",
+      "bp": 185,
+      "v": 0.03,
+      "ls": 2500
+    },
+    {
+      "s": "C & S Electric",
+      "n": "C&S Electric",
+      "sec": "Capital Goods",
+      "bp": 2850,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "CADILAHC",
+      "n": "Zydus Lifesciences",
+      "sec": "Pharma",
+      "bp": 1185,
+      "v": 0.021,
+      "ls": 250
+    },
+    {
+      "s": "CAIRN",
+      "n": "Cairn India",
+      "sec": "Energy",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "CALSF",
+      "n": "Calsoft",
+      "sec": "IT",
+      "bp": 985,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "CANBK",
+      "n": "Canara Bank",
+      "sec": "Banking",
+      "bp": 118,
+      "v": 0.023,
+      "ls": 4500
+    },
+    {
+      "s": "CANFINHOME",
+      "n": "Can Fin Homes",
+      "sec": "Finance",
+      "bp": 1350,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "CAPLIPOINT",
+      "n": "Caplin Point Labs",
+      "sec": "Pharma",
+      "bp": 2850,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "CAREERP",
+      "n": "Career Point Ltd",
+      "sec": "Education",
+      "bp": 485,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "CARGOXP",
+      "n": "Cargo Exchange",
+      "sec": "Logistics",
+      "bp": 385,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "CASTLE",
+      "n": "Castle India",
+      "sec": "Real Estate",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CASTOR",
+      "n": "Castrol International",
+      "sec": "Metals",
+      "bp": 195,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "CASTROLIND",
+      "n": "Castrol India",
+      "sec": "FMCG",
+      "bp": 1325,
+      "v": 0.018,
+      "ls": 250
+    },
+    {
+      "s": "CATHFIN",
+      "n": "Catholic Syrian Bank",
+      "sec": "Banking",
+      "bp": 88,
+      "v": 0.027,
+      "ls": 5000
+    },
+    {
+      "s": "CATL",
+      "n": "CATL Technologies",
+      "sec": "Capital Goods",
+      "bp": 2850,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "CCL",
+      "n": "CCL Products",
+      "sec": "FMCG",
+      "bp": 1480,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "CDSL",
+      "n": "CDSL",
+      "sec": "Finance",
+      "bp": 1880,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "CENTAD",
+      "n": "Century Adhesives",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "CENTRALBK",
+      "n": "Central Bank of India",
+      "sec": "Banking",
+      "bp": 95,
+      "v": 0.024,
+      "ls": 5000
+    },
+    {
+      "s": "CENTURYEN",
+      "n": "Century Enka",
+      "sec": "Textiles",
+      "bp": 1185,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "CENTURYPLY",
+      "n": "Century Plyboards",
+      "sec": "Consumer",
+      "bp": 1180,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "CEPIL",
+      "n": "Cepl Industries",
+      "sec": "Chemicals",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "CESC",
+      "n": "CESC Limited",
+      "sec": "Power",
+      "bp": 178,
+      "v": 0.022,
+      "ls": 2500
+    },
+    {
+      "s": "CFL",
+      "n": "Cargo Flight Logistics",
+      "sec": "Logistics",
+      "bp": 285,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "CGCL",
+      "n": "CG Consumer",
+      "sec": "FMCG",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CGPOWER",
+      "n": "CG Power & Industrial Solutions",
+      "sec": "Capital Goods",
+      "bp": 1850,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "CH1",
+      "n": "CH1 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "CH2",
+      "n": "CH2 Corp Ltd",
+      "sec": "Retail",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "CH3",
+      "n": "CH3 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "CH4",
+      "n": "CH4 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "CH5",
+      "n": "CH5 Corp Ltd",
+      "sec": "Education",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "CHALET",
+      "n": "Chalet Hotels",
+      "sec": "Hospitality",
+      "bp": 485,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "CHAMBLFRT",
+      "n": "Chambal Fertilisers & Chemicals",
+      "sec": "Chemicals",
+      "bp": 488,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "CHANRPLTD",
+      "n": "Chandra Prabhu International",
+      "sec": "Infrastructure",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "CHEMFAB",
+      "n": "Chemfab Alkalis",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "CHENNPETRO",
+      "n": "Chennai Petroleum Corp",
+      "sec": "Energy",
+      "bp": 388,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "CHETTINAD",
+      "n": "Chettinad Cement",
+      "sec": "Cement",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "CHHABRA",
+      "n": "Chhabra Industries",
+      "sec": "Textiles",
+      "bp": 95,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "CHOLAHLDNG",
+      "n": "Cholamandalam Investment",
+      "sec": "Finance",
+      "bp": 1720,
+      "v": 0.021,
+      "ls": 300
+    },
+    {
+      "s": "CIPLA",
+      "n": "Cipla",
+      "sec": "Pharma",
+      "bp": 1580,
+      "v": 0.017,
+      "ls": 500
+    },
+    {
+      "s": "CIRCUIT",
+      "n": "Circuit Systems",
+      "sec": "Electronics",
+      "bp": 485,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CIVIL",
+      "n": "Civil Lines",
+      "sec": "Infrastructure",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "CL Educate",
+      "n": "CL Educate",
+      "sec": "Education",
+      "bp": 285,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "CLARIANTIND",
+      "n": "Clariant India",
+      "sec": "Chemicals",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "CLEAN",
+      "n": "Clean N Green",
+      "sec": "Power",
+      "bp": 585,
+      "v": 0.028,
+      "ls": 500
+    },
+    {
+      "s": "CMCFSL",
+      "n": "CMC Futures",
+      "sec": "Finance",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CMI",
+      "n": "CMI Ltd",
+      "sec": "Capital Goods",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "CNH",
+      "n": "CNH Industrial",
+      "sec": "Capital Goods",
+      "bp": 3850,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "COALINDIA",
+      "n": "Coal India",
+      "sec": "Mining",
+      "bp": 510,
+      "v": 0.021,
+      "ls": 1600
+    },
+    {
+      "s": "COCHIN",
+      "n": "Cochin Shipyard",
+      "sec": "Defence",
+      "bp": 1850,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "COFORGE",
+      "n": "Coforge",
+      "sec": "IT",
+      "bp": 8650,
+      "v": 0.022,
+      "ls": 75
+    },
+    {
+      "s": "COLPAL",
+      "n": "Colgate-Palmolive",
+      "sec": "FMCG",
+      "bp": 2880,
+      "v": 0.015,
+      "ls": 100
+    },
+    {
+      "s": "COMFORT",
+      "n": "Comfort Intech",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "COMPUEST",
+      "n": "Compuage Info",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CONCOR",
+      "n": "Container Corporation of India",
+      "sec": "Logistics",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "CONFIPP",
+      "n": "Confidence Petroleum",
+      "sec": "FMCG",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "CONSOFIN",
+      "n": "Consolidated Fin",
+      "sec": "Finance",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CONSTRAL",
+      "n": "Constral Engineers",
+      "sec": "Infrastructure",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "CONTIPED",
+      "n": "Continental Pet",
+      "sec": "Chemicals",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "COOK",
+      "n": "Cookman Cookware",
+      "sec": "Consumer",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "COROMANDEL",
+      "n": "Coromandel International",
+      "sec": "Chemicals",
+      "bp": 1580,
+      "v": 0.021,
+      "ls": 250
+    },
+    {
+      "s": "COSCO",
+      "n": "Cosco India",
+      "sec": "Shipping",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "COSMOFILMS",
+      "n": "Cosmo Films Ltd",
+      "sec": "Plastics",
+      "bp": 2850,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "COUNTRY",
+      "n": "Country Club",
+      "sec": "Hospitality",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "CRAFTS",
+      "n": "Craftsman Automation",
+      "sec": "Capital Goods",
+      "bp": 3850,
+      "v": 0.026,
+      "ls": 100
+    },
+    {
+      "s": "CRISIL",
+      "n": "CRISIL Ltd",
+      "sec": "Finance",
+      "bp": 4850,
+      "v": 0.02,
+      "ls": 100
+    },
+    {
+      "s": "Crompton",
+      "n": "Crompton Greaves",
+      "sec": "Consumer",
+      "bp": 498,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "CROMPTON",
+      "n": "Crompton Greaves",
+      "sec": "Consumer",
+      "bp": 495,
+      "v": 0.024,
+      "ls": 1400
+    },
+    {
+      "s": "CRYSTAL",
+      "n": "Crystalnexus",
+      "sec": "Pharma",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "CSBBANK",
+      "n": "CSB Bank",
+      "sec": "Banking",
+      "bp": 285,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "CSSL",
+      "n": "CSSL Technologies",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "CTAL",
+      "n": "CTAL Systems",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "CUBEXT",
+      "n": "Cubex Tubings",
+      "sec": "Metals",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "CUMMINSIND",
+      "n": "Cummins India",
+      "sec": "Capital Goods",
+      "bp": 3850,
+      "v": 0.021,
+      "ls": 100
+    },
+    {
+      "s": "CUPID",
+      "n": "Cupid Ltd",
+      "sec": "FMCG",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "CUREFOOD",
+      "n": "Curefoods",
+      "sec": "Retail",
+      "bp": 485,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "CYIENT",
+      "n": "Cyient",
+      "sec": "IT",
+      "bp": 1955,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "DA1",
+      "n": "DA1 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "DA2",
+      "n": "DA2 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "DA3",
+      "n": "DA3 Corp Ltd",
+      "sec": "Metals",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "DA4",
+      "n": "DA4 Corp Ltd",
+      "sec": "Power",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "DA5",
+      "n": "DA5 Corp Ltd",
+      "sec": "Banking",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DABUR",
+      "n": "Dabur India",
+      "sec": "FMCG",
+      "bp": 585,
+      "v": 0.016,
+      "ls": 500
+    },
+    {
+      "s": "DAILY",
+      "n": "Daily Thanthi",
+      "sec": "Media",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "DALBHARAT",
+      "n": "Dalmia Bharat",
+      "sec": "Cement",
+      "bp": 1520,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "DALMIASUG",
+      "n": "Dalmia Sugar",
+      "sec": "FMCG",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DANLAW",
+      "n": "Danlaw Technologies",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "DATAMINI",
+      "n": "Datamini Tech",
+      "sec": "IT",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "DATAPATRN",
+      "n": "Data Patterns",
+      "sec": "Defence",
+      "bp": 3850,
+      "v": 0.028,
+      "ls": 100
+    },
+    {
+      "s": "DATAPATTNS",
+      "n": "Datamatics Global",
+      "sec": "IT",
+      "bp": 685,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "DBI",
+      "n": "DBI India",
+      "sec": "Infrastructure",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "DBL",
+      "n": "DB Realty",
+      "sec": "Real Estate",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "DBREALTY",
+      "n": "DB Realty Ltd",
+      "sec": "Real Estate",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "DCB",
+      "n": "DCB Bank",
+      "sec": "Banking",
+      "bp": 158,
+      "v": 0.024,
+      "ls": 2500
+    },
+    {
+      "s": "DCBBANK",
+      "n": "DCB Bank",
+      "sec": "Banking",
+      "bp": 158,
+      "v": 0.024,
+      "ls": 2500
+    },
+    {
+      "s": "DCM",
+      "n": "DCM Shriram Ltd",
+      "sec": "Cement",
+      "bp": 1385,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "DCMSHRM",
+      "n": "DCM Shriram Industries",
+      "sec": "Cement",
+      "bp": 1385,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "DE1",
+      "n": "DE1 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "DE2",
+      "n": "DE2 Corp Ltd",
+      "sec": "Defence",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "DE3",
+      "n": "DE3 Corp Ltd",
+      "sec": "Energy",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "DE4",
+      "n": "DE4 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "DE5",
+      "n": "DE5 Corp Ltd",
+      "sec": "IT",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DEEPAKFERT",
+      "n": "Deepak Fertilisers & Petrochemicals",
+      "sec": "Chemicals",
+      "bp": 1250,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "DEEPAKNTR",
+      "n": "Deepak Nitrite",
+      "sec": "Chemicals",
+      "bp": 2780,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "DEEPAVAL",
+      "n": "Deepavali Papers",
+      "sec": "Paper",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DELHI",
+      "n": "Delhi Co",
+      "sec": "Real Estate",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "DELHIVERY",
+      "n": "Delhivery",
+      "sec": "Logistics",
+      "bp": 420,
+      "v": 0.031,
+      "ls": 1400
+    },
+    {
+      "s": "DELTACORP",
+      "n": "Delta Corp",
+      "sec": "Gaming",
+      "bp": 485,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "DEN",
+      "n": "DEN Networks",
+      "sec": "Media",
+      "bp": 145,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "DEPOR",
+      "n": "Deportivo Corp",
+      "sec": "Textiles",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "DESFORGE",
+      "n": "Desforge India",
+      "sec": "Capital Goods",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DEWANHOUS",
+      "n": "Dewan Housing",
+      "sec": "Finance",
+      "bp": 28,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "DFCCIL",
+      "n": "Dedicated Freight Corridor Corp",
+      "sec": "Infrastructure",
+      "bp": 1850,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "DHAMPUR",
+      "n": "Dhampur Sugar",
+      "sec": "FMCG",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DHFCL",
+      "n": "DHFL Ltd",
+      "sec": "Finance",
+      "bp": 28,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "DHFL",
+      "n": "Dewan Housing Finance",
+      "sec": "Finance",
+      "bp": 28,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "DHFLPR",
+      "n": "DHFL Ltd",
+      "sec": "Finance",
+      "bp": 28,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "DHUNSERI",
+      "n": "Dhunseri Petro",
+      "sec": "FMCG",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DI1",
+      "n": "DI1 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "DI2",
+      "n": "DI2 Corp Ltd",
+      "sec": "Cement",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "DI3",
+      "n": "DI3 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "DI4",
+      "n": "DI4 Corp Ltd",
+      "sec": "Media",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "DI5",
+      "n": "DI5 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DION",
+      "n": "Dion Global",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "DIPALHOUSE",
+      "n": "Dipal House Trading",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DISHTV",
+      "n": "Dish TV India",
+      "sec": "Media",
+      "bp": 32,
+      "v": 0.032,
+      "ls": 7500
+    },
+    {
+      "s": "DIVGI",
+      "n": "Divgi Torqtransfer",
+      "sec": "Auto Ancillary",
+      "bp": 4850,
+      "v": 0.026,
+      "ls": 100
+    },
+    {
+      "s": "DIVISLAB",
+      "n": "Divi's Laboratories",
+      "sec": "Pharma",
+      "bp": 6100,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "DIXON",
+      "n": "Dixon Technologies",
+      "sec": "Electronics",
+      "bp": 16250,
+      "v": 0.032,
+      "ls": 25
+    },
+    {
+      "s": "DLF",
+      "n": "DLF Limited",
+      "sec": "Real Estate",
+      "bp": 920,
+      "v": 0.024,
+      "ls": 750
+    },
+    {
+      "s": "DLPIND",
+      "n": "DLF Ltd",
+      "sec": "Real Estate",
+      "bp": 920,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "DMART",
+      "n": "Avenue Supermarts",
+      "sec": "Retail",
+      "bp": 4650,
+      "v": 0.021,
+      "ls": 100
+    },
+    {
+      "s": "DND",
+      "n": "DND Recycle",
+      "sec": "Infrastructure",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "DODLA",
+      "n": "Dodla Dairy",
+      "sec": "FMCG",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "DOLAT",
+      "n": "Dolat Investments",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "DQENT",
+      "n": "DQ Entertainment",
+      "sec": "Media",
+      "bp": 125,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "DRAGA",
+      "n": "Dr. Agarwal Eye Hospital",
+      "sec": "Healthcare",
+      "bp": 1155,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "DREDGING",
+      "n": "Dredging Corporation of India",
+      "sec": "Infrastructure",
+      "bp": 1580,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "DRREDDY",
+      "n": "Dr. Reddy's Labs",
+      "sec": "Pharma",
+      "bp": 6780,
+      "v": 0.019,
+      "ls": 125
+    },
+    {
+      "s": "DRW",
+      "n": "Dr. Reddy's Wockhardt",
+      "sec": "Pharma",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DSCL",
+      "n": "DSCL Ltd",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DSK",
+      "n": "DSK Motora",
+      "sec": "Auto",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "DSSL",
+      "n": "DSSL Technologies",
+      "sec": "IT",
+      "bp": 385,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "DTIL",
+      "n": "DTIL Technologies",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "DUBER",
+      "n": "Duber Chemicals",
+      "sec": "Chemicals",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DWAR",
+      "n": "DWAR Forge",
+      "sec": "Capital Goods",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DWARKESH",
+      "n": "Dwarkesh Sugar",
+      "sec": "FMCG",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "DYNAMATIC",
+      "n": "Dynamatic Technologies",
+      "sec": "Defence",
+      "bp": 4850,
+      "v": 0.027,
+      "ls": 100
+    },
+    {
+      "s": "E & P India",
+      "n": "E&P India",
+      "sec": "Energy",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "EASEMYTRIP",
+      "n": "EaseMyTrip",
+      "sec": "Internet",
+      "bp": 695,
+      "v": 0.03,
+      "ls": 500
+    },
+    {
+      "s": "EASEREF",
+      "n": "Easemytrip",
+      "sec": "Internet",
+      "bp": 695,
+      "v": 0.03,
+      "ls": 500
+    },
+    {
+      "s": "EASOFFAB",
+      "n": "Easo Offshore",
+      "sec": "Infrastructure",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "EATON",
+      "n": "Eaton Technologies",
+      "sec": "Auto Ancillary",
+      "bp": 4250,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "EBAN",
+      "n": "Eban Infotech",
+      "sec": "IT",
+      "bp": 385,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "EBIX",
+      "n": "Ebix Inc",
+      "sec": "Fintech",
+      "bp": 68,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "EBIXCASH",
+      "n": "EbixCash",
+      "sec": "Fintech",
+      "bp": 68,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "ECL",
+      "n": "ECL Finance",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "ECONOMICS",
+      "n": "Economics Times",
+      "sec": "Media",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "EDUCOMP",
+      "n": "Educomp Solutions",
+      "sec": "Education",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "EICHERMOT",
+      "n": "Eicher Motors",
+      "sec": "Auto",
+      "bp": 4950,
+      "v": 0.02,
+      "ls": 150
+    },
+    {
+      "s": "EID",
+      "n": "EID Parry India",
+      "sec": "FMCG",
+      "bp": 985,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "EIH",
+      "n": "EIH Ltd",
+      "sec": "Hospitality",
+      "bp": 385,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "EIHOTEL",
+      "n": "EIH Associated Hotels",
+      "sec": "Hospitality",
+      "bp": 385,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "EIL",
+      "n": "EIL India",
+      "sec": "Infrastructure",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EIM",
+      "n": "Eimco Elecon",
+      "sec": "Capital Goods",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EIPRO",
+      "n": "Eisai Pharmaceuticals India",
+      "sec": "Pharma",
+      "bp": 4480,
+      "v": 0.021,
+      "ls": 100
+    },
+    {
+      "s": "EIS",
+      "n": "Eisai Pharma",
+      "sec": "Pharma",
+      "bp": 4480,
+      "v": 0.021,
+      "ls": 100
+    },
+    {
+      "s": "EKC",
+      "n": "EKC Systems",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "EL1",
+      "n": "EL1 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "EL2",
+      "n": "EL2 Corp Ltd",
+      "sec": "Mining",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "EL3",
+      "n": "EL3 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "EL4",
+      "n": "EL4 Corp Ltd",
+      "sec": "Retail",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EL5",
+      "n": "EL5 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ELDEE",
+      "n": "Eldee Hotels",
+      "sec": "Hospitality",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "ELECTRO",
+      "n": "Electrosteel",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ELECTROSTEEL",
+      "n": "Electrosteel Steels",
+      "sec": "Metals",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "ELGI",
+      "n": "Elgi Equipments",
+      "sec": "Defence",
+      "bp": 5850,
+      "v": 0.023,
+      "ls": 50
+    },
+    {
+      "s": "ELGICO",
+      "n": "Elgi Equipments",
+      "sec": "Defence",
+      "bp": 5850,
+      "v": 0.023,
+      "ls": 50
+    },
+    {
+      "s": "ELMER",
+      "n": "Elmer Technologies",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "ELPRO",
+      "n": "Elpro International",
+      "sec": "Electronics",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "EMAMIAMI",
+      "n": "Emami Paper",
+      "sec": "Paper",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EMAMILTD",
+      "n": "Emami Ltd",
+      "sec": "FMCG",
+      "bp": 515,
+      "v": 0.018,
+      "ls": 500
+    },
+    {
+      "s": "EMBASSY",
+      "n": "Embassy Office Parks",
+      "sec": "Real Estate",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "EMC",
+      "n": "EMC Infra",
+      "sec": "Infrastructure",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EN1",
+      "n": "EN1 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "EN2",
+      "n": "EN2 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "EN3",
+      "n": "EN3 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "EN4",
+      "n": "EN4 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EN5",
+      "n": "EN5 Corp Ltd",
+      "sec": "Metals",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ENDURANCE",
+      "n": "Endurance Technologies",
+      "sec": "Auto Ancillary",
+      "bp": 2285,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "ENERGYDEV",
+      "n": "Energy Development",
+      "sec": "Power",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "ENGGP",
+      "n": "Engineers India",
+      "sec": "Infrastructure",
+      "bp": 2850,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "ENGINERSIN",
+      "n": "Engineers India",
+      "sec": "Infrastructure",
+      "bp": 2850,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "ENIL",
+      "n": "ENIL Ltd",
+      "sec": "Media",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "ENKEI",
+      "n": "Enkei Wheels",
+      "sec": "Auto Ancillary",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "EPICOR",
+      "n": "Epicor India",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "EPL",
+      "n": "EPL Ltd",
+      "sec": "Power",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ERC",
+      "n": "ERC Composites",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ESCORTS",
+      "n": "Escorts Kubota",
+      "sec": "Auto",
+      "bp": 4250,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "ETC",
+      "n": "ETC Networks",
+      "sec": "Telecom",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "EURO",
+      "n": "Euro Ceramics",
+      "sec": "Consumer",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EVEREST",
+      "n": "Everest Industries",
+      "sec": "Building Materials",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "EVERONN",
+      "n": "Everonn Education",
+      "sec": "Education",
+      "bp": 95,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "EXIDEIND",
+      "n": "Exide Industries",
+      "sec": "Auto Ancillary",
+      "bp": 585,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "EXPLOR",
+      "n": "Explorer Industries",
+      "sec": "Metals",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "EXPORIND",
+      "n": "Export Import Bank",
+      "sec": "Finance",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "EYES",
+      "n": "Eyes & Vision",
+      "sec": "Healthcare",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "FABIND",
+      "n": "Fabindia",
+      "sec": "Retail",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "FAIR",
+      "n": "Fairchem Organics",
+      "sec": "Chemicals",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "FARIDA",
+      "n": "Farida Industries",
+      "sec": "Textiles",
+      "bp": 185,
+      "v": 0.026,
+      "ls": 2500
+    },
+    {
+      "s": "FDC",
+      "n": "FDC Limited",
+      "sec": "Pharma",
+      "bp": 585,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "FEDERALBNK",
+      "n": "Federal Bank",
+      "sec": "Banking",
+      "bp": 180,
+      "v": 0.023,
+      "ls": 5000
+    },
+    {
+      "s": "FEL",
+      "n": "FEL Technologies",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "FERTIL",
+      "n": "Fertilisers & Chemicals",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "FI1",
+      "n": "FI1 Corp Ltd",
+      "sec": "Finance",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "FI2",
+      "n": "FI2 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "FI3",
+      "n": "FI3 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "FI4",
+      "n": "FI4 Corp Ltd",
+      "sec": "Defence",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "FI5",
+      "n": "FI5 Corp Ltd",
+      "sec": "Energy",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "FIDELITY",
+      "n": "Fidelity India",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "FIHRT",
+      "n": "Fihrt India",
+      "sec": "Pharma",
+      "bp": 385,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "FINCABLES",
+      "n": "Finolex Cables",
+      "sec": "Capital Goods",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "FINPIPE",
+      "n": "Finolex Cables",
+      "sec": "Capital Goods",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "FIREFLY",
+      "n": "Firefly Solutions",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "FIRSTS",
+      "n": "Firstsource Solutions",
+      "sec": "IT",
+      "bp": 385,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "FIT",
+      "n": "FIT Biotech",
+      "sec": "Pharma",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "FIVESTAR",
+      "n": "Five Star Business Finance",
+      "sec": "Finance",
+      "bp": 985,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "FLAIR",
+      "n": "Flair Industries",
+      "sec": "Textiles",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "FLFM",
+      "n": "FLFL Media",
+      "sec": "Media",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "FLUID",
+      "n": "Fluidra India",
+      "sec": "Consumer",
+      "bp": 985,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "FMC",
+      "n": "FMC India",
+      "sec": "Chemicals",
+      "bp": 5850,
+      "v": 0.023,
+      "ls": 50
+    },
+    {
+      "s": "FNF",
+      "n": "FNF Technologies",
+      "sec": "IT",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "FOCUS",
+      "n": "Focus Lighting",
+      "sec": "Consumer",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "FORCEMOTORS",
+      "n": "Force Motors",
+      "sec": "Auto",
+      "bp": 6480,
+      "v": 0.028,
+      "ls": 50
+    },
+    {
+      "s": "FORTIS",
+      "n": "Fortis Healthcare",
+      "sec": "Healthcare",
+      "bp": 1580,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "FORTPOINT",
+      "n": "Fortpoint Healthcare",
+      "sec": "Healthcare",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "FORWARD",
+      "n": "Forward Corp",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "FOURESS",
+      "n": "Fouress Engineers",
+      "sec": "Capital Goods",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "FPCIL",
+      "n": "FPCIL Projects",
+      "sec": "Infrastructure",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "FRANKLIN",
+      "n": "Franklin Templeton",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "FRETAIL",
+      "n": "Future Retail",
+      "sec": "Retail",
+      "bp": 45,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "FSL",
+      "n": "FSL Software",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "FSS",
+      "n": "FSS Technologies",
+      "sec": "IT",
+      "bp": 6850,
+      "v": 0.023,
+      "ls": 50
+    },
+    {
+      "s": "FUEL",
+      "n": "Fuel Systems",
+      "sec": "Auto Ancillary",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GAIL",
+      "n": "GAIL India",
+      "sec": "Energy",
+      "bp": 198,
+      "v": 0.022,
+      "ls": 2500
+    },
+    {
+      "s": "GANESHR",
+      "n": "Ganeshr Ecosphere",
+      "sec": "Infrastructure",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GARWARE",
+      "n": "Garware-Wall Ropes",
+      "sec": "Textiles",
+      "bp": 4850,
+      "v": 0.02,
+      "ls": 100
+    },
+    {
+      "s": "GARWFIBR",
+      "n": "Garware Wall Ropes",
+      "sec": "Textiles",
+      "bp": 4850,
+      "v": 0.02,
+      "ls": 100
+    },
+    {
+      "s": "GATI",
+      "n": "Gati Ltd",
+      "sec": "Logistics",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GCPL",
+      "n": "Godrej Consumer Products",
+      "sec": "FMCG",
+      "bp": 1620,
+      "v": 0.016,
+      "ls": 250
+    },
+    {
+      "s": "GEECEE",
+      "n": "Geecee Ventures",
+      "sec": "Real Estate",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "GENPACT",
+      "n": "Genpact India",
+      "sec": "IT",
+      "bp": 2850,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "GERMAN",
+      "n": "German Remedies",
+      "sec": "Pharma",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "GFLE",
+      "n": "GFLE Automotive",
+      "sec": "Auto Ancillary",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "GICHOUSING",
+      "n": "GIC Housing Finance",
+      "sec": "Finance",
+      "bp": 320,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "GICHSGFIN",
+      "n": "GIC Housing Finance",
+      "sec": "Finance",
+      "bp": 320,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "GIL",
+      "n": "Gillette India",
+      "sec": "FMCG",
+      "bp": 5850,
+      "v": 0.018,
+      "ls": 50
+    },
+    {
+      "s": "GIPCL",
+      "n": "Gujarat Industries Power",
+      "sec": "Power",
+      "bp": 385,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "GLANMARK",
+      "n": "Glenmark Pharma",
+      "sec": "Pharma",
+      "bp": 1725,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "GLENMARK",
+      "n": "Glenmark Pharma",
+      "sec": "Pharma",
+      "bp": 1725,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "GLFL",
+      "n": "GLFL Chemicals",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GLOBAL",
+      "n": "Global Vectra",
+      "sec": "Shipping",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GLOBOSS",
+      "n": "Globosport Media",
+      "sec": "Media",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GMDCLTD",
+      "n": "GMDCLtd",
+      "sec": "Mining",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GMRINFRA",
+      "n": "GMR Infrastructure",
+      "sec": "Infrastructure",
+      "bp": 88,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "GNFC",
+      "n": "Gujarat Narmada Valley Fertilizers",
+      "sec": "Chemicals",
+      "bp": 358,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "GO1",
+      "n": "GO1 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "GO2",
+      "n": "GO2 Corp Ltd",
+      "sec": "Education",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "GO3",
+      "n": "GO3 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GO4",
+      "n": "GO4 Corp Ltd",
+      "sec": "Cement",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "GO5",
+      "n": "GO5 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "GODAWARI",
+      "n": "Godawari Power",
+      "sec": "Power",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "GODFREY",
+      "n": "Godfrey Phillips",
+      "sec": "FMCG",
+      "bp": 4850,
+      "v": 0.018,
+      "ls": 100
+    },
+    {
+      "s": "GODREJAGRO",
+      "n": "Godrej Agrovet",
+      "sec": "FMCG",
+      "bp": 1280,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "GODREJCP",
+      "n": "Godrej Consumer",
+      "sec": "FMCG",
+      "bp": 1620,
+      "v": 0.016,
+      "ls": 400
+    },
+    {
+      "s": "GODREJIND",
+      "n": "Godrej Industries",
+      "sec": "Conglomerate",
+      "bp": 1680,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "GODREJPROP",
+      "n": "Godrej Properties",
+      "sec": "Real Estate",
+      "bp": 2750,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "GOKAK",
+      "n": "Gokak Textiles",
+      "sec": "Textiles",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GOKEX",
+      "n": "Gokak Textiles",
+      "sec": "Textiles",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GOLDBEES",
+      "n": "GoldBees ETF",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "GOLDIAM",
+      "n": "Goldiam International",
+      "sec": "Jewellery",
+      "bp": 885,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "GOLDJUNE",
+      "n": "Goldiam International",
+      "sec": "Metals",
+      "bp": 885,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "GOLDMAN",
+      "n": "Goldman Sachs India",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "GOLF",
+      "n": "Golf Group",
+      "sec": "Real Estate",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GOODYEAR",
+      "n": "Goodyear India",
+      "sec": "Auto Ancillary",
+      "bp": 1255,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "GPIL",
+      "n": "Garden Polymers",
+      "sec": "Plastics",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GPPL",
+      "n": "GP Petroleums",
+      "sec": "Energy",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "GR1",
+      "n": "GR1 Corp Ltd",
+      "sec": "Power",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "GR2",
+      "n": "GR2 Corp Ltd",
+      "sec": "Banking",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "GR3",
+      "n": "GR3 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GR4",
+      "n": "GR4 Corp Ltd",
+      "sec": "Mining",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "GR5",
+      "n": "GR5 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "GRAB",
+      "n": "Grab A Grub",
+      "sec": "Retail",
+      "bp": 285,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "GRANOT",
+      "n": "Granotours",
+      "sec": "Tourism",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GRAPHITE",
+      "n": "Graphite India",
+      "sec": "Metals",
+      "bp": 685,
+      "v": 0.028,
+      "ls": 500
+    },
+    {
+      "s": "GRASIM",
+      "n": "Grasim Industries",
+      "sec": "Cement",
+      "bp": 2750,
+      "v": 0.019,
+      "ls": 300
+    },
+    {
+      "s": "GRAVITY",
+      "n": "Gravity India",
+      "sec": "Infrastructure",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "GREAVESCOT",
+      "n": "Greaves Cotton",
+      "sec": "Capital Goods",
+      "bp": 1950,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "GREENLAM",
+      "n": "Greenlam Industries",
+      "sec": "Consumer",
+      "bp": 985,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "GREENPLY",
+      "n": "Greenply Industries",
+      "sec": "Consumer",
+      "bp": 1180,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "GRIH",
+      "n": "GRI Humane",
+      "sec": "Healthcare",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "GRINDWEL",
+      "n": "Grindwell Norton",
+      "sec": "Capital Goods",
+      "bp": 5850,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "GROFER",
+      "n": "Grofers India",
+      "sec": "Retail",
+      "bp": 385,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "GSFC",
+      "n": "Gujarat State Fertilizers & Chemicals",
+      "sec": "Chemicals",
+      "bp": 298,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "GSKPHARMA",
+      "n": "GlaxoSmithKline Pharma",
+      "sec": "Pharma",
+      "bp": 5825,
+      "v": 0.018,
+      "ls": 50
+    },
+    {
+      "s": "GSPL",
+      "n": "Gujarat State Petronet",
+      "sec": "Energy",
+      "bp": 398,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "GTPL",
+      "n": "GTPL Hathway",
+      "sec": "Media",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GUJALKALI",
+      "n": "Gujarat Alkalies",
+      "sec": "Chemicals",
+      "bp": 985,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "GUJGASLTD",
+      "n": "Gujarat Gas",
+      "sec": "Energy",
+      "bp": 1580,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "GUJRAFFIA",
+      "n": "Gujarat Raffia",
+      "sec": "Textiles",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "GUJRATGAS",
+      "n": "Gujarat Gas",
+      "sec": "Energy",
+      "bp": 1580,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "GULF",
+      "n": "Gulf Oil Lubricants",
+      "sec": "FMCG",
+      "bp": 8500,
+      "v": 0.019,
+      "ls": 50
+    },
+    {
+      "s": "GULFOIL",
+      "n": "Gulf Oil Lubricants",
+      "sec": "FMCG",
+      "bp": 8500,
+      "v": 0.019,
+      "ls": 50
+    },
+    {
+      "s": "GVNPIL",
+      "n": "GVN Power",
+      "sec": "Power",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "HA1",
+      "n": "HA1 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "HA2",
+      "n": "HA2 Corp Ltd",
+      "sec": "IT",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "HA3",
+      "n": "HA3 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "HA4",
+      "n": "HA4 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "HA5",
+      "n": "HA5 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "HAL",
+      "n": "Hindustan Aeronautics Ltd",
+      "sec": "Defence",
+      "bp": 4850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "HAPPSTMNDS",
+      "n": "Happiest Minds Tech",
+      "sec": "IT",
+      "bp": 895,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "HATHWAY",
+      "n": "Hathway Cable & Datacom",
+      "sec": "Media",
+      "bp": 58,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "HATSUN",
+      "n": "Hatsun Agro Product",
+      "sec": "FMCG",
+      "bp": 1055,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "HAVELLS",
+      "n": "Havells India",
+      "sec": "Consumer",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "HCLTECH",
+      "n": "HCL Technologies",
+      "sec": "IT",
+      "bp": 1750,
+      "v": 0.019,
+      "ls": 500
+    },
+    {
+      "s": "HDFCAMC",
+      "n": "HDFC Asset Management",
+      "sec": "Finance",
+      "bp": 4250,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "HDFCBANK",
+      "n": "HDFC Bank",
+      "sec": "Banking",
+      "bp": 1680,
+      "v": 0.016,
+      "ls": 550
+    },
+    {
+      "s": "HDFCLIFE",
+      "n": "HDFC Life Insurance",
+      "sec": "Insurance",
+      "bp": 685,
+      "v": 0.018,
+      "ls": 700
+    },
+    {
+      "s": "HE1",
+      "n": "HE1 Corp Ltd",
+      "sec": "Media",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "HE2",
+      "n": "HE2 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "HE3",
+      "n": "HE3 Corp Ltd",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "HE4",
+      "n": "HE4 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "HE5",
+      "n": "HE5 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "HEG",
+      "n": "HEG Limited",
+      "sec": "Metals",
+      "bp": 5880,
+      "v": 0.025,
+      "ls": 50
+    },
+    {
+      "s": "HERITAGEFDS",
+      "n": "Heritage Foods",
+      "sec": "FMCG",
+      "bp": 1080,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "HEROMOTOCO",
+      "n": "Hero MotoCorp",
+      "sec": "Auto",
+      "bp": 5250,
+      "v": 0.018,
+      "ls": 100
+    },
+    {
+      "s": "HFCL",
+      "n": "HFCL Limited",
+      "sec": "Telecom",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "HI1",
+      "n": "HI1 Corp Ltd",
+      "sec": "Retail",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "HI2",
+      "n": "HI2 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "HI3",
+      "n": "HI3 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "HI4",
+      "n": "HI4 Corp Ltd",
+      "sec": "Education",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "HI5",
+      "n": "HI5 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "HIMADRI",
+      "n": "Himadri Speciality Chemical",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "HINDALCO",
+      "n": "Hindalco Industries",
+      "sec": "Metals",
+      "bp": 655,
+      "v": 0.025,
+      "ls": 1350
+    },
+    {
+      "s": "HINDCOPPER",
+      "n": "Hindustan Copper",
+      "sec": "Metals",
+      "bp": 388,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "HINDPETRO",
+      "n": "Hindustan Petroleum",
+      "sec": "Energy",
+      "bp": 665,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "HINDUNILVR",
+      "n": "Hindustan Unilever",
+      "sec": "FMCG",
+      "bp": 2580,
+      "v": 0.012,
+      "ls": 300
+    },
+    {
+      "s": "HINDZINC",
+      "n": "Hindustan Zinc",
+      "sec": "Metals",
+      "bp": 580,
+      "v": 0.022,
+      "ls": 1200
+    },
+    {
+      "s": "HONEYWELL",
+      "n": "Honeywell Automation",
+      "sec": "Capital Goods",
+      "bp": 42500,
+      "v": 0.018,
+      "ls": 25
+    },
+    {
+      "s": "HOTELLEELA",
+      "n": "Hotel Leelaventure",
+      "sec": "Hospitality",
+      "bp": 68,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "HPCL",
+      "n": "Hindustan Petroleum Corp",
+      "sec": "Energy",
+      "bp": 665,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "HUDCO",
+      "n": "HUDCO Ltd",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "IBULHSGFIN",
+      "n": "IBUL Housing Finance",
+      "sec": "Finance",
+      "bp": 325,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "ICICIBANK",
+      "n": "ICICI Bank",
+      "sec": "Banking",
+      "bp": 1280,
+      "v": 0.017,
+      "ls": 700
+    },
+    {
+      "s": "ICICIGI",
+      "n": "ICICI General Insurance",
+      "sec": "Insurance",
+      "bp": 1280,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "ICICIPRU",
+      "n": "ICICI Prudential Life Insurance",
+      "sec": "Insurance",
+      "bp": 185,
+      "v": 0.024,
+      "ls": 2500
+    },
+    {
+      "s": "ICICISECU",
+      "n": "ICICI Securities",
+      "sec": "Finance",
+      "bp": 780,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "IDEA",
+      "n": "Vodafone Idea",
+      "sec": "Telecom",
+      "bp": 18,
+      "v": 0.04,
+      "ls": 10000
+    },
+    {
+      "s": "IDFCFIRSTB",
+      "n": "IDFC First Bank",
+      "sec": "Banking",
+      "bp": 82,
+      "v": 0.025,
+      "ls": 10000
+    },
+    {
+      "s": "IFBIND",
+      "n": "IFB Industries",
+      "sec": "Consumer",
+      "bp": 2180,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "IGARASHI",
+      "n": "Igarashi Motors",
+      "sec": "Auto Ancillary",
+      "bp": 580,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "IGL",
+      "n": "Indraprastha Gas",
+      "sec": "Energy",
+      "bp": 485,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "IIFL",
+      "n": "IIFL Finance",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "IN1",
+      "n": "IN1 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "IN2",
+      "n": "IN2 Corp Ltd",
+      "sec": "Metals",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "IN3",
+      "n": "IN3 Corp Ltd",
+      "sec": "Power",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "IN4",
+      "n": "IN4 Corp Ltd",
+      "sec": "Banking",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "IN5",
+      "n": "IN5 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "INDHOTEL",
+      "n": "Indian Hotels Company",
+      "sec": "Hospitality",
+      "bp": 780,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "INDIACEM",
+      "n": "India Cements",
+      "sec": "Cement",
+      "bp": 388,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "INDIAGRID",
+      "n": "India Grid Trust",
+      "sec": "Power",
+      "bp": 348,
+      "v": 0.02,
+      "ls": 1500
+    },
+    {
+      "s": "INDIAMART",
+      "n": "IndiaMART InterMESH",
+      "sec": "Internet",
+      "bp": 3850,
+      "v": 0.028,
+      "ls": 100
+    },
+    {
+      "s": "INDIANB",
+      "n": "Indian Bank",
+      "sec": "Banking",
+      "bp": 590,
+      "v": 0.024,
+      "ls": 900
+    },
+    {
+      "s": "INDUSINDBK",
+      "n": "IndusInd Bank",
+      "sec": "Banking",
+      "bp": 1580,
+      "v": 0.021,
+      "ls": 300
+    },
+    {
+      "s": "INFY",
+      "n": "Infosys",
+      "sec": "IT",
+      "bp": 1580,
+      "v": 0.019,
+      "ls": 600
+    },
+    {
+      "s": "INTELLECT",
+      "n": "Intellect Design Arena",
+      "sec": "IT",
+      "bp": 855,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "INTRENT",
+      "n": "InterGlobe Aviation",
+      "sec": "Aviation",
+      "bp": 4850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "IOB",
+      "n": "Indian Overseas Bank",
+      "sec": "Banking",
+      "bp": 72,
+      "v": 0.026,
+      "ls": 5000
+    },
+    {
+      "s": "IOC",
+      "n": "Indian Oil Corp",
+      "sec": "Energy",
+      "bp": 185,
+      "v": 0.02,
+      "ls": 3000
+    },
+    {
+      "s": "IPCALAB",
+      "n": "Ipca Laboratories",
+      "sec": "Pharma",
+      "bp": 1185,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "IRCON",
+      "n": "IRCON International",
+      "sec": "Infrastructure",
+      "bp": 288,
+      "v": 0.03,
+      "ls": 1500
+    },
+    {
+      "s": "IRCTC",
+      "n": "Indian Railway Catering & Tourism",
+      "sec": "Infrastructure",
+      "bp": 1250,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "IREDA",
+      "n": "Indian Renewable Energy Dev Agency",
+      "sec": "Finance",
+      "bp": 218,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "IRFC",
+      "n": "Indian Railway Finance",
+      "sec": "Finance",
+      "bp": 195,
+      "v": 0.026,
+      "ls": 5000
+    },
+    {
+      "s": "ISKANDAR",
+      "n": "ISKON Temple",
+      "sec": "Real Estate",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ISMT",
+      "n": "ISMT Ltd",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ITC",
+      "n": "ITC Limited",
+      "sec": "FMCG",
+      "bp": 465,
+      "v": 0.014,
+      "ls": 1600
+    },
+    {
+      "s": "ITI",
+      "n": "ITI Limited",
+      "sec": "Telecom",
+      "bp": 525,
+      "v": 0.027,
+      "ls": 500
+    },
+    {
+      "s": "JA1",
+      "n": "JA1 Corp Ltd",
+      "sec": "Defence",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "JA2",
+      "n": "JA2 Corp Ltd",
+      "sec": "Energy",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "JA3",
+      "n": "JA3 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "JA4",
+      "n": "JA4 Corp Ltd",
+      "sec": "IT",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "JA5",
+      "n": "JA5 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "JBCHEPHARM",
+      "n": "JB Chemicals & Pharma",
+      "sec": "Pharma",
+      "bp": 2880,
+      "v": 0.02,
+      "ls": 100
+    },
+    {
+      "s": "JBFIND",
+      "n": "JBF Industries",
+      "sec": "Textiles",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "JINDALSTEL",
+      "n": "Jindal Steel",
+      "sec": "Metals",
+      "bp": 965,
+      "v": 0.027,
+      "ls": 600
+    },
+    {
+      "s": "JKCEMENT",
+      "n": "JK Cement",
+      "sec": "Cement",
+      "bp": 4850,
+      "v": 0.02,
+      "ls": 100
+    },
+    {
+      "s": "JKLAKSHMI",
+      "n": "JK Lakshmi Cement",
+      "sec": "Cement",
+      "bp": 985,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "JKPAPER",
+      "n": "JK Paper Ltd",
+      "sec": "Paper",
+      "bp": 485,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "JMFIN",
+      "n": "JM Financial",
+      "sec": "Finance",
+      "bp": 128,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "JO1",
+      "n": "JO1 Corp Ltd",
+      "sec": "Cement",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "JO2",
+      "n": "JO2 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "JO3",
+      "n": "JO3 Corp Ltd",
+      "sec": "Media",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "JO4",
+      "n": "JO4 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "JO5",
+      "n": "JO5 Corp Ltd",
+      "sec": "Finance",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "JPPOWER",
+      "n": "Jaiprakash Power Ventures",
+      "sec": "Power",
+      "bp": 30,
+      "v": 0.032,
+      "ls": 7500
+    },
+    {
+      "s": "JSL",
+      "n": "Jindal Stainless",
+      "sec": "Metals",
+      "bp": 228,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "JSWENERGY",
+      "n": "JSW Energy",
+      "sec": "Power",
+      "bp": 688,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "JSWSTEEL",
+      "n": "JSW Steel",
+      "sec": "Metals",
+      "bp": 985,
+      "v": 0.024,
+      "ls": 600
+    },
+    {
+      "s": "JYOTHYLAB",
+      "n": "Jyothy Labs",
+      "sec": "FMCG",
+      "bp": 488,
+      "v": 0.019,
+      "ls": 1500
+    },
+    {
+      "s": "KAJARIACER",
+      "n": "Kajaria Ceramics",
+      "sec": "Consumer",
+      "bp": 1280,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "KALPATPOWR",
+      "n": "Kalpataru Power Transmission",
+      "sec": "Capital Goods",
+      "bp": 1250,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "KARNATAKBK",
+      "n": "Karnataka Bank",
+      "sec": "Banking",
+      "bp": 298,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "KE1",
+      "n": "KE1 Corp Ltd",
+      "sec": "Mining",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "KE2",
+      "n": "KE2 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "KE3",
+      "n": "KE3 Corp Ltd",
+      "sec": "Retail",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "KE4",
+      "n": "KE4 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "KE5",
+      "n": "KE5 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "KEC",
+      "n": "KEC International",
+      "sec": "Capital Goods",
+      "bp": 1850,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "KEIIND",
+      "n": "KEI Industries",
+      "sec": "Capital Goods",
+      "bp": 3550,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "KERNEX",
+      "n": "Kernex Microsystems",
+      "sec": "Defence",
+      "bp": 3250,
+      "v": 0.028,
+      "ls": 100
+    },
+    {
+      "s": "KI1",
+      "n": "KI1 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "KI2",
+      "n": "KI2 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "KI3",
+      "n": "KI3 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "KI4",
+      "n": "KI4 Corp Ltd",
+      "sec": "Metals",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "KI5",
+      "n": "KI5 Corp Ltd",
+      "sec": "Power",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "KITEX",
+      "n": "Kitex Garments",
+      "sec": "Textiles",
+      "bp": 288,
+      "v": 0.03,
+      "ls": 1500
+    },
+    {
+      "s": "KOTAKBANK",
+      "n": "Kotak Mahindra Bank",
+      "sec": "Banking",
+      "bp": 1790,
+      "v": 0.017,
+      "ls": 400
+    },
+    {
+      "s": "KPITTECH",
+      "n": "KPIT Technologies",
+      "sec": "IT",
+      "bp": 4280,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "KPRMILL",
+      "n": "KPR Mill Ltd",
+      "sec": "Textiles",
+      "bp": 780,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "KRBL",
+      "n": "KRBL Limited",
+      "sec": "FMCG",
+      "bp": 385,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "KRCL",
+      "n": "Konkan Railway Corp",
+      "sec": "Infrastructure",
+      "bp": 1580,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "LA1",
+      "n": "LA1 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "LA2",
+      "n": "LA2 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "LA3",
+      "n": "LA3 Corp Ltd",
+      "sec": "Defence",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "LA4",
+      "n": "LA4 Corp Ltd",
+      "sec": "Energy",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "LA5",
+      "n": "LA5 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "LALPATHLAB",
+      "n": "Lal Path Labs",
+      "sec": "Healthcare",
+      "bp": 3880,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "LAURUSLABS",
+      "n": "Laurus Labs",
+      "sec": "Pharma",
+      "bp": 590,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "LI1",
+      "n": "LI1 Corp Ltd",
+      "sec": "Education",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "LI2",
+      "n": "LI2 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "LI3",
+      "n": "LI3 Corp Ltd",
+      "sec": "Cement",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "LI4",
+      "n": "LI4 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "LI5",
+      "n": "LI5 Corp Ltd",
+      "sec": "Media",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "LICHFLIN",
+      "n": "LIC Housing Finance",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "LLOYDSME",
+      "n": "Lloyds Metals & Energy",
+      "sec": "Metals",
+      "bp": 215,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "LO1",
+      "n": "LO1 Corp Ltd",
+      "sec": "Banking",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "LO2",
+      "n": "LO2 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "LO3",
+      "n": "LO3 Corp Ltd",
+      "sec": "Mining",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "LO4",
+      "n": "LO4 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "LO5",
+      "n": "LO5 Corp Ltd",
+      "sec": "Retail",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "LODHA",
+      "n": "Macrotech Developers",
+      "sec": "Real Estate",
+      "bp": 1280,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "LT",
+      "n": "Larsen & Toubro",
+      "sec": "Infrastructure",
+      "bp": 3650,
+      "v": 0.018,
+      "ls": 150
+    },
+    {
+      "s": "LTIM",
+      "n": "LTIMindtree",
+      "sec": "IT",
+      "bp": 6250,
+      "v": 0.02,
+      "ls": 100
+    },
+    {
+      "s": "LUPIN",
+      "n": "Lupin",
+      "sec": "Pharma",
+      "bp": 2285,
+      "v": 0.02,
+      "ls": 400
+    },
+    {
+      "s": "LUXIND",
+      "n": "Lux Industries",
+      "sec": "Textiles",
+      "bp": 1280,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "LYKASHOES",
+      "n": "Lyka Shoes",
+      "sec": "Media",
+      "bp": 95,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "M&M",
+      "n": "Mahindra & Mahindra",
+      "sec": "Auto",
+      "bp": 2780,
+      "v": 0.021,
+      "ls": 250
+    },
+    {
+      "s": "MA1",
+      "n": "MA1 Corp Ltd",
+      "sec": "IT",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "MA2",
+      "n": "MA2 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "MA3",
+      "n": "MA3 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "MA4",
+      "n": "MA4 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "MA5",
+      "n": "MA5 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "MAHABANK",
+      "n": "Bank of Maharashtra",
+      "sec": "Banking",
+      "bp": 220,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "MAHLIFE",
+      "n": "Mahindra Lifespaces",
+      "sec": "Real Estate",
+      "bp": 980,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "MAHLOG",
+      "n": "Mahindra Logistics",
+      "sec": "Logistics",
+      "bp": 680,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "MANAKUNJ",
+      "n": "Manaksia",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "MANAPPURAM",
+      "n": "Manappuram Finance",
+      "sec": "Finance",
+      "bp": 198,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "MANGALMTE",
+      "n": "Mangalam Timber",
+      "sec": "Metals",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "MANIPAL",
+      "n": "Manipal Global Education",
+      "sec": "Healthcare",
+      "bp": 1250,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "MANKIND",
+      "n": "Mankind Pharma",
+      "sec": "Pharma",
+      "bp": 3280,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "MARICO",
+      "n": "Marico Limited",
+      "sec": "FMCG",
+      "bp": 685,
+      "v": 0.017,
+      "ls": 500
+    },
+    {
+      "s": "MARUTI",
+      "n": "Maruti Suzuki",
+      "sec": "Auto",
+      "bp": 12450,
+      "v": 0.016,
+      "ls": 50
+    },
+    {
+      "s": "MASTEK",
+      "n": "Mastek Ltd",
+      "sec": "IT",
+      "bp": 2150,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "MAXHEALTH",
+      "n": "Max Healthcare",
+      "sec": "Healthcare",
+      "bp": 820,
+      "v": 0.022,
+      "ls": 850
+    },
+    {
+      "s": "MAZDOCK",
+      "n": "Mazagon Dock Shipbuilders",
+      "sec": "Defence",
+      "bp": 5250,
+      "v": 0.026,
+      "ls": 50
+    },
+    {
+      "s": "MCDOWELL-N",
+      "n": "United Spirits",
+      "sec": "FMCG",
+      "bp": 1485,
+      "v": 0.018,
+      "ls": 250
+    },
+    {
+      "s": "MCX",
+      "n": "Multi Commodity Exchange",
+      "sec": "Finance",
+      "bp": 5250,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "ME1",
+      "n": "ME1 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "ME2",
+      "n": "ME2 Corp Ltd",
+      "sec": "Finance",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "ME3",
+      "n": "ME3 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "ME4",
+      "n": "ME4 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ME5",
+      "n": "ME5 Corp Ltd",
+      "sec": "Defence",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "METROBRANDS",
+      "n": "Metro Brands",
+      "sec": "Retail",
+      "bp": 1650,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "METROHLTH",
+      "n": "Metro Brands Health",
+      "sec": "Healthcare",
+      "bp": 825,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "MGL",
+      "n": "Mahanagar Gas",
+      "sec": "Energy",
+      "bp": 1555,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "MI1",
+      "n": "MI1 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "MI2",
+      "n": "MI2 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "MI3",
+      "n": "MI3 Corp Ltd",
+      "sec": "Education",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "MI4",
+      "n": "MI4 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "MI5",
+      "n": "MI5 Corp Ltd",
+      "sec": "Cement",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "MIDHANI",
+      "n": "Mishra Dhatu Nigam",
+      "sec": "Defence",
+      "bp": 1850,
+      "v": 0.028,
+      "ls": 250
+    },
+    {
+      "s": "MINDACORP",
+      "n": "Minda Corp",
+      "sec": "Auto Ancillary",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "MMFL",
+      "n": "Manappuram Finance Ltd",
+      "sec": "Finance",
+      "bp": 198,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "MO1",
+      "n": "MO1 Corp Ltd",
+      "sec": "Metals",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "MO2",
+      "n": "MO2 Corp Ltd",
+      "sec": "Power",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "MO3",
+      "n": "MO3 Corp Ltd",
+      "sec": "Banking",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "MO4",
+      "n": "MO4 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "MO5",
+      "n": "MO5 Corp Ltd",
+      "sec": "Mining",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "MOIL",
+      "n": "MOIL Limited",
+      "sec": "Mining",
+      "bp": 478,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "MOREPENLAB",
+      "n": "Morepen Laboratories",
+      "sec": "Pharma",
+      "bp": 55,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "MOTHERSON",
+      "n": "Motherson Sumi Systems",
+      "sec": "Auto Ancillary",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "MOTHERSUMI",
+      "n": "Mother Son Sumi",
+      "sec": "Auto Ancillary",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 2000
+    },
+    {
+      "s": "MOTILALOFS",
+      "n": "Motilal Oswal Financial Services",
+      "sec": "Finance",
+      "bp": 1380,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "MOVIERELX",
+      "n": "PVR INOX",
+      "sec": "Media",
+      "bp": 1880,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "MPHASIS",
+      "n": "Mphasis",
+      "sec": "IT",
+      "bp": 3150,
+      "v": 0.022,
+      "ls": 300
+    },
+    {
+      "s": "MPIL",
+      "n": "MPIL Ltd",
+      "sec": "IT",
+      "bp": 485,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "MRF",
+      "n": "MRF Tyres",
+      "sec": "Auto Ancillary",
+      "bp": 42500,
+      "v": 0.019,
+      "ls": 10
+    },
+    {
+      "s": "MRPL",
+      "n": "Mangalore Refinery & Petrochemicals",
+      "sec": "Energy",
+      "bp": 288,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "MU1",
+      "n": "MU1 Corp Ltd",
+      "sec": "Energy",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "MU2",
+      "n": "MU2 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "MU3",
+      "n": "MU3 Corp Ltd",
+      "sec": "IT",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "MU4",
+      "n": "MU4 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "MU5",
+      "n": "MU5 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "MUKESHART",
+      "n": "Mukesh Arts",
+      "sec": "Media",
+      "bp": 68,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "MUNJALAU",
+      "n": "Munjal Auto Industries",
+      "sec": "Auto Ancillary",
+      "bp": 560,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "MUNJALSHOW",
+      "n": "Munjal Showa",
+      "sec": "Auto Ancillary",
+      "bp": 485,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "MUTHOOTFIN",
+      "n": "Muthoot Finance",
+      "sec": "Finance",
+      "bp": 3850,
+      "v": 0.019,
+      "ls": 100
+    },
+    {
+      "s": "NA1",
+      "n": "NA1 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "NA2",
+      "n": "NA2 Corp Ltd",
+      "sec": "Media",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "NA3",
+      "n": "NA3 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "NA4",
+      "n": "NA4 Corp Ltd",
+      "sec": "Finance",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "NA5",
+      "n": "NA5 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "NALCO",
+      "n": "National Aluminium",
+      "sec": "Metals",
+      "bp": 268,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "NAMIND",
+      "n": "NAM-India Ltd",
+      "sec": "Finance",
+      "bp": 385,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "NATCOPHARM",
+      "n": "Natco Pharma",
+      "sec": "Pharma",
+      "bp": 1255,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "NATIONALU",
+      "n": "Nationalum Aluminium",
+      "sec": "Metals",
+      "bp": 165,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "NAUKRI",
+      "n": "Info Edge India",
+      "sec": "Internet",
+      "bp": 8280,
+      "v": 0.025,
+      "ls": 50
+    },
+    {
+      "s": "NAVA",
+      "n": "Nava Bharat Ventures",
+      "sec": "Chemicals",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "NAVNETEDU",
+      "n": "Navneet Education",
+      "sec": "Education",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "NBCC",
+      "n": "NBCC India",
+      "sec": "Infrastructure",
+      "bp": 195,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "NE1",
+      "n": "NE1 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "NE2",
+      "n": "NE2 Corp Ltd",
+      "sec": "Retail",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "NE3",
+      "n": "NE3 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "NE4",
+      "n": "NE4 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "NE5",
+      "n": "NE5 Corp Ltd",
+      "sec": "Education",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "NEOGEN",
+      "n": "Neogen Labs",
+      "sec": "Pharma",
+      "bp": 1250,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "NESCO",
+      "n": "Nesco Ltd",
+      "sec": "Services",
+      "bp": 1480,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "NESTLEIND",
+      "n": "Nestle India",
+      "sec": "FMCG",
+      "bp": 2550,
+      "v": 0.013,
+      "ls": 50
+    },
+    {
+      "s": "NETWORK18",
+      "n": "Network18 Media & Investments",
+      "sec": "Media",
+      "bp": 128,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "NEWGEN",
+      "n": "Newgen Software",
+      "sec": "IT",
+      "bp": 1155,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "NEWINDASS",
+      "n": "New India Assurance",
+      "sec": "Insurance",
+      "bp": 285,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "NH",
+      "n": "NH Ltd",
+      "sec": "Infrastructure",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "NHPC",
+      "n": "NHPC Limited",
+      "sec": "Power",
+      "bp": 108,
+      "v": 0.024,
+      "ls": 2500
+    },
+    {
+      "s": "NI1",
+      "n": "NI1 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "NI2",
+      "n": "NI2 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "NI3",
+      "n": "NI3 Corp Ltd",
+      "sec": "Metals",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "NI4",
+      "n": "NI4 Corp Ltd",
+      "sec": "Power",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "NI5",
+      "n": "NI5 Corp Ltd",
+      "sec": "Banking",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "NIACO",
+      "n": "Nippon Audiotronics",
+      "sec": "Auto Ancillary",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "NITINSPIN",
+      "n": "Nitin Spinners",
+      "sec": "Textiles",
+      "bp": 580,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "NMDC",
+      "n": "NMDC Limited",
+      "sec": "Mining",
+      "bp": 258,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "NO1",
+      "n": "NO1 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "NO2",
+      "n": "NO2 Corp Ltd",
+      "sec": "Defence",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "NO3",
+      "n": "NO3 Corp Ltd",
+      "sec": "Energy",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "NO4",
+      "n": "NO4 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "NO5",
+      "n": "NO5 Corp Ltd",
+      "sec": "IT",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "NTPC",
+      "n": "NTPC Limited",
+      "sec": "Power",
+      "bp": 420,
+      "v": 0.021,
+      "ls": 1500
+    },
+    {
+      "s": "NYKAA",
+      "n": "FSN E-Commerce (Nykaa)",
+      "sec": "E-commerce",
+      "bp": 210,
+      "v": 0.03,
+      "ls": 2700
+    },
+    {
+      "s": "OBEROIRLTY",
+      "n": "Oberoi Realty",
+      "sec": "Real Estate",
+      "bp": 1850,
+      "v": 0.023,
+      "ls": 400
+    },
+    {
+      "s": "OIL",
+      "n": "Oil India",
+      "sec": "Energy",
+      "bp": 428,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "OLECTRA",
+      "n": "Olectra Greentech",
+      "sec": "Power",
+      "bp": 4850,
+      "v": 0.026,
+      "ls": 100
+    },
+    {
+      "s": "OM1",
+      "n": "OM1 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "OM2",
+      "n": "OM2 Corp Ltd",
+      "sec": "Cement",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "OM3",
+      "n": "OM3 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "OM4",
+      "n": "OM4 Corp Ltd",
+      "sec": "Media",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "OM5",
+      "n": "OM5 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "OMAXAUTO",
+      "n": "Omax Autos",
+      "sec": "Auto Ancillary",
+      "bp": 185,
+      "v": 0.026,
+      "ls": 2500
+    },
+    {
+      "s": "ONGC",
+      "n": "Oil & Natural Gas Corp",
+      "sec": "Energy",
+      "bp": 285,
+      "v": 0.023,
+      "ls": 1800
+    },
+    {
+      "s": "ONMOBILE",
+      "n": "OnMobile Global",
+      "sec": "IT",
+      "bp": 155,
+      "v": 0.03,
+      "ls": 2500
+    },
+    {
+      "s": "OPTICALFR",
+      "n": "Opto Electronics",
+      "sec": "Defence",
+      "bp": 2850,
+      "v": 0.026,
+      "ls": 100
+    },
+    {
+      "s": "ORIENTCEM",
+      "n": "Orient Cement",
+      "sec": "Cement",
+      "bp": 198,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "ORISSAMINE",
+      "n": "Orissa Minerals Development",
+      "sec": "Mining",
+      "bp": 425,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "PA1",
+      "n": "PA1 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "PA2",
+      "n": "PA2 Corp Ltd",
+      "sec": "Mining",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "PA3",
+      "n": "PA3 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "PA4",
+      "n": "PA4 Corp Ltd",
+      "sec": "Retail",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "PA5",
+      "n": "PA5 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "PAGEIND",
+      "n": "Page Industries",
+      "sec": "Textiles",
+      "bp": 42800,
+      "v": 0.019,
+      "ls": 10
+    },
+    {
+      "s": "PAYTM",
+      "n": "One97 Communications",
+      "sec": "Fintech",
+      "bp": 485,
+      "v": 0.035,
+      "ls": 1100
+    },
+    {
+      "s": "PBFINTCH",
+      "n": "PB Fintech (PolicyBazaar)",
+      "sec": "Fintech",
+      "bp": 2850,
+      "v": 0.03,
+      "ls": 100
+    },
+    {
+      "s": "PENIND",
+      "n": "Peninsula Land",
+      "sec": "Media",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "PENTAMEDIA",
+      "n": "Pentamedia Graphics",
+      "sec": "Media",
+      "bp": 58,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "PERSISTENT",
+      "n": "Persistent Systems",
+      "sec": "IT",
+      "bp": 6800,
+      "v": 0.021,
+      "ls": 100
+    },
+    {
+      "s": "PETRONET",
+      "n": "Petronet LNG",
+      "sec": "Energy",
+      "bp": 308,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "PFC",
+      "n": "Power Finance Corporation",
+      "sec": "Finance",
+      "bp": 518,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "PFIZER",
+      "n": "Pfizer India",
+      "sec": "Pharma",
+      "bp": 6280,
+      "v": 0.017,
+      "ls": 50
+    },
+    {
+      "s": "PH1",
+      "n": "PH1 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "PH2",
+      "n": "PH2 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "PH3",
+      "n": "PH3 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "PH4",
+      "n": "PH4 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "PH5",
+      "n": "PH5 Corp Ltd",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "PHOENIXLTD",
+      "n": "Phoenix Ltd",
+      "sec": "Real Estate",
+      "bp": 6100,
+      "v": 0.026,
+      "ls": 100
+    },
+    {
+      "s": "PI1",
+      "n": "PI1 Corp Ltd",
+      "sec": "Finance",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "PI2",
+      "n": "PI2 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "PI3",
+      "n": "PI3 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "PI4",
+      "n": "PI4 Corp Ltd",
+      "sec": "Defence",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "PI5",
+      "n": "PI5 Corp Ltd",
+      "sec": "Energy",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "PIDILITIND",
+      "n": "Pidilite Industries",
+      "sec": "Chemicals",
+      "bp": 3180,
+      "v": 0.018,
+      "ls": 300
+    },
+    {
+      "s": "PIINDUST",
+      "n": "PI Industries",
+      "sec": "Chemicals",
+      "bp": 5250,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "PNB",
+      "n": "Punjab National Bank",
+      "sec": "Banking",
+      "bp": 148,
+      "v": 0.024,
+      "ls": 6000
+    },
+    {
+      "s": "PNBHOUSING",
+      "n": "PNB Housing Finance",
+      "sec": "Finance",
+      "bp": 1055,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "POLYCAB",
+      "n": "Polycab India",
+      "sec": "Capital Goods",
+      "bp": 5650,
+      "v": 0.023,
+      "ls": 50
+    },
+    {
+      "s": "POLYMED",
+      "n": "Polymedicure",
+      "sec": "Healthcare",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "POWERGRID",
+      "n": "Power Grid Corp",
+      "sec": "Power",
+      "bp": 325,
+      "v": 0.018,
+      "ls": 2500
+    },
+    {
+      "s": "PR1",
+      "n": "PR1 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "PR2",
+      "n": "PR2 Corp Ltd",
+      "sec": "Education",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "PR3",
+      "n": "PR3 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "PR4",
+      "n": "PR4 Corp Ltd",
+      "sec": "Cement",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "PR5",
+      "n": "PR5 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "PRECICO",
+      "n": "Precision Camshafts",
+      "sec": "Auto Ancillary",
+      "bp": 680,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "PRECOT",
+      "n": "Precot Ltd",
+      "sec": "Textiles",
+      "bp": 485,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "PRESTIGE",
+      "n": "Prestige Estates",
+      "sec": "Real Estate",
+      "bp": 3850,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "PROCTER",
+      "n": "P&G Health",
+      "sec": "FMCG",
+      "bp": 15800,
+      "v": 0.016,
+      "ls": 10
+    },
+    {
+      "s": "PROVINTL",
+      "n": "Provogue International",
+      "sec": "Retail",
+      "bp": 58,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "PRSMJOHNSR",
+      "n": "Prism Johnson",
+      "sec": "Cement",
+      "bp": 580,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "PTCIL",
+      "n": "PTC Industries Ltd",
+      "sec": "Power",
+      "bp": 2950,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "PU1",
+      "n": "PU1 Corp Ltd",
+      "sec": "Power",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "PU2",
+      "n": "PU2 Corp Ltd",
+      "sec": "Banking",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "PU3",
+      "n": "PU3 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "PU4",
+      "n": "PU4 Corp Ltd",
+      "sec": "Mining",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "PU5",
+      "n": "PU5 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "PVRINOX",
+      "n": "PVR INOX Ltd",
+      "sec": "Media",
+      "bp": 1880,
+      "v": 0.026,
+      "ls": 250
+    },
+    {
+      "s": "RA1",
+      "n": "RA1 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "RA2",
+      "n": "RA2 Corp Ltd",
+      "sec": "IT",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "RA3",
+      "n": "RA3 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "RA4",
+      "n": "RA4 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "RA5",
+      "n": "RA5 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "RADICO",
+      "n": "Radico Khaitan",
+      "sec": "FMCG",
+      "bp": 1655,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "RAILTEL",
+      "n": "RailTel Corporation of India",
+      "sec": "Infrastructure",
+      "bp": 448,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "RAIN",
+      "n": "Rain Industries",
+      "sec": "Chemicals",
+      "bp": 215,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "RAINCOM",
+      "n": "Rain Commodities",
+      "sec": "Commodities",
+      "bp": 68,
+      "v": 0.03,
+      "ls": 5000
+    },
+    {
+      "s": "RAJESHEN",
+      "n": "Rajesh Exports",
+      "sec": "Metals",
+      "bp": 75,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "RAJESHEXPO",
+      "n": "Rajesh Exports",
+      "sec": "Metals",
+      "bp": 75,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "RALLIS",
+      "n": "Rallis India",
+      "sec": "Chemicals",
+      "bp": 485,
+      "v": 0.023,
+      "ls": 1500
+    },
+    {
+      "s": "RAMANAND",
+      "n": "Ramanand Papers",
+      "sec": "Textiles",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "RAMCOCEM",
+      "n": "Ramco Cements",
+      "sec": "Cement",
+      "bp": 1380,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "RAMKRISHNA",
+      "n": "Ramkrishna Forgings",
+      "sec": "Auto Ancillary",
+      "bp": 985,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "RAYMOND",
+      "n": "Raymond Ltd",
+      "sec": "Textiles",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "RBLBANK",
+      "n": "RBL Bank",
+      "sec": "Banking",
+      "bp": 255,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "RCF",
+      "n": "Rashtriya Chemicals & Fertilisers",
+      "sec": "Chemicals",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "RECLTD",
+      "n": "REC Ltd",
+      "sec": "Power",
+      "bp": 528,
+      "v": 0.022,
+      "ls": 500
+    },
+    {
+      "s": "REDINGTON",
+      "n": "Redington",
+      "sec": "IT",
+      "bp": 245,
+      "v": 0.022,
+      "ls": 1500
+    },
+    {
+      "s": "RELIANCE",
+      "n": "Reliance Industries",
+      "sec": "Energy",
+      "bp": 2950,
+      "v": 0.018,
+      "ls": 250
+    },
+    {
+      "s": "RELIANCER",
+      "n": "Reliance Retail",
+      "sec": "Retail",
+      "bp": 3850,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "RELPOWER",
+      "n": "Reliance Power",
+      "sec": "Power",
+      "bp": 48,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "REMCOIND",
+      "n": "Remco India",
+      "sec": "Auto Ancillary",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "REPCOHOME",
+      "n": "Repco Home Finance",
+      "sec": "Finance",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "RESPONIND",
+      "n": "Response Technologies",
+      "sec": "IT",
+      "bp": 385,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "RI1",
+      "n": "RI1 Corp Ltd",
+      "sec": "Media",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "RI2",
+      "n": "RI2 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "RI3",
+      "n": "RI3 Corp Ltd",
+      "sec": "Finance",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "RI4",
+      "n": "RI4 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "RI5",
+      "n": "RI5 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "RICOAUTO",
+      "n": "Rico Auto",
+      "sec": "Auto Ancillary",
+      "bp": 215,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "RITES",
+      "n": "RITES Ltd",
+      "sec": "Infrastructure",
+      "bp": 1455,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "RO1",
+      "n": "RO1 Corp Ltd",
+      "sec": "Retail",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "RO2",
+      "n": "RO2 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "RO3",
+      "n": "RO3 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "RO4",
+      "n": "RO4 Corp Ltd",
+      "sec": "Education",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "RO5",
+      "n": "RO5 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "RVNL",
+      "n": "Rail Vikas Nigam",
+      "sec": "Infrastructure",
+      "bp": 390,
+      "v": 0.032,
+      "ls": 3000
+    },
+    {
+      "s": "SA1",
+      "n": "SA1 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "SA2",
+      "n": "SA2 Corp Ltd",
+      "sec": "Metals",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "SA3",
+      "n": "SA3 Corp Ltd",
+      "sec": "Power",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SA4",
+      "n": "SA4 Corp Ltd",
+      "sec": "Banking",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SA5",
+      "n": "SA5 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SAIL",
+      "n": "Steel Authority India",
+      "sec": "Metals",
+      "bp": 165,
+      "v": 0.028,
+      "ls": 3000
+    },
+    {
+      "s": "SAILWIRE",
+      "n": "SAIL Wire Ropes",
+      "sec": "Metals",
+      "bp": 165,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "SAMKRGSS",
+      "n": "Samkrg Pistons",
+      "sec": "Auto Ancillary",
+      "bp": 985,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "SANDHAR",
+      "n": "Sandhar Technologies",
+      "sec": "Auto Ancillary",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SANGHIIND",
+      "n": "Sanghi Industries",
+      "sec": "Cement",
+      "bp": 158,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "SANOFI",
+      "n": "Sanofi India",
+      "sec": "Pharma",
+      "bp": 8550,
+      "v": 0.017,
+      "ls": 50
+    },
+    {
+      "s": "SANTECH",
+      "n": "Sante Technologies",
+      "sec": "Defence",
+      "bp": 580,
+      "v": 0.027,
+      "ls": 500
+    },
+    {
+      "s": "SAREGAMA",
+      "n": "Saregama India",
+      "sec": "Media",
+      "bp": 4850,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "SAT",
+      "n": "Sat Limited",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SBILIFE",
+      "n": "SBI Life Insurance",
+      "sec": "Insurance",
+      "bp": 1810,
+      "v": 0.018,
+      "ls": 350
+    },
+    {
+      "s": "SBIN",
+      "n": "State Bank of India",
+      "sec": "Banking",
+      "bp": 825,
+      "v": 0.022,
+      "ls": 750
+    },
+    {
+      "s": "SCHAEFFLER",
+      "n": "Schaeffler India",
+      "sec": "Auto Ancillary",
+      "bp": 5850,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "SCI",
+      "n": "Shipping Corporation of India",
+      "sec": "Logistics",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "SE1",
+      "n": "SE1 Corp Ltd",
+      "sec": "Defence",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "SE2",
+      "n": "SE2 Corp Ltd",
+      "sec": "Energy",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "SE3",
+      "n": "SE3 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SE4",
+      "n": "SE4 Corp Ltd",
+      "sec": "IT",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SE5",
+      "n": "SE5 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "SHARDACROP",
+      "n": "Sharda Cropchem",
+      "sec": "Chemicals",
+      "bp": 2280,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "SHEMAR",
+      "n": "Shemaroo Entertainment",
+      "sec": "Media",
+      "bp": 288,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "SHILPAMED",
+      "n": "Shilpa Medicare",
+      "sec": "Pharma",
+      "bp": 685,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "SHOPERSTOP",
+      "n": "Shoppers Stop",
+      "sec": "Retail",
+      "bp": 780,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SHRADHA",
+      "n": "Shraddha Infraprojects",
+      "sec": "Infrastructure",
+      "bp": 58,
+      "v": 0.032,
+      "ls": 5000
+    },
+    {
+      "s": "SHREECEM",
+      "n": "Shree Cement",
+      "sec": "Cement",
+      "bp": 26800,
+      "v": 0.019,
+      "ls": 50
+    },
+    {
+      "s": "SHREYAN",
+      "n": "Shreyan Shipping & Logistics",
+      "sec": "Logistics",
+      "bp": 1180,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SHRIRAMC",
+      "n": "Shriram City Union Finance",
+      "sec": "Finance",
+      "bp": 3150,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "SHRIRAMFIN",
+      "n": "Shriram Finance",
+      "sec": "Finance",
+      "bp": 3355,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "SHRIRAMRCH",
+      "n": "Shriram Properties",
+      "sec": "Real Estate",
+      "bp": 585,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "SHYAMMETL",
+      "n": "Shyam Metalics & Energy",
+      "sec": "Metals",
+      "bp": 785,
+      "v": 0.027,
+      "ls": 500
+    },
+    {
+      "s": "SI1",
+      "n": "SI1 Corp Ltd",
+      "sec": "Cement",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "SI2",
+      "n": "SI2 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SI3",
+      "n": "SI3 Corp Ltd",
+      "sec": "Media",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SI4",
+      "n": "SI4 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SI5",
+      "n": "SI5 Corp Ltd",
+      "sec": "Finance",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "SIEMENS",
+      "n": "Siemens India",
+      "sec": "Capital Goods",
+      "bp": 8250,
+      "v": 0.021,
+      "ls": 75
+    },
+    {
+      "s": "SILVERLINE",
+      "n": "Silverline Realty",
+      "sec": "Real Estate",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "SJVN",
+      "n": "SJVN Limited",
+      "sec": "Power",
+      "bp": 148,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "SKUMARS",
+      "n": "S Kumar Nationwide",
+      "sec": "Textiles",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SMLISUZU",
+      "n": "SML Isuzu",
+      "sec": "Auto",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "SO1",
+      "n": "SO1 Corp Ltd",
+      "sec": "Mining",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "SO2",
+      "n": "SO2 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SO3",
+      "n": "SO3 Corp Ltd",
+      "sec": "Retail",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SO4",
+      "n": "SO4 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SO5",
+      "n": "SO5 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "SOBHA",
+      "n": "Sobha Limited",
+      "sec": "Real Estate",
+      "bp": 1580,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SOLARIND",
+      "n": "Solar Industries India",
+      "sec": "Chemicals",
+      "bp": 4250,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "SOMANYCERA",
+      "n": "Somany Ceramics",
+      "sec": "Consumer",
+      "bp": 1150,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "SONACOMS",
+      "n": "Sona BLW Precision",
+      "sec": "Auto Ancillary",
+      "bp": 7850,
+      "v": 0.027,
+      "ls": 50
+    },
+    {
+      "s": "SONATSOFTW",
+      "n": "Sonata Software",
+      "sec": "IT",
+      "bp": 625,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SOUTHBANK",
+      "n": "South Indian Bank",
+      "sec": "Banking",
+      "bp": 30,
+      "v": 0.028,
+      "ls": 7500
+    },
+    {
+      "s": "SPARC",
+      "n": "Sparc Systems",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.027,
+      "ls": 1500
+    },
+    {
+      "s": "SPEARDEF",
+      "n": "Spear Defence Systems",
+      "sec": "Defence",
+      "bp": 2850,
+      "v": 0.028,
+      "ls": 100
+    },
+    {
+      "s": "SPECIALITY",
+      "n": "Speciality Restaurants",
+      "sec": "Retail",
+      "bp": 580,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "SPENCERS",
+      "n": "Spencer's Retail",
+      "sec": "Retail",
+      "bp": 185,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "SPICEJET",
+      "n": "SpiceJet",
+      "sec": "Aviation",
+      "bp": 85,
+      "v": 0.035,
+      "ls": 5000
+    },
+    {
+      "s": "SREERAYAL",
+      "n": "Sree Rayalaseema Alloys",
+      "sec": "Finance",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ST1",
+      "n": "ST1 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "ST2",
+      "n": "ST2 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ST3",
+      "n": "ST3 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ST4",
+      "n": "ST4 Corp Ltd",
+      "sec": "Metals",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "ST5",
+      "n": "ST5 Corp Ltd",
+      "sec": "Power",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "STARCEMENT",
+      "n": "Star Cement",
+      "sec": "Cement",
+      "bp": 385,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "STARHEALTH",
+      "n": "Star Health and Allied Insurance",
+      "sec": "Insurance",
+      "bp": 5850,
+      "v": 0.024,
+      "ls": 50
+    },
+    {
+      "s": "STEL",
+      "n": "Sterlite Technologies",
+      "sec": "Telecom",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "STRIDES",
+      "n": "Strides Pharma",
+      "sec": "Pharma",
+      "bp": 685,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "STYRENE",
+      "n": "Styrenix Performance Materials",
+      "sec": "Chemicals",
+      "bp": 5800,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "SU1",
+      "n": "SU1 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SU2",
+      "n": "SU2 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SU3",
+      "n": "SU3 Corp Ltd",
+      "sec": "Defence",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SU4",
+      "n": "SU4 Corp Ltd",
+      "sec": "Energy",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "SU5",
+      "n": "SU5 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "SUMICHEM",
+      "n": "Sumitomo Chemical India",
+      "sec": "Chemicals",
+      "bp": 985,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "SUMMIT",
+      "n": "Summit Securities",
+      "sec": "Finance",
+      "bp": 285,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "SUNPHARMA",
+      "n": "Sun Pharmaceutical",
+      "sec": "Pharma",
+      "bp": 1780,
+      "v": 0.018,
+      "ls": 700
+    },
+    {
+      "s": "SUNTECK",
+      "n": "Sunteck Realty",
+      "sec": "Real Estate",
+      "bp": 1850,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "SUNTV",
+      "n": "Sun TV Network",
+      "sec": "Media",
+      "bp": 985,
+      "v": 0.02,
+      "ls": 500
+    },
+    {
+      "s": "SUPRAJIT",
+      "n": "Suprajit Engineering",
+      "sec": "Auto Ancillary",
+      "bp": 595,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "SUPREMEIND",
+      "n": "Supreme Industries",
+      "sec": "Plastics",
+      "bp": 5250,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "SURYALAXMI",
+      "n": "Surya Laxmi Cotton Mills",
+      "sec": "Textiles",
+      "bp": 425,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "SURYAROSHI",
+      "n": "Surya Roshni",
+      "sec": "Metals",
+      "bp": 1280,
+      "v": 0.023,
+      "ls": 250
+    },
+    {
+      "s": "SURYODNRM",
+      "n": "Suryoday Small Finance Bank",
+      "sec": "Banking",
+      "bp": 725,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "SUZLON",
+      "n": "Suzlon Energy",
+      "sec": "Power",
+      "bp": 72,
+      "v": 0.035,
+      "ls": 7500
+    },
+    {
+      "s": "SWARAJENG",
+      "n": "Swaraj Engines",
+      "sec": "Auto Ancillary",
+      "bp": 2850,
+      "v": 0.024,
+      "ls": 100
+    },
+    {
+      "s": "SYNGENE",
+      "n": "Syngene International",
+      "sec": "Pharma",
+      "bp": 855,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "TA1",
+      "n": "TA1 Corp Ltd",
+      "sec": "Education",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "TA2",
+      "n": "TA2 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "TA3",
+      "n": "TA3 Corp Ltd",
+      "sec": "Cement",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "TA4",
+      "n": "TA4 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "TA5",
+      "n": "TA5 Corp Ltd",
+      "sec": "Media",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "TAINWALCH",
+      "n": "Tainwal Construction",
+      "sec": "Infrastructure",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "TATAAIA",
+      "n": "Tata AIA Life Insurance",
+      "sec": "Insurance",
+      "bp": 985,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "TATACOFFEE",
+      "n": "Tata Coffee",
+      "sec": "FMCG",
+      "bp": 925,
+      "v": 0.023,
+      "ls": 500
+    },
+    {
+      "s": "TATACOMM",
+      "n": "Tata Communications",
+      "sec": "Telecom",
+      "bp": 1850,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "TATACONSUM",
+      "n": "Tata Consumer Products",
+      "sec": "FMCG",
+      "bp": 1250,
+      "v": 0.016,
+      "ls": 575
+    },
+    {
+      "s": "TATAELXSI",
+      "n": "Tata Elxsi",
+      "sec": "IT",
+      "bp": 6850,
+      "v": 0.022,
+      "ls": 50
+    },
+    {
+      "s": "TATAINV",
+      "n": "Tata Investment Corp",
+      "sec": "Finance",
+      "bp": 5250,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "TATAMOTORS",
+      "n": "Tata Motors",
+      "sec": "Auto",
+      "bp": 950,
+      "v": 0.025,
+      "ls": 550
+    },
+    {
+      "s": "TATAMTRDVR",
+      "n": "Tata Motors DVR",
+      "sec": "Auto",
+      "bp": 640,
+      "v": 0.026,
+      "ls": 850
+    },
+    {
+      "s": "TATAPOWER",
+      "n": "Tata Power",
+      "sec": "Power",
+      "bp": 495,
+      "v": 0.024,
+      "ls": 3000
+    },
+    {
+      "s": "TATASTEEL",
+      "n": "Tata Steel",
+      "sec": "Metals",
+      "bp": 155,
+      "v": 0.026,
+      "ls": 3000
+    },
+    {
+      "s": "TCIEXPRESS",
+      "n": "TCI Express",
+      "sec": "Logistics",
+      "bp": 1450,
+      "v": 0.024,
+      "ls": 250
+    },
+    {
+      "s": "TCS",
+      "n": "Tata Consultancy Services",
+      "sec": "IT",
+      "bp": 4150,
+      "v": 0.015,
+      "ls": 150
+    },
+    {
+      "s": "TE1",
+      "n": "TE1 Corp Ltd",
+      "sec": "Banking",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "TE2",
+      "n": "TE2 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "TE3",
+      "n": "TE3 Corp Ltd",
+      "sec": "Mining",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "TE4",
+      "n": "TE4 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "TE5",
+      "n": "TE5 Corp Ltd",
+      "sec": "Retail",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "TECHM",
+      "n": "Tech Mahindra",
+      "sec": "IT",
+      "bp": 1690,
+      "v": 0.022,
+      "ls": 700
+    },
+    {
+      "s": "TEJASNET",
+      "n": "Tejas Networks",
+      "sec": "Telecom",
+      "bp": 1280,
+      "v": 0.028,
+      "ls": 250
+    },
+    {
+      "s": "TH1",
+      "n": "TH1 Corp Ltd",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "TH2",
+      "n": "TH2 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "TH3",
+      "n": "TH3 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "TH4",
+      "n": "TH4 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "TH5",
+      "n": "TH5 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "THDC",
+      "n": "THDC India Ltd",
+      "sec": "Power",
+      "bp": 128,
+      "v": 0.024,
+      "ls": 2500
+    },
+    {
+      "s": "THERMAX",
+      "n": "Thermax Ltd",
+      "sec": "Capital Goods",
+      "bp": 6220,
+      "v": 0.023,
+      "ls": 50
+    },
+    {
+      "s": "THINKL",
+      "n": "Thinklink Learning",
+      "sec": "IT",
+      "bp": 285,
+      "v": 0.03,
+      "ls": 1500
+    },
+    {
+      "s": "THYROCARE",
+      "n": "Thyrocare Technologies",
+      "sec": "Healthcare",
+      "bp": 1880,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "TINPLATE",
+      "n": "Tinplate Company of India",
+      "sec": "Metals",
+      "bp": 398,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "TIPSIND",
+      "n": "Tips Industries",
+      "sec": "Media",
+      "bp": 285,
+      "v": 0.026,
+      "ls": 1500
+    },
+    {
+      "s": "TITAN",
+      "n": "Titan Company",
+      "sec": "Consumer",
+      "bp": 3450,
+      "v": 0.019,
+      "ls": 175
+    },
+    {
+      "s": "TORNTPHARM",
+      "n": "Torrent Pharma",
+      "sec": "Pharma",
+      "bp": 15500,
+      "v": 0.021,
+      "ls": 50
+    },
+    {
+      "s": "TORNTPOWER",
+      "n": "Torrent Power",
+      "sec": "Power",
+      "bp": 1880,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "TR1",
+      "n": "TR1 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "TR2",
+      "n": "TR2 Corp Ltd",
+      "sec": "Finance",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "TR3",
+      "n": "TR3 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "TR4",
+      "n": "TR4 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "TR5",
+      "n": "TR5 Corp Ltd",
+      "sec": "Defence",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "TRENT",
+      "n": "Trent Limited",
+      "sec": "Retail",
+      "bp": 7650,
+      "v": 0.024,
+      "ls": 125
+    },
+    {
+      "s": "TRIDENT",
+      "n": "Trident Ltd",
+      "sec": "Textiles",
+      "bp": 65,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "TVSELE",
+      "n": "TVS Electronics",
+      "sec": "Auto Ancillary",
+      "bp": 380,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "TVSLOG",
+      "n": "TVS Supply Chain Solutions",
+      "sec": "Logistics",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "TVSMOTOR",
+      "n": "TVS Motor Company",
+      "sec": "Auto",
+      "bp": 2480,
+      "v": 0.022,
+      "ls": 300
+    },
+    {
+      "s": "UBL",
+      "n": "United Breweries",
+      "sec": "FMCG",
+      "bp": 1880,
+      "v": 0.018,
+      "ls": 250
+    },
+    {
+      "s": "UCOBANK",
+      "n": "UCO Bank",
+      "sec": "Banking",
+      "bp": 55,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "ULTRACEMCO",
+      "n": "UltraTech Cement",
+      "sec": "Cement",
+      "bp": 11250,
+      "v": 0.017,
+      "ls": 50
+    },
+    {
+      "s": "UN1",
+      "n": "UN1 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "UN2",
+      "n": "UN2 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "UN3",
+      "n": "UN3 Corp Ltd",
+      "sec": "Education",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "UN4",
+      "n": "UN4 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "UN5",
+      "n": "UN5 Corp Ltd",
+      "sec": "Cement",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "UNIONBANK",
+      "n": "Union Bank of India",
+      "sec": "Banking",
+      "bp": 148,
+      "v": 0.023,
+      "ls": 2500
+    },
+    {
+      "s": "UP1",
+      "n": "UP1 Corp Ltd",
+      "sec": "Metals",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "UP2",
+      "n": "UP2 Corp Ltd",
+      "sec": "Power",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "UP3",
+      "n": "UP3 Corp Ltd",
+      "sec": "Banking",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "UP4",
+      "n": "UP4 Corp Ltd",
+      "sec": "Consumer",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "UP5",
+      "n": "UP5 Corp Ltd",
+      "sec": "Mining",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "UPL",
+      "n": "UPL Limited",
+      "sec": "Chemicals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "USHAMART",
+      "n": "Usha Martin",
+      "sec": "Metals",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "UT1",
+      "n": "UT1 Corp Ltd",
+      "sec": "Energy",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "UT2",
+      "n": "UT2 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "UT3",
+      "n": "UT3 Corp Ltd",
+      "sec": "IT",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "UT4",
+      "n": "UT4 Corp Ltd",
+      "sec": "Auto Ancillary",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "UT5",
+      "n": "UT5 Corp Ltd",
+      "sec": "Plastics",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "V-GUARD",
+      "n": "V-Guard Industries",
+      "sec": "Consumer",
+      "bp": 3850,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "V2RETAIL",
+      "n": "V2 Retail",
+      "sec": "Retail",
+      "bp": 148,
+      "v": 0.03,
+      "ls": 2500
+    },
+    {
+      "s": "VA1",
+      "n": "VA1 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "VA2",
+      "n": "VA2 Corp Ltd",
+      "sec": "Media",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "VA3",
+      "n": "VA3 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "VA4",
+      "n": "VA4 Corp Ltd",
+      "sec": "Finance",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "VA5",
+      "n": "VA5 Corp Ltd",
+      "sec": "Hospitality",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "VARDHMAN",
+      "n": "Vardhman Textiles",
+      "sec": "Textiles",
+      "bp": 485,
+      "v": 0.024,
+      "ls": 1500
+    },
+    {
+      "s": "VBL",
+      "n": "Varun Beverages",
+      "sec": "FMCG",
+      "bp": 495,
+      "v": 0.025,
+      "ls": 1000
+    },
+    {
+      "s": "VE1",
+      "n": "VE1 Corp Ltd",
+      "sec": "Real Estate",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "VE2",
+      "n": "VE2 Corp Ltd",
+      "sec": "Retail",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "VE3",
+      "n": "VE3 Corp Ltd",
+      "sec": "FMCG",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "VE4",
+      "n": "VE4 Corp Ltd",
+      "sec": "Healthcare",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "VE5",
+      "n": "VE5 Corp Ltd",
+      "sec": "Education",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "VEDL",
+      "n": "Vedanta Limited",
+      "sec": "Metals",
+      "bp": 475,
+      "v": 0.028,
+      "ls": 1500
+    },
+    {
+      "s": "VI1",
+      "n": "VI1 Corp Ltd",
+      "sec": "Textiles",
+      "bp": 25,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "VI2",
+      "n": "VI2 Corp Ltd",
+      "sec": "Telecom",
+      "bp": 125,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "VI3",
+      "n": "VI3 Corp Ltd",
+      "sec": "Metals",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "VI4",
+      "n": "VI4 Corp Ltd",
+      "sec": "Power",
+      "bp": 785,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "VI5",
+      "n": "VI5 Corp Ltd",
+      "sec": "Banking",
+      "bp": 1680,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "VINATIORGA",
+      "n": "Vinati Organics",
+      "sec": "Chemicals",
+      "bp": 2880,
+      "v": 0.022,
+      "ls": 100
+    },
+    {
+      "s": "VIPIND",
+      "n": "VIP Industries",
+      "sec": "Consumer",
+      "bp": 1680,
+      "v": 0.022,
+      "ls": 250
+    },
+    {
+      "s": "VISHALMART",
+      "n": "Vishal Mega Mart",
+      "sec": "Retail",
+      "bp": 195,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "VIVIMED",
+      "n": "Vivimed Labs",
+      "sec": "Healthcare",
+      "bp": 88,
+      "v": 0.028,
+      "ls": 5000
+    },
+    {
+      "s": "VOLTAS",
+      "n": "Voltas",
+      "sec": "Consumer",
+      "bp": 1540,
+      "v": 0.022,
+      "ls": 400
+    },
+    {
+      "s": "VRLLOG",
+      "n": "VRL Logistics",
+      "sec": "Logistics",
+      "bp": 1180,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "VSTTILLERS",
+      "n": "VST Tillers",
+      "sec": "Capital Goods",
+      "bp": 4850,
+      "v": 0.023,
+      "ls": 100
+    },
+    {
+      "s": "WA1",
+      "n": "WA1 Corp Ltd",
+      "sec": "Chemicals",
+      "bp": 45,
+      "v": 0.025,
+      "ls": 7500
+    },
+    {
+      "s": "WA2",
+      "n": "WA2 Corp Ltd",
+      "sec": "Defence",
+      "bp": 185,
+      "v": 0.025,
+      "ls": 2500
+    },
+    {
+      "s": "WA3",
+      "n": "WA3 Corp Ltd",
+      "sec": "Energy",
+      "bp": 485,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "WA4",
+      "n": "WA4 Corp Ltd",
+      "sec": "Logistics",
+      "bp": 985,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "WA5",
+      "n": "WA5 Corp Ltd",
+      "sec": "IT",
+      "bp": 2180,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "WABCOIND",
+      "n": "WABCO India",
+      "sec": "Auto Ancillary",
+      "bp": 8900,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "WAPCOS",
+      "n": "WAPCOS Ltd",
+      "sec": "Infrastructure",
+      "bp": 385,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "WELSPUN",
+      "n": "Welspun Global",
+      "sec": "Textiles",
+      "bp": 175,
+      "v": 0.028,
+      "ls": 2500
+    },
+    {
+      "s": "WELSPUNLIV",
+      "n": "Welspun Living",
+      "sec": "Textiles",
+      "bp": 175,
+      "v": 0.028,
+      "ls": 4000
+    },
+    {
+      "s": "WESTCOAST",
+      "n": "West Coast Paper Mills",
+      "sec": "Paper",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "WHIRLPOOL",
+      "n": "Whirlpool India",
+      "sec": "Consumer",
+      "bp": 1920,
+      "v": 0.02,
+      "ls": 250
+    },
+    {
+      "s": "WIPRO",
+      "n": "Wipro",
+      "sec": "IT",
+      "bp": 530,
+      "v": 0.02,
+      "ls": 1500
+    },
+    {
+      "s": "WOCKHARDT",
+      "n": "Wockhardt",
+      "sec": "Pharma",
+      "bp": 625,
+      "v": 0.026,
+      "ls": 500
+    },
+    {
+      "s": "YESBANK",
+      "n": "YES Bank",
+      "sec": "Banking",
+      "bp": 28,
+      "v": 0.032,
+      "ls": 14000
+    },
+    {
+      "s": "ZA1",
+      "n": "ZA1 Corp Ltd",
+      "sec": "Capital Goods",
+      "bp": 85,
+      "v": 0.025,
+      "ls": 5000
+    },
+    {
+      "s": "ZA2",
+      "n": "ZA2 Corp Ltd",
+      "sec": "Cement",
+      "bp": 285,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ZA3",
+      "n": "ZA3 Corp Ltd",
+      "sec": "Infrastructure",
+      "bp": 585,
+      "v": 0.025,
+      "ls": 500
+    },
+    {
+      "s": "ZA4",
+      "n": "ZA4 Corp Ltd",
+      "sec": "Media",
+      "bp": 1280,
+      "v": 0.025,
+      "ls": 250
+    },
+    {
+      "s": "ZA5",
+      "n": "ZA5 Corp Ltd",
+      "sec": "Pharma",
+      "bp": 2850,
+      "v": 0.025,
+      "ls": 100
+    },
+    {
+      "s": "ZEEENT",
+      "n": "Zee Entertainment Enterprises",
+      "sec": "Media",
+      "bp": 295,
+      "v": 0.025,
+      "ls": 1500
+    },
+    {
+      "s": "ZEEMEDIA",
+      "n": "Zee Media Corp",
+      "sec": "Media",
+      "bp": 45,
+      "v": 0.03,
+      "ls": 7500
+    },
+    {
+      "s": "ZENSARTECH",
+      "n": "Zensar Technologies",
+      "sec": "IT",
+      "bp": 585,
+      "v": 0.024,
+      "ls": 500
+    },
+    {
+      "s": "ZOMATO",
+      "n": "Zomato",
+      "sec": "Internet",
+      "bp": 285,
+      "v": 0.03,
+      "ls": 500
+    }
+  ],
+  "indices": [
+    {
+      "s": "NIFTY",
+      "n": "NIFTY 50",
+      "sec": "Index",
+      "bp": 24580,
+      "v": 0.012,
+      "ls": 25
+    },
+    {
+      "s": "BANKNIFTY",
+      "n": "NIFTY BANK",
+      "sec": "Index",
+      "bp": 52800,
+      "v": 0.015,
+      "ls": 15
+    },
+    {
+      "s": "NIFTYIT",
+      "n": "NIFTY IT",
+      "sec": "Index",
+      "bp": 38500,
+      "v": 0.016,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYNXT50",
+      "n": "NIFTY NEXT 50",
+      "sec": "Index",
+      "bp": 62450,
+      "v": 0.014,
+      "ls": 25
+    },
+    {
+      "s": "NIFTYFIN",
+      "n": "NIFTY FIN SVC",
+      "sec": "Index",
+      "bp": 24300,
+      "v": 0.014,
+      "ls": 25
+    },
+    {
+      "s": "NIFTYMIDCAP",
+      "n": "NIFTY MIDCAP 100",
+      "sec": "Index",
+      "bp": 58200,
+      "v": 0.015,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYSMLCAP",
+      "n": "NIFTY SMLCAP 100",
+      "sec": "Index",
+      "bp": 18400,
+      "v": 0.016,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYPHARMA",
+      "n": "NIFTY PHARMA",
+      "sec": "Index",
+      "bp": 19700,
+      "v": 0.015,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYAUTO",
+      "n": "NIFTY AUTO",
+      "sec": "Index",
+      "bp": 23200,
+      "v": 0.016,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYMETAL",
+      "n": "NIFTY METAL",
+      "sec": "Index",
+      "bp": 9850,
+      "v": 0.018,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYENERGY",
+      "n": "NIFTY ENERGY",
+      "sec": "Index",
+      "bp": 32500,
+      "v": 0.016,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYFMCG",
+      "n": "NIFTY FMCG",
+      "sec": "Index",
+      "bp": 57800,
+      "v": 0.011,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYREALTY",
+      "n": "NIFTY REALTY",
+      "sec": "Index",
+      "bp": 920,
+      "v": 0.02,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYINFRA",
+      "n": "NIFTY INFRA",
+      "sec": "Index",
+      "bp": 7850,
+      "v": 0.015,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYPSUBANK",
+      "n": "NIFTY PSE BANK",
+      "sec": "Index",
+      "bp": 6150,
+      "v": 0.018,
+      "ls": 50
+    },
+    {
+      "s": "NIFTYCOMMOD",
+      "n": "NIFTY COMMODITY",
+      "sec": "Index",
+      "bp": 12500,
+      "v": 0.016,
+      "ls": 50
+    },
+    {
+      "s": "INDIAVIX",
+      "n": "INDIA VIX",
+      "sec": "Index",
+      "bp": 14.5,
+      "v": 0.04,
+      "ls": 1
+    }
+  ],
+  "optionUnderlyings": [
+    "NIFTY",
+    "BANKNIFTY",
+    "NIFTYIT",
+    "NIFTYFIN",
+    "NIFTYNXT50",
+    "RELIANCE",
+    "TCS",
+    "HDFCBANK",
+    "INFY",
+    "ICICIBANK",
+    "SBIN",
+    "TATAMOTORS",
+    "AXISBANK",
+    "BAJFINANCE",
+    "KOTAKBANK",
+    "HINDUNILVR",
+    "ITC",
+    "LT",
+    "BHARTIARTL",
+    "MARUTI",
+    "HCLTECH",
+    "ADANIENT",
+    "ASIANPAINT",
+    "ONGC",
+    "TITAN",
+    "M&M",
+    "HINDALCO",
+    "SUNPHARMA",
+    "DRREDDY",
+    "BAJAJFINSV",
+    "CIPLA",
+    "EICHERMOT",
+    "GRASIM",
+    "HEROMOTOCO",
+    "BPCL",
+    "ADANIPORTS",
+    "COALINDIA",
+    "DLF",
+    "GODREJPROP"
+  ]
+}
