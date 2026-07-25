@@ -1,0 +1,475 @@
+   624→          {Object.entries(d.screenerCounts).map(([sig, cnt]) => (
+   625→            <Badge key={sig} variant="outline" className={cn('text-[9px] px-2 py-0.5 cursor-pointer hover:opacity-80', SIG_BG[sig as keyof typeof SIG_BG] || SIG_BG.HOLD)} onClick={() => { d.setScreenerFilter(sig); d.setScreenerData([]); d.fetchScreener(); }}>{cnt} {sig.replace('_', ' ')}</Badge>
+   626→          ))}
+   627→        </div>
+   628→      </div>
+   629→      <div className="overflow-auto max-h-[calc(100vh-320px)]">
+   630→        <Table>
+   631→          <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   632→            {([['symbol', 'Stock'], ['price', 'Price'], ['changePct', 'Change'], ['rsi', 'RSI'], ['signal', 'Signal'], ['volume', 'Volume'], ['marketCap', 'Mkt Cap'], ['pe', 'P/E']] as [string, string][]).map(([key, label]) => (
+   633→              <TableHead key={key} className={cn('text-[10px] text-slate-400 h-8 cursor-pointer hover:text-white', key === 'price' || key === 'changePct' || key === 'rsi' || key === 'volume' || key === 'marketCap' || key === 'pe' ? 'text-right' : '')} onClick={() => handleSort(key)}>
+   634→                {label} {sortBy === key && <span className="text-emerald-400 ml-0.5">{sortDir === 'desc' ? '↓' : '↑'}</span>}
+   635→              </TableHead>
+   636→            ))}
+   637→          </TableRow></TableHeader>
+   638→          <TableBody>
+   639→            {d.screenerLoading ? Array.from({ length: 10 }).map((_, i) => <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-8 bg-slate-800/50" /></TableCell></TableRow>)
+   640→              : sorted.map((s: ScreenerResult) => (
+   641→              <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(s.symbol, 'equity')}>
+   642→                <TableCell className="text-xs py-2"><div className="font-bold text-slate-200">{s.symbol}</div><div className="text-[9px] text-slate-500">{s.name} &middot; {s.sector}</div></TableCell>
+   643→                <TableCell className="text-xs font-mono text-slate-200 text-right font-semibold">{s.price.toLocaleString('en-IN')}</TableCell>
+   644→                <TableCell className="text-xs font-mono text-right">{pctVal(s.changePct)}</TableCell>
+   645→                <TableCell className="text-xs font-mono text-right">{s.rsi?.toFixed(1) || '--'}</TableCell>
+   646→                <TableCell className="text-center"><Badge className={cn('text-[9px] font-bold border px-1.5 py-0.5', SIG_BG[s.signal as keyof typeof SIG_BG] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
+   647→                <TableCell className="text-xs font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
+   648→                <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(s.marketCap)}</TableCell>
+   649→                <TableCell className="text-xs font-mono text-slate-300 text-right">{s.pe?.toFixed(1) || '--'}</TableCell>
+   650→              </TableRow>
+   651→            ))}
+   652→          </TableBody>
+   653→        </Table>
+   654→      </div>
+   655→    </P>
+   656→  );
+   657→}
+   658→
+   659→// ==================== CHART VIEW (TradingView Style) ====================
+   660→function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+   661→  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('price charts & indicators');
+   662→  return (
+   663→    <div className="space-y-3">
+   664→      <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
+   665→        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} />
+   666→      </P>
+   667→      <div className="grid grid-cols-12 gap-3">
+   668→        <div className="col-span-12 lg:col-span-6">
+   669→          <P title="Signal Analysis" icon={Gauge} source="Signal Engine">
+   670→            {d.latestSignal ? (
+   671→              <div className="flex flex-col items-center gap-3">
+   672→                <SignalGauge signal={d.latestSignal} />
+   673→                <div className="w-full p-2 rounded-lg bg-slate-800/15 border border-slate-800/30">
+   674→                  <p className="text-[9px] text-slate-400 leading-relaxed">{d.latestSignal.reason}</p>
+   675→                </div>
+   676→              </div>
+   677→            ) : <div className="text-center py-8 text-slate-500 text-xs">Loading signals...</div>}
+   678→          </P>
+   679→        </div>
+   680→        <div className="col-span-12 lg:col-span-6">
+   681→          <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
+   682→            <VolumeProfile data={d.stockData} currentPrice={d.q.price} />
+   683→          </P>
+   684→        </div>
+   685→      </div>
+   686→    </div>
+   687→  );
+   688→}
+   689→
+   690→// ==================== FUNDAMENTALS VIEW (Tickertape Style) ====================
+   691→function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+   692→  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('fundamentals & financials');
+   693→  const fundSections = [
+   694→    { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
+   695→      { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
+   696→      { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--' }, { l: 'EPS (TTM)', v: d.q.eps ? fINR(d.q.eps) : '--', h: true },
+   697→      { l: 'Book Value', v: d.q.bookValue ? fINR(d.q.bookValue) : '--' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--' },
+   698→      { l: 'Payout Ratio', v: d.q.payoutRatio ? (d.q.payoutRatio * 100).toFixed(1) + '%' : '--' },
+   699→    ]},
+   700→    { title: 'Profitability', icon: TrendingUp, source: 'Moneycontrol', items: [
+   701→      { l: 'ROE', v: d.q.roe ? d.q.roe.toFixed(1) + '%' : '--', h: true }, { l: 'ROA', v: d.q.roa ? d.q.roa.toFixed(1) + '%' : '--' },
+   702→      { l: 'Net Profit Margin', v: d.q.profitMargins ? d.q.profitMargins.toFixed(1) + '%' : '--' },
+   703→      { l: 'Operating Margin', v: d.q.operatingMargins ? d.q.operatingMargins.toFixed(1) + '%' : '--' },
+   704→      { l: 'Revenue Growth', v: d.q.revenueGrowth ? d.q.revenueGrowth.toFixed(1) + '%' : '--', h: true },
+   705→      { l: 'Beta', v: d.q.beta?.toFixed(2) || '--' }, { l: 'D/E Ratio', v: d.q.debtToEquity?.toFixed(2) || '--' },
+   706→      { l: 'Current Ratio', v: d.q.currentRatio?.toFixed(2) || '--' },
+   707→    ]},
+   708→    { title: 'Financial Highlights', icon: DollarSign, source: 'Moneycontrol', items: [
+   709→      { l: 'Total Revenue', v: d.fin.revenue ? fINR(d.fin.revenue) : '--', h: true },
+   710→      { l: 'EBITDA', v: d.fin.ebitda ? fINR(d.fin.ebitda) : '--' },
+   711→      { l: 'Gross Profit', v: d.fin.grossProfits ? fINR(d.fin.grossProfits) : '--' },
+   712→      { l: 'Free Cashflow', v: d.fin.freeCashflow ? fINR(d.fin.freeCashflow) : '--' },
+   713→      { l: 'Net Profit', v: d.fin.netProfit ? fINR(d.fin.netProfit) : '--', h: true },
+   714→    ]},
+   715→  ];
+   716→  return (
+   717→    <div className="space-y-3">
+   718→      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+   719→        {fundSections.map(sec => (
+   720→          <P key={sec.title} title={sec.title} icon={sec.icon} source={sec.source}>
+   721→            <div className="space-y-0">
+   722→              {sec.items.map(item => <MetricRow key={item.l} label={item.l} value={item.v} highlight={item.h} />)}
+   723→            </div>
+   724→          </P>
+   725→        ))}
+   726→      </div>
+   727→      {/* Analyst consensus */}
+   728→      {d.q.targetMean && (
+   729→        <P title="Analyst Price Target" icon={Target} source="Tickertape">
+   730→          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+   731→            <MBox label="Target High" value={fINR(d.q.targetHigh || 0)} color="text-emerald-400" />
+   732→            <MBox label="Target Mean" value={fINR(d.q.targetMean)} color="text-cyan-400" />
+   733→            <MBox label="Target Median" value={fINR(d.q.targetMedian || 0)} color="text-blue-400" />
+   734→            <MBox label="Target Low" value={fINR(d.q.targetLow || 0)} color="text-red-400" />
+   735→            <MBox label="Upside" value={((d.q.targetMean - d.q.price) / d.q.price * 100).toFixed(1) + '%'} color={((d.q.targetMean - d.q.price) / d.q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400'} sub={`${d.q.analysts} analysts`} />
+   736→          </div>
+   737→        </P>
+   738→      )}
+   739→      {/* Ownership */}
+   740→      <P title="Shareholding Pattern" icon={Users} source="Screener.in">
+   741→        <OwnershipDonut data={d.own} />
+   742→      </P>
+   743→    </div>
+   744→  );
+   745→}
+   746→
+   747→// ==================== TECHNICALS VIEW (TradingView Style) ====================
+   748→function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+   749→  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('technical indicators');
+   750→  return (
+   751→    <div className="space-y-3">
+   752→      <div className="grid grid-cols-12 gap-3">
+   753→        <div className="col-span-12 lg:col-span-6">
+   754→          <P title="Technical Indicators Summary" icon={Activity} source="TradingView">
+   755→            <div className="space-y-3">
+   756→              <div>
+   757→                <div className="flex items-center justify-between mb-1">
+   758→                  <span className="text-xs text-slate-400 font-medium">RSI ({d.params.rsiPeriod})</span>
+   759→                  <span className={cn('text-lg font-bold font-mono', (d.t.rsi || 50) > 70 ? 'text-red-400' : (d.t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{d.t.rsi?.toFixed(1) || '--'}</span>
+   760→                </div>
+   761→                <Progress value={d.t.rsi || 50} className="h-2.5" />
+   762→                <div className="flex justify-between text-[9px] text-slate-600 mt-1">
+   763→                  <span>Oversold ({d.params.rsiOversold})</span>
+   764→                  <span className={cn('font-semibold', (d.t.rsi || 50) > 70 ? 'text-red-400' : (d.t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>
+   765→                    {(d.t.rsi || 50) > 70 ? 'OVERBOUGHT' : (d.t.rsi || 50) < 30 ? 'OVERSOLD' : 'NEUTRAL'}
+   766→                  </span>
+   767→                  <span>Overbought ({d.params.rsiOverbought})</span>
+   768→                </div>
+   769→              </div>
+   770→              <div className="grid grid-cols-2 gap-2">
+   771→                <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800/30">
+   772→                  <div className="text-[10px] text-slate-500 mb-1">Supertrend ({d.params.supertrendPeriod}, {d.params.supertrendMultiplier})</div>
+   773→                  <div className={cn('text-lg font-bold', d.t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{d.t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</div>
+   774→                  <div className="text-[10px] text-slate-500 font-mono">ST Value: {d.t.supertrend ? fINR(d.t.supertrend) : '--'}</div>
+   775→                </div>
+   776→                <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800/30">
+   777→                  <div className="text-[10px] text-slate-500 mb-1">MACD ({d.params.macdFast}, {d.params.macdSlow}, {d.params.macdSignal})</div>
+   778→                  <div className={cn('text-lg font-bold', (d.t.macd || 0) > (d.t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(d.t.macd || 0) > (d.t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</div>
+   779→                  <div className="text-[10px] text-slate-500 font-mono">Histogram: {(d.t.macdHistogram || 0).toFixed(2)}</div>
+   780→                </div>
+   781→              </div>
+   782→              {d.t.volatility20d && (
+   783→                <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800/30">
+   784→                  <div className="flex justify-between"><span className="text-[10px] text-slate-500">20-Day Volatility</span><span className="text-xs font-mono text-amber-400 font-bold">{d.t.volatility20d.toFixed(1)}%</span></div>
+   785→                </div>
+   786→              )}
+   787→            </div>
+   788→          </P>
+   789→        </div>
+   790→        <div className="col-span-12 lg:col-span-6">
+   791→          <P title="Support & Resistance Levels" icon={Layers} source="TradingView">
+   792→            <div className="space-y-2">
+   793→              {[
+   794→                { l: 'Resistance 2', v: d.t.resistance2, c: 'text-red-400' },
+   795→                { l: 'Resistance 1', v: d.t.resistance1, c: 'text-orange-400' },
+   796→                { l: 'Current Price', v: d.q.price, c: 'text-white', bg: true },
+   797→                { l: 'Support 1', v: d.t.support1, c: 'text-emerald-400' },
+   798→                { l: 'Support 2', v: d.t.support2, c: 'text-green-400' },
+   799→              ].map(level => (
+   800→                <div key={level.l} className={cn('flex items-center justify-between p-2.5 rounded-lg', level.bg ? 'bg-slate-700/30 border border-slate-600/40' : 'bg-slate-800/15 border border-slate-800/30')}>
+   801→                  <span className={cn('text-xs font-medium', level.c)}>{level.l}</span>
+   802→                  <span className={cn('text-sm font-bold font-mono', level.c)}>{level.v ? fINR(level.v) : '--'}</span>
+   803→                </div>
+   804→              ))}
+   805→              <Separator className="bg-slate-800/40" />
+   806→              <div className="text-[10px] text-slate-500 font-semibold mb-1">Pivot Points</div>
+   807→              {[
+   808→                { l: 'Pivot', v: d.t.pivot }, { l: 'R1', v: d.t.pivotR1 }, { l: 'S1', v: d.t.pivotS1 },
+   809→                { l: 'R2', v: d.t.pivotR2 }, { l: 'S2', v: d.t.pivotS2 },
+   810→              ].map(pp => (
+   811→                <div key={pp.l} className="flex justify-between text-[10px] py-0.5">
+   812→                  <span className="text-slate-500">{pp.l}</span>
+   813→                  <span className="font-mono text-slate-300">{pp.v ? fINR(pp.v) : '--'}</span>
+   814→                </div>
+   815→              ))}
+   816→            </div>
+   817→          </P>
+   818→        </div>
+   819→      </div>
+   820→      {/* Moving Averages */}
+   821→      <P title="Moving Averages & Price Position" icon={TrendingUp} source="Technical Analysis">
+   822→        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+   823→          {d.q.fiftyDMA && <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
+   824→            <div className="text-[10px] text-slate-500 mb-1">50 Day MA</div>
+   825→            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.fiftyDMA)}</div>
+   826→            <div className={cn('text-sm font-bold font-mono', (d.q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   827→              {(d.q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{d.q.percentAbove50DMA?.toFixed(1)}%
+   828→            </div>
+   829→            <div className="text-[9px] text-slate-600 mt-0.5">{(d.q.percentAbove50DMA || 0) >= 0 ? 'Above' : 'Below'} 50 DMA</div>
+   830→          </div>}
+   831→          {d.q.twoHundredDMA && <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
+   832→            <div className="text-[10px] text-slate-500 mb-1">200 Day MA</div>
+   833→            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.twoHundredDMA)}</div>
+   834→            <div className={cn('text-sm font-bold font-mono', (d.q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+   835→              {(d.q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{d.q.percentAbove200DMA?.toFixed(1)}%
+   836→            </div>
+   837→            <div className="text-[9px] text-slate-600 mt-0.5">{(d.q.percentAbove200DMA || 0) >= 0 ? 'Above' : 'Below'} 200 DMA</div>
+   838→          </div>}
+   839→          <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
+   840→            <div className="text-[10px] text-slate-500 mb-1">52W High</div>
+   841→            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.high52w)}</div>
+   842→            <div className="text-sm font-bold font-mono text-red-400">{d.q.percentFrom52wHigh.toFixed(1)}%</div>
+   843→            <div className="text-[9px] text-slate-600 mt-0.5">From 52W High</div>
+   844→          </div>
+   845→          <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
+   846→            <div className="text-[10px] text-slate-500 mb-1">52W Low</div>
+   847→            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.low52w)}</div>
+   848→            <div className="text-sm font-bold font-mono text-emerald-400">+{d.q.percentFrom52wLow.toFixed(1)}%</div>
+   849→            <div className="text-[9px] text-slate-600 mt-0.5">From 52W Low</div>
+   850→          </div>
+   851→        </div>
+   852→      </P>
+   853→    </div>
+   854→  );
+   855→}
+   856→
+   857→// ==================== STRATEGY VIEW ====================
+   858→function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+   859→  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('trading strategies & signals');
+   860→  return (
+   861→    <div className="space-y-3">
+   862→      <div className="grid grid-cols-12 gap-3">
+   863→        <div className="col-span-12 lg:col-span-5">
+   864→          <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
+   865→            {d.latestSignal ? <SignalGauge signal={d.latestSignal} /> : <div className="text-center py-8 text-slate-500 text-xs">Loading signals...</div>}
+   866→          </P>
+   867→        </div>
+   868→        <div className="col-span-12 lg:col-span-7">
+   869→          <P title="Backtest Performance" icon={Trophy} source="200-day Historical">
+   870→            {d.backtest ? (
+   871→              <div className="space-y-3">
+   872→                <div className="grid grid-cols-3 gap-2">
+   873→                  <MBox label="Total Return" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+   874→                  <MBox label="Win Rate" value={d.backtest.winRate.toFixed(0) + '%'} color={d.backtest.winRate > 50 ? 'text-emerald-400' : 'text-red-400'} />
+   875→                  <MBox label="Total Trades" value={String(d.backtest.totalTrades)} />
+   876→                  <MBox label="Profit Factor" value={d.backtest.profitFactor.toFixed(2)} color={d.backtest.profitFactor > 1.5 ? 'text-emerald-400' : 'text-amber-400'} />
+   877→                  <MBox label="Max Drawdown" value={'-' + d.backtest.maxDrawdownPct.toFixed(1) + '%'} color="text-red-400" />
+   878→                  <MBox label="Win / Loss" value={`${d.backtest.winningTrades}W / ${d.backtest.losingTrades}L`} color={d.backtest.winningTrades > d.backtest.losingTrades ? 'text-emerald-400' : 'text-red-400'} />
+   879→                </div>
+   880→                <div className="grid grid-cols-2 gap-2">
+   881→                  <MBox label="Avg Win" value={'+' + d.backtest.avgWinPct.toFixed(1) + '%'} color="text-emerald-400" />
+   882→                  <MBox label="Avg Loss" value={d.backtest.avgLossPct.toFixed(1) + '%'} color="text-red-400" />
+   883→                </div>
+   884→                {d.backtest.trades.length > 0 && (
+   885→                  <div className="overflow-auto max-h-[200px]">
+   886→                    <Table>
+   887→                      <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+   888→                        <TableHead className="text-[9px] text-slate-500 h-6">Entry</TableHead>
+   889→                        <TableHead className="text-[9px] text-slate-500 h-6 text-right">Entry Price</TableHead>
+   890→                        <TableHead className="text-[9px] text-slate-500 h-6">Exit</TableHead>
+   891→                        <TableHead className="text-[9px] text-slate-500 h-6 text-right">Exit Price</TableHead>
+   892→                        <TableHead className="text-[9px] text-slate-500 h-6 text-right">P&L %</TableHead>
+   893→                      </TableRow></TableHeader>
+   894→                      <TableBody>
+   895→                        {d.backtest.trades.slice(-10).reverse().map((t, i) => (
+   896→                          <TableRow key={i} className="border-slate-800/50">
+   897→                            <TableCell className="text-[9px] py-1 text-slate-400">{fDate(t.entryDate)}</TableCell>
+   898→                            <TableCell className="text-[9px] py-1 font-mono text-slate-300 text-right">{t.entryPrice.toFixed(0)}</TableCell>
+   899→                            <TableCell className="text-[9px] py-1 text-slate-400">{fDate(t.exitDate)}</TableCell>
+   900→                            <TableCell className="text-[9px] py-1 font-mono text-slate-300 text-right">{t.exitPrice.toFixed(0)}</TableCell>
+   901→                            <TableCell className={cn('text-[9px] py-1 font-mono font-bold text-right', t.pnlPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{t.pnlPct >= 0 ? '+' : ''}{t.pnlPct.toFixed(1)}%</TableCell>
+   902→                          </TableRow>
+   903→                        ))}
+   904→                      </TableBody>
+   905→                    </Table>
+   906→                  </div>
+   907→                )}
+   908→              </div>
+   909→            ) : <div className="text-center py-8 text-slate-500 text-xs">Run signals to see backtest results</div>}
+   910→          </P>
+   911→        </div>
+   912→      </div>
+   913→      {/* AI Trading Advisor */}
+   914→      <P title="AI Trading Advisor" icon={Bot} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-violet-500/10 border-violet-500/20 text-violet-400">By Vrushal Bhilpawar</Badge>} source="5 Workflows" className="min-h-[400px]">
+   915→        {d.q ? (
+   916→          <AIStrategyPanel
+   917→            symbol={d.selectedSymbol}
+   918→            name={d.equities.find(e => e.symbol === d.selectedSymbol)?.name || d.selectedSymbol}
+   919→            sector={d.q.sector || ''}
+   920→            price={d.q.regularMarketPrice || 0}
+   921→            changePct={d.q.regularMarketChangePercent || 0}
+   922→            rsi={d.latestSignal?.rsi ?? null}
+   923→            signal={d.latestSignal?.signal ?? ''}
+   924→            supertrendDir={d.latestSignal?.supertrendDir ?? 0}
+   925→            macdHistogram={d.latestSignal?.macdHistogram ?? null}
+   926→          />
+   927→        ) : <div className="text-center py-8 text-slate-500 text-xs">Loading...</div>}
+   928→      </P>
+   929→      {/* Strategy Parameters */}
+   930→      <P title="Strategy Parameters" icon={Settings2} source="Customizable">
+   931→        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+   932→          {([['supertrendPeriod', 'ST Period', 5, 30, 1], ['supertrendMultiplier', 'ST Multiplier', 1, 7, 0.5], ['rsiPeriod', 'RSI Period', 5, 30, 1], ['rsiOverbought', 'RSI Overbought', 60, 90, 1], ['rsiOversold', 'RSI Oversold', 10, 40, 1], ['macdFast', 'MACD Fast', 5, 20, 1], ['macdSlow', 'MACD Slow', 15, 50, 1], ['macdSignal', 'MACD Signal', 3, 15, 1]] as [keyof StrategyParams, string, number, number, number][]).map(([key, label, min, max, step]) => (
+   933→            <div key={key} className="space-y-1">
+   934→              <div className="flex justify-between text-[10px]">
+   935→                <span className="text-slate-500">{label}</span>
+   936→                <span className="text-slate-300 font-mono font-bold">{d.params[key]}</span>
+   937→              </div>
+   938→              <Slider value={[d.params[key]]} min={min} max={max} step={step} onValueChange={([v]) => d.setParams(p => ({ ...p, [key]: v }))} />
+   939→            </div>
+   940→          ))}
+   941→        </div>
+   942→        <Button size="sm" className="mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500 w-full md:w-auto" onClick={() => { d.setRecalculating(true); d.fetchSignals(d.selectedSymbol, d.params); }} disabled={d.recalculating}>
+   943→          {d.recalculating ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1.5" />}
+   944→          {d.recalculating ? 'Recalculating...' : 'Recalculate Signals'}
+   945→        </Button>
+   946→      </P>
+   947→    </div>
+   948→  );
+   949→}
+   950→
+   951→// ==================== NEWS VIEW (Moneycontrol Style) ====================
+   952→function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+   953→  if (!d.selectedSymbol) return EMPTY_STOCK('news & headlines');
+   954→  return (
+   955→    <P title={`${d.selectedSymbol} — News & Headlines`} icon={Newspaper} badge={d.news.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-700 text-slate-400">{d.news.length} articles</Badge>} source="Moneycontrol / Google News">
+   956→      <Button size="sm" variant="ghost" className="h-7 text-[10px] mb-3 text-slate-400 hover:text-white" onClick={() => d.fetchNews(d.selectedSymbol)} disabled={d.newsLoading}>
+   957→        <RefreshCw className={cn('w-3 h-3 mr-1', d.newsLoading && 'animate-spin')} /> Refresh News
+   958→      </Button>
+   959→      <div className="space-y-2">
+   960→        {d.newsLoading ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 bg-slate-800/50 rounded-lg" />)
+   961→          : d.news.length > 0 ? d.news.map((n, i) => (
+   962→          <a key={i} href={n.url} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-xl bg-slate-800/15 hover:bg-slate-800/30 border border-slate-800/30 hover:border-slate-700/40 transition-colors group">
+   963→            <div className="flex items-start gap-3">
+   964→              <div className="flex-1 min-w-0">
+   965→                <h3 className="text-sm text-slate-200 font-medium leading-relaxed group-hover:text-emerald-400 transition-colors">{n.title}</h3>
+   966→                {n.summary && <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{n.summary}</p>}
+   967→                <div className="flex items-center gap-2 mt-2">
+   968→                  <span className="text-[10px] text-slate-500 font-medium">{n.source}</span>
+   969→                  <span className="text-slate-700">&middot;</span>
+   970→                  <span className="text-[10px] text-slate-600 flex items-center gap-0.5"><Clock className="w-3 h-3" />{fTime(n.publishedAt)}</span>
+   971→                  <SentimentBadge sentiment={n.sentiment} />
+   972→                </div>
+   973→              </div>
+   974→              <ExternalLink className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 shrink-0 mt-0.5" />
+   975→            </div>
+   976→          </a>
+   977→        )) : <div className="text-center py-16 text-slate-500">No news available for {d.selectedSymbol}</div>}
+   978→      </div>
+   979→    </P>
+   980→  );
+   981→}
+   982→
+   983→// ==================== WATCHLIST VIEW ====================
+   984→function WatchlistView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
+   985→  const [watchlistQuotes, setWatchlistQuotes] = useState<Record<string, { price: number; changePct: number; name: string; loading: boolean }>>({});
+   986→  useEffect(() => {
+   987→    if (watchlist.watchlist.length === 0) return;
+   988→    const fetchQuotes = async () => {
+   989→      const results: typeof watchlistQuotes = {};
+   990→      for (const item of watchlist.watchlist) {
+   991→        results[item.symbol] = { price: 0, changePct: 0, name: item.symbol, loading: true };
+   992→      }
+   993→      setWatchlistQuotes({ ...results });
+   994→      for (const item of watchlist.watchlist) {
+   995→        try {
+   996→          const res = await fetch('/api/stock-detail?symbol=' + item.symbol);
+   997→          const data = await res.json();
+   998→          if (data.quote) {
+   999→            results[item.symbol] = { price: data.quote.price, changePct: data.quote.changePct, name: data.quote.longName || data.quote.name, loading: false };
+  1000→          }
+  1001→        } catch { results[item.symbol] = { ...results[item.symbol], loading: false }; }
+  1002→        setWatchlistQuotes({ ...results });
+  1003→      }
+  1004→    };
+  1005→    fetchQuotes();
+  1006→    const interval = setInterval(fetchQuotes, 30000);
+  1007→    return () => clearInterval(interval);
+  1008→  }, [watchlist.watchlist]);
+  1009→  return (
+  1010→    <P title="My Watchlist" icon={Star} badge={<Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-amber-500/10 border-amber-500/30 text-amber-400">{watchlist.watchlist.length} stocks</Badge>} source="Custom">
+  1011→      {watchlist.watchlist.length === 0 ? (
+  1012→        <div className="text-center py-16">
+  1013→          <Star className="w-12 h-12 mx-auto mb-3 text-slate-700" />
+  1014→          <p className="text-sm text-slate-400">Your watchlist is empty</p>
+  1015→          <p className="text-xs text-slate-600 mt-1">Click the star icon on any stock to add it here</p>
+  1016→        </div>
+  1017→      ) : (
+  1018→        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+  1019→          {watchlist.watchlist.map(item => {
+  1020→            const info = watchlistQuotes[item.symbol];
+  1021→            return (
+  1022→              <div key={item.symbol} className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 hover:bg-slate-800/40 cursor-pointer transition-colors" onClick={() => d.handleSelect(item.symbol, item.type)}>
+  1023→                <div className="flex items-center justify-between mb-2">
+  1024→                  <div>
+  1025→                    <div className="text-sm font-bold text-slate-200">{item.symbol}</div>
+  1026→                    <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{info?.name || item.symbol}</div>
+  1027→                  </div>
+  1028→                  <button onClick={(e) => { e.stopPropagation(); watchlist.removeFromWatchlist(item.symbol); }} className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400">
+  1029→                    <X className="w-3.5 h-3.5" />
+  1030→                  </button>
+  1031→                </div>
+  1032→                {info?.loading ? <Skeleton className="h-6 w-24 bg-slate-700" /> : info?.price ? (
+  1033→                  <div className="flex items-end justify-between">
+  1034→                    <span className="text-lg font-bold font-mono text-slate-100">{info.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+  1035→                    <span className={cn('text-sm font-semibold font-mono', info.changePct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+  1036→                      {info.changePct >= 0 ? '+' : ''}{info.changePct.toFixed(2)}%
+  1037→                    </span>
+  1038→                  </div>
+  1039→                ) : <Skeleton className="h-6 w-24 bg-slate-700" />}
+  1040→              </div>
+  1041→            );
+  1042→          })}
+  1043→        </div>
+  1044→      )}
+  1045→    </P>
+  1046→  );
+  1047→}
+  1048→
+  1049→// ==================== MAIN HOME PAGE ====================
+  1050→export default function Home() {
+  1051→  const d = useDashboardData();
+  1052→  const watchlist = useWatchlist();
+  1053→  const [view, setView] = useState<ViewType>('overview');
+  1054→  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  1055→
+  1056→  const activeNav = NAV_ITEMS.find(n => n.id === view);
+  1057→
+  1058→  return (
+  1059→    <TooltipProvider delayDuration={200}>
+  1060→      <div className="min-h-screen bg-[#080a12] text-slate-100 flex" suppressHydrationWarning>
+  1061→        <SavePoints points={d.savePoints} />
+  1062→        <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
+  1063→        <div className="flex-1 min-w-0 flex flex-col">
+  1064→          <HeaderBar d={d} watchlist={watchlist} />
+  1065→          <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
+  1066→            {/* View breadcrumb */}
+  1067→            <div className="flex items-center gap-2 mb-3">
+  1068→              <div className={cn('w-6 h-6 rounded-md bg-gradient-to-br flex items-center justify-center', activeNav?.color)}>
+  1069→                {activeNav && <activeNav.icon className="w-3 h-3 text-white" />}
+  1070→              </div>
+  1071→              <span className="text-sm font-bold text-slate-200">{activeNav?.label}</span>
+  1072→              <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-500">{activeNav?.source}</Badge>
+  1073→              {d.lastDate && <span className="ml-auto text-[10px] text-slate-600 flex items-center gap-1"><Calendar className="w-3 h-3" />{fDate(d.lastDate)}</span>}
+  1074→            </div>
+  1075→
+  1076→            {/* View Content */}
+  1077→            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} />}
+  1078→            {view === 'screener' && <ScreenerView d={d} />}
+  1079→            {view === 'chart' && <ChartView d={d} />}
+  1080→            {view === 'fundamentals' && <FundamentalsView d={d} />}
+  1081→            {view === 'technicals' && <TechnicalsView d={d} />}
+  1082→            {view === 'strategy' && <StrategyView d={d} />}
+  1083→            {view === 'news' && <NewsView d={d} />}
+  1084→            {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
+  1085→          </main>
+  1086→          {/* Footer */}
+  1087→          <div className="border-t border-slate-800/30 py-2 px-4 flex items-center justify-between text-[9px] text-slate-600">
+  1088→            <span>NSE Analytics Dashboard — Power BI Style</span>
+  1089→            <div className="flex items-center gap-3">
+  1090→              {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
+  1091→              <span>Data: Yahoo Finance Real-time — For educational purposes only</span>
+  1092→            </div>
+  1093→          </div>
+  1094→        </div>
+  1095→      </div>
+  1096→    </TooltipProvider>
+  1097→  );
+  1098→}

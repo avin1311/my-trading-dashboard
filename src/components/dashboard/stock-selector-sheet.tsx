@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Layers, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ export function StockSelectorSheet({
   filteredEquities: StockInfo[];
   handleSelect: (sym: string, type: string) => void;
 }) {
+  const [indexSearch, setIndexSearch] = useState('');
   return (
     <>
       {/* Trigger button — separate from Sheet so controlled open works reliably */}
@@ -119,14 +121,14 @@ export function StockSelectorSheet({
             <TabsContent value="indices" className="mt-2">
               <Input
                 placeholder="Search index..."
-                value={equitySearch}
-                onChange={e => setEquitySearch(e.target.value)}
+                value={indexSearch}
+                onChange={e => setIndexSearch(e.target.value)}
                 className="h-8 text-xs bg-slate-900 border-slate-800 mb-2"
               />
               <ScrollArea className="h-[calc(100vh-260px)]">
                 <div className="space-y-0.5">
                   {indices
-                    .filter(idx => !equitySearch || idx.symbol.toLowerCase().includes(equitySearch.toLowerCase()) || idx.name.toLowerCase().includes(equitySearch.toLowerCase()))
+                    .filter(idx => !indexSearch || idx.symbol.toLowerCase().includes(indexSearch.toLowerCase()) || idx.name.toLowerCase().includes(indexSearch.toLowerCase()))
                     .map(s => (
                     <button
                       key={s.symbol}

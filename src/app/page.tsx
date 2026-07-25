@@ -23,7 +23,7 @@ import { StockSelectorSheet } from '@/components/dashboard/stock-selector-sheet'
 import { KPIStrip } from '@/components/dashboard/kpi-strip';
 import { SignalGauge } from '@/components/dashboard/signal-gauge';
 import { AIStrategyPanel } from '@/components/dashboard/ai-strategy-panel';
-import ExportButton from '@/components/dashboard/export-button';
+import { ExportButton } from '@/components/dashboard/export-button';
 import { VolumeProfile } from '@/components/dashboard/volume-profile';
 import type { LiveQuote, StrategySignal, ScreenerResult, PeerData, StrategyParams } from '@/lib/types';
 
@@ -51,17 +51,25 @@ const NAV_ITEMS: NavItem[] = [
 
 const ChartSection = dynamic(() => import('@/components/dashboard/charts'), { ssr: false, loading: () => <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div> });
 const Recharts = dynamic(() => import('recharts').then(mod => ({ default: mod.ResponsiveContainer })), { ssr: false });
-  <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-    <div className="w-16 h-16 rounded-2xl bg-slate-800/40 border border-slate-700/30 flex items-center justify-center mb-4">
-      <Search className="w-6 h-6 text-slate-500" />
+
+// ==================== EMPTY STATE ====================
+function EmptyState({ label, onBrowse }: { label: string; onBrowse?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+      <div className="w-16 h-16 rounded-2xl bg-slate-800/40 border border-slate-700/30 flex items-center justify-center mb-4">
+        <Search className="w-6 h-6 text-slate-500" />
+      </div>
+      <h3 className="text-base font-semibold text-slate-300 mb-1">No Stock Selected</h3>
+      <p className="text-xs text-slate-500 mb-4">Select a stock to view {label}</p>
+      <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={onBrowse}>
+        <Search className="w-3.5 h-3.5 mr-1.5" /> Browse Stocks
+      </Button>
     </div>
-    <h3 className="text-base font-semibold text-slate-300 mb-1">No Stock Selected</h3>
-    <p className="text-xs text-slate-500 mb-4">Select a stock to view {label}</p>
-    <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => {}}>
-      <Search className="w-3.5 h-3.5 mr-1.5" /> Browse Stocks
-    </Button>
-  </div>
-);
+  );
+}
+function EMPTY_STOCK(label: string) {
+  return <EmptyState label={label} />;
+}
 function P({ title, icon: Icon, badge, children, className, source, accent }: {
   title: string; icon?: React.ElementType; badge?: React.ReactNode;
   children: React.ReactNode; className?: string; source?: string; accent?: string;
@@ -277,29 +285,112 @@ function HeaderBar({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; w
 
 // ==================== OVERVIEW VIEW ====================
 function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
-  if (!d.selectedSymbol || !d.q) return (
-    <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
-        <Search className="w-8 h-8 text-emerald-400" />
-      </div>
-      <h2 className="text-xl font-bold text-white mb-2">Select a Stock to Analyze</h2>
-      <p className="text-sm text-slate-400 max-w-md mb-6">
-        Choose from {d.equities.length}+ NSE equities or {d.indices.length} indices.
-        Get real-time prices, Supertrend + RSI + MACD signals, AI-powered strategies, and more.
-      </p>
-      <Button onClick={() => d.setSheetOpen(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6">
-        <Search className="w-4 h-4 mr-2" /> Browse Stocks
-      </Button>
-      {d.overview && (
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-xl">
-          <MktTicker label="NIFTY 50" q={d.overview?.nifty50 ?? null} />
-          <MktTicker label="BANK NIFTY" q={d.overview?.bankNifty ?? null} />
-          <MktTicker label="NIFTY IT" q={d.overview?.niftyIT ?? null} />
-          <MktTicker label="INDIA VIX" q={d.overview?.indiaVix ?? null} />
+  // Market landing page when no stock is selected
+  if (!d.selectedSymbol || !d.q) {
+    const topGainers = d.overview?.topGainers || [];
+    const topLosers = d.overview?.topLosers || [];
+    return (
+      <div className="space-y-4">
+        {/* Market Indices Row */}
+        <P title="Market Indices" icon={Activity} source="NSE Real-time">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <MktTicker label="NIFTY 50" q={d.overview?.nifty50 ?? null} />
+            <MktTicker label="BANK NIFTY" q={d.overview?.bankNifty ?? null} />
+            <MktTicker label="NIFTY IT" q={d.overview?.niftyIT ?? null} />
+            <MktTicker label="INDIA VIX" q={d.overview?.indiaVix ?? null} />
+          </div>
+        </P>
+
+        {/* Top Gainers & Losers side by side */}
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-12 lg:col-span-6">
+            <P title="Top Gainers" icon={TrendingUp} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">Today</Badge>} source="NSE">
+              {topGainers.length > 0 ? (
+                <div className="space-y-1.5">
+                  {topGainers.map((s: any) => (
+                    <div key={s.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 hover:bg-emerald-500/10 cursor-pointer transition-colors" onClick={() => d.handleSelect(s.symbol, 'equity')}>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-200">{s.symbol}</div>
+                        <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.longName || s.name}</div>
+                      </div>
+                      <div className="text-right shrink-0 ml-3">
+                        <div className="text-xs font-bold font-mono text-slate-200">{s.price?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                        <div className="text-[10px] font-mono font-semibold text-emerald-400">+{s.changePct?.toFixed(2)}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="text-center py-8 text-slate-500 text-xs">Loading market data...</div>}
+            </P>
+          </div>
+          <div className="col-span-12 lg:col-span-6">
+            <P title="Top Losers" icon={TrendingUp} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-red-500/10 border-red-500/30 text-red-400">Today</Badge>} source="NSE">
+              {topLosers.length > 0 ? (
+                <div className="space-y-1.5">
+                  {topLosers.map((s: any) => (
+                    <div key={s.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/5 border border-red-500/15 hover:bg-red-500/10 cursor-pointer transition-colors" onClick={() => d.handleSelect(s.symbol, 'equity')}>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-200">{s.symbol}</div>
+                        <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.longName || s.name}</div>
+                      </div>
+                      <div className="text-right shrink-0 ml-3">
+                        <div className="text-xs font-bold font-mono text-slate-200">{s.price?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                        <div className="text-[10px] font-mono font-semibold text-red-400">{s.changePct?.toFixed(2)}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="text-center py-8 text-slate-500 text-xs">Loading market data...</div>}
+            </P>
+          </div>
         </div>
-      )}
-    </div>
-  );
+
+        {/* Important Stocks in News + Quick Browse */}
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-12 lg:col-span-7">
+            <P title="Stocks in Focus" icon={Flame} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 border-amber-500/30 text-amber-400">Trending</Badge>} source="NSE">
+              <div className="text-[10px] text-slate-500 mb-3">Popular NSE stocks — click to analyze</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'LT', 'AXISBANK', 'BAJFINANCE', 'SUNPHARMA', 'MARUTI'].map(sym => {
+                  const info = d.equities.find(e => e.symbol === sym);
+                  return (
+                    <button key={sym} onClick={() => d.handleSelect(sym, 'equity')} className="p-2.5 rounded-lg bg-slate-800/15 border border-slate-800/30 hover:bg-emerald-500/10 hover:border-emerald-500/20 text-left transition-all group">
+                      <div className="text-[11px] font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">{sym}</div>
+                      <div className="text-[9px] text-slate-500 truncate">{info?.name || sym}</div>
+                      {info?.sector && <div className="text-[8px] text-slate-600 mt-0.5">{info.sector}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            </P>
+          </div>
+          <div className="col-span-12 lg:col-span-5">
+            <P title="Quick Browse" icon={Search} source="All NSE Stocks">
+              <div className="space-y-3">
+                <Button onClick={() => d.setSheetOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">
+                  <Search className="w-4 h-4 mr-2" /> Browse All {d.equities.length} Stocks
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  {['BANKNIFTY', 'NIFTYIT', 'NIFTYMIDCAP', 'NIFTYPHARMA'].map(sym => {
+                    const info = d.indices.find(i => i.symbol === sym);
+                    return (
+                      <button key={sym} onClick={() => d.handleSelect(sym, 'index')} className="p-2 rounded-lg bg-slate-800/15 border border-slate-800/30 hover:bg-purple-500/10 hover:border-purple-500/20 text-left transition-all group">
+                        <div className="text-[10px] font-bold text-slate-200 group-hover:text-purple-400 transition-colors">{sym}</div>
+                        <div className="text-[9px] text-slate-500 truncate">{info?.name || sym}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-[10px] text-slate-500 text-center pt-1">
+                  Select a stock or index to see full analysis with Supertrend + RSI + MACD signals
+                </div>
+              </div>
+            </P>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-3">
       <KPIStrip q={d.q} latestSignal={d.latestSignal} />
