@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot } from 'lucide-react';
@@ -22,8 +23,7 @@ import { StockSelectorSheet } from '@/components/dashboard/stock-selector-sheet'
 import { KPIStrip } from '@/components/dashboard/kpi-strip';
 import { SignalGauge } from '@/components/dashboard/signal-gauge';
 import { AIStrategyPanel } from '@/components/dashboard/ai-strategy-panel';
-import ChartSection from '@/components/dashboard/charts';
-import { ExportButton } from '@/components/dashboard/export-button';
+import ExportButton from '@/components/dashboard/export-button';
 import { VolumeProfile } from '@/components/dashboard/volume-profile';
 import type { LiveQuote, StrategySignal, ScreenerResult, PeerData, StrategyParams } from '@/lib/types';
 
@@ -49,7 +49,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'watchlist', label: 'Watchlist', icon: Star, source: 'Custom', color: 'from-amber-500/20 to-yellow-500/10' },
 ];
 
-const EMPTY_STOCK = (label: string) => (
+const ChartSection = dynamic(() => import('@/components/dashboard/charts'), { ssr: false, loading: () => <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div> });
+const Recharts = dynamic(() => import('recharts').then(mod => ({ default: mod.ResponsiveContainer })), { ssr: false });
   <div className="flex flex-col items-center justify-center h-[50vh] text-center">
     <div className="w-16 h-16 rounded-2xl bg-slate-800/40 border border-slate-700/30 flex items-center justify-center mb-4">
       <Search className="w-6 h-6 text-slate-500" />
@@ -1056,7 +1057,7 @@ export default function Home() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="min-h-screen bg-[#080a12] text-slate-100 flex">
+      <div className="min-h-screen bg-[#080a12] text-slate-100 flex" suppressHydrationWarning>
         <SavePoints points={d.savePoints} />
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
         <div className="flex-1 min-w-0 flex flex-col">

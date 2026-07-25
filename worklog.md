@@ -113,3 +113,27 @@ Stage Summary:
 - Push blocked by missing GitHub authentication credentials
 - Source tarball available at /home/z/my-project/download/nse-dashboard-src.tar.gz
 - User needs to configure a GitHub PAT to enable push
+
+---
+Task ID: fix-client-error
+Agent: Main Agent
+Task: Fix client-side exception on NSE dashboard preview
+
+Work Log:
+- Diagnosed "client-side exception" error on Space-Z preview URL
+- Identified potential hydration mismatch from localStorage reads in useWatchlist
+- Identified Recharts library causing SSR issues with Math.min/max on empty arrays
+- Identified missing null guard in KPIStrip component (q typed as non-nullable)
+- Applied fixes:
+  1. Made ChartSection a dynamic import with ssr: false (avoids Recharts SSR crash)
+  2. Added null guard to KPIStrip component (q: LiveQuote | null)
+  3. Added empty array guard to charts.tsx priceMin/priceMax computation
+  4. Clean rebuilt with next build and deployed standalone server
+- Verified: server responds 200, all static assets accessible, API endpoints working
+- Server running on port 3000, Caddy proxying on port 81
+
+Stage Summary:
+- Rebuilt and redeployed dashboard with SSR safety fixes
+- ChartSection loaded dynamically to prevent Recharts server-side crash
+- All server-side diagnostics pass (no errors in HTML, all assets 200, APIs working)
+- Client-side error should be resolved by avoiding SSR of Recharts components

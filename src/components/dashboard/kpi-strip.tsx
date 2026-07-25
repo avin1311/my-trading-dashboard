@@ -57,9 +57,10 @@ export function KPIStrip({
   q,
   latestSignal,
 }: {
-  q: LiveQuote;
+  q: LiveQuote | null;
   latestSignal: StrategySignal | null;
 }) {
+  if (!q) return null;
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5 mb-5">
       <KPICard

@@ -68,8 +68,14 @@ export default function StrategySection({
   latestSignal: StrategySignal | null;
   signalsLoading: boolean;
 }) {
-  const priceMin = useMemo(() => Math.min(...visibleData.map(d => d.low)) * 0.998, [visibleData]);
-  const priceMax = useMemo(() => Math.max(...visibleData.map(d => d.high)) * 1.002, [visibleData]);
+  const priceMin = useMemo(() => {
+    if (visibleData.length === 0) return 0;
+    return Math.min(...visibleData.map(d => d.low)) * 0.998;
+  }, [visibleData]);
+  const priceMax = useMemo(() => {
+    if (visibleData.length === 0) return 100;
+    return Math.max(...visibleData.map(d => d.high)) * 1.002;
+  }, [visibleData]);
 
   return (
     <>
