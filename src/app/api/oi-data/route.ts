@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stockList } from "@/lib/stock-list";
 import type { OIStrikeData, OptionChainData, FuturesOIData, FuturesContract } from "@/lib/types";
+import {
+  fetchIndexOptionChain,
+  fetchStockOptionChain,
+  fetchFuturesData,
+  isIndexSymbol,
+  type NSEOptionChainResponse,
+} from "@/lib/nse-option-chain";
 
-// Seeded random for consistent data within a session
+// ==================== MOCK DATA GENERATORS ====================
+
 function seededRandom(seed: number) {
   let s = seed;
   return () => {
@@ -47,10 +55,8 @@ function generateOptionChain(underlying: string, expiry?: string): OptionChainDa
   let totalCallOI = 0, totalPutOI = 0;
   let totalCallOIChg = 0, totalPutOIChg = 0;
   
-  // Base OI magnitudes based on underlying type
-   const isIndex = !stockList.equities.some((e: any) => e.s === underlying);
+  const isIndex = !stockList.equities.some((e: any) => e.s === underlying);
   const baseOI = isIndex ? 5000000 : 500000;
-  const baseVolume = isIndex ? 200000 : 20000;
   
   for (let i = -numStrikes; i <= numStrikes; i++) {
     const strike = atmStrike + i * step;
@@ -60,14 +66,12 @@ function generateOptionChain(underlying: string, expiry?: string): OptionChainDa
     const isITMCall = strike < spotPrice;
     const isITMPut = strike > spotPrice;
     
-    // OI distribution: higher near ATM, ITM options have more OI
     const callOIFactor = Math.exp(-distFromATM * 8) * (isITMCall ? 2.5 : 0.6) * (0.7 + rng() * 0.6);
     const putOIFactor = Math.exp(-distFromATM * 8) * (isITMPut ? 2.8 : 0.5) * (0.7 + rng() * 0.6);
     
     const callOI = Math.round(baseOI * callOIFactor);
     const putOI = Math.round(baseOI * putOIFactor);
     
-    // OI Change: some strikes building, some unwinding
     const callOIBase = rng() > 0.4 ? 1 : -1;
     const putOIBase = rng() > 0.4 ? 1 : -1;
     const callOIChg = Math.round(callOI * (rng() * 0.15) * callOIBase);
@@ -78,16 +82,13 @@ function generateOptionChain(underlying: string, expiry?: string): OptionChainDa
     totalCallOIChg += callOIChg;
     totalPutOIChg += putOIChg;
     
-    // Volume typically 30-60% of OI change magnitude
     const callVolume = Math.round(Math.abs(callOIChg) * (0.5 + rng() * 1.5));
     const putVolume = Math.round(Math.abs(putOIChg) * (0.5 + rng() * 1.5));
     
-    // IV: smile shape - higher for OTM, lower near ATM
     const baseIV = isIndex ? 12 : 20;
     const callIV = baseIV + distFromATM * 60 + (rng() - 0.5) * 4;
     const putIV = baseIV + distFromATM * 55 + (rng() - 0.5) * 4;
     
-    // LTP calculation based on intrinsic + time value
     const callIntrinsic = Math.max(0, spotPrice - strike);
     const putIntrinsic = Math.max(0, strike - spotPrice);
     const timeValue = spotPrice * baseIV / 100 * Math.sqrt(30 / 365) * Math.exp(-distFromATM * 3);
@@ -110,7 +111,6 @@ function generateOptionChain(underlying: string, expiry?: string): OptionChainDa
     });
   }
   
-  // Calculate max pain
   let maxPain = atmStrike;
   let minPainValue = Infinity;
   for (const s of strikes) {
@@ -139,6 +139,7 @@ function generateOptionChain(underlying: string, expiry?: string): OptionChainDa
     totalPutOIChg,
     maxPain,
     pcr: Math.round(pcr * 1000) / 1000,
+    dataSource: 'mock',
   };
 }
 
@@ -204,20 +205,242 @@ function generateFuturesOI(underlying: string): FuturesOIData {
   };
 }
 
+// ==================== NSE PARSERS ====================
+
+function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string, expiryFilter?: string): OptionChainData {
+  const records = nseData.records;
+  const spotPrice = records.underlyingValue;
+  const allExpiryDates = [...new Set(records.data.map(d => d.expiryDate))].sort();
+  const currentExpiry = expiryFilter || allExpiryDates[0] || '';
+  
+  // Filter data for selected expiry
+  const filteredData = records.data.filter(d => d.expiryDate === currentExpiry);
+  
+  // Group by strike price
+  const strikeMap = new Map<number, OIStrikeData>();
+  
+  for (const d of filteredData) {
+    const sp = d.strikePrice;
+    if (sp <= 0) continue;
+    
+    let entry = strikeMap.get(sp);
+    if (!entry) {
+      entry = {
+        strikePrice: sp,
+        callOI: 0, callOIChg: 0, callVolume: 0, callIV: 0, callLTP: 0, callChg: 0,
+        putOI: 0, putOIChg: 0, putVolume: 0, putIV: 0, putLTP: 0, putChg: 0,
+      };
+      strikeMap.set(sp, entry);
+    }
+    
+    if (d.CE) {
+      entry.callOI += d.CE.openInterest || 0;
+      entry.callOIChg += d.CE.changeinOpenInterest || 0;
+      entry.callVolume += d.CE.totalTradedVolume || 0;
+      entry.callIV = d.CE.impliedVolatility || 0;
+      entry.callLTP = d.CE.lastPrice || 0;
+      entry.callChg = d.CE.change || 0;
+    }
+    if (d.PE) {
+      entry.putOI += d.PE.openInterest || 0;
+      entry.putOIChg += d.PE.changeinOpenInterest || 0;
+      entry.putVolume += d.PE.totalTradedVolume || 0;
+      entry.putIV = d.PE.impliedVolatility || 0;
+      entry.putLTP = d.PE.lastPrice || 0;
+      entry.putChg = d.PE.change || 0;
+    }
+  }
+  
+  // Sort by strike price
+  const strikes = Array.from(strikeMap.values()).sort((a, b) => a.strikePrice - b.strikePrice);
+  
+  let totalCallOI = 0, totalPutOI = 0, totalCallOIChg = 0, totalPutOIChg = 0;
+  for (const s of strikes) {
+    totalCallOI += s.callOI;
+    totalPutOI += s.putOI;
+    totalCallOIChg += s.callOIChg;
+    totalPutOIChg += s.putOIChg;
+  }
+  
+  // Calculate max pain
+  let maxPain = 0;
+  let minPainValue = Infinity;
+  for (const s of strikes) {
+    let painValue = 0;
+    for (const s2 of strikes) {
+      if (s2.strikePrice < s.strikePrice) painValue += s2.callOI * (s.strikePrice - s2.strikePrice);
+      if (s2.strikePrice > s.strikePrice) painValue += s2.putOI * (s2.strikePrice - s.strikePrice);
+    }
+    if (painValue < minPainValue) {
+      minPainValue = painValue;
+      maxPain = s.strikePrice;
+    }
+  }
+  
+  const pcr = totalPutOI > 0 ? totalCallOI / totalPutOI : 0;
+  
+  return {
+    underlying,
+    spotPrice,
+    expiryDates: allExpiryDates,
+    currentExpiry,
+    strikes,
+    totalCallOI,
+    totalPutOI,
+    totalCallOIChg,
+    totalPutOIChg,
+    maxPain,
+    pcr: Math.round(pcr * 1000) / 1000,
+    dataSource: 'nse_live',
+  };
+}
+
+function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): FuturesOIData {
+  const allInstruments = [...stockList.equities, ...stockList.indices];
+  const base = allInstruments.find((s: any) => s.s === underlying);
+  const name = base?.n || underlying;
+  const lotSize = base?.ls || 25;
+  const spotPrice = nseData.records.underlyingValue;
+  
+  // Get unique expiry dates with their latest data point
+  const expiryMap = new Map<string, any[]>();
+  for (const d of nseData.records.data) {
+    const exp = d.expiryDate;
+    if (!expiryMap.has(exp)) expiryMap.set(exp, []);
+    expiryMap.get(exp)!.push(d);
+  }
+  
+  const sortedExpiries = [...expiryMap.keys()].sort();
+  
+  function makeContractFromNSE(expiry: string, data: any[]): FuturesContract {
+    // Use CE data if available, fallback to PE
+    const sampleCE = data.find(d => d.CE)?.CE;
+    const samplePE = data.find(d => d.PE)?.PE;
+    const sample = sampleCE || samplePE;
+    
+    // Aggregate OI and volume from all strikes for this expiry
+    let totalOI = 0, totalOIChg = 0, totalVolume = 0;
+    for (const d of data) {
+      if (d.CE) {
+        totalOI += d.CE.openInterest || 0;
+        totalOIChg += d.CE.changeinOpenInterest || 0;
+        totalVolume += d.CE.totalTradedVolume || 0;
+      }
+      if (d.PE) {
+        totalOI += d.PE.openInterest || 0;
+        totalOIChg += d.PE.changeinOpenInterest || 0;
+        totalVolume += d.PE.totalTradedVolume || 0;
+      }
+    }
+    
+    // Derive futures price from spot + premium estimate
+    const monthsToExpiry = Math.max(0.5, (new Date(expiry).getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000));
+    const premiumPct = 0.001 * monthsToExpiry; // ~0.1% per month annualized
+    const futPrice = spotPrice * (1 + premiumPct);
+    
+    return {
+      expiry,
+      lastPrice: Math.round(futPrice * 100) / 100,
+      change: Math.round((futPrice - spotPrice) * 100) / 100,
+      changePct: Math.round(premiumPct * 10000) / 100,
+      open: Math.round((futPrice - (sample?.change || 0)) * 100) / 100,
+      high: Math.round(futPrice * 1.002 * 100) / 100,
+      low: Math.round(futPrice * 0.998 * 100) / 100,
+      oi: totalOI,
+      oiChg: totalOIChg,
+      oiChgPct: totalOI > 0 ? Math.round((totalOIChg / totalOI) * 10000) / 100 : 0,
+      volume: totalVolume,
+      value: Math.round(totalVolume * futPrice * lotSize),
+    };
+  }
+  
+  const currentMonth = sortedExpiries[0] ? makeContractFromNSE(sortedExpiries[0], expiryMap.get(sortedExpiries[0])!) : null;
+  const nextMonth = sortedExpiries[1] ? makeContractFromNSE(sortedExpiries[1], expiryMap.get(sortedExpiries[1])!) : null;
+  const farMonth = sortedExpiries[2] ? makeContractFromNSE(sortedExpiries[2], expiryMap.get(sortedExpiries[2])!) : null;
+  
+  if (!currentMonth) {
+    return generateFuturesOI(underlying);
+  }
+  
+  const basis = currentMonth.lastPrice - spotPrice;
+  const basisPct = spotPrice > 0 ? (basis / spotPrice) * 100 : 0;
+  
+  return {
+    symbol: underlying,
+    name,
+    currentMonth,
+    nextMonth: nextMonth || {
+      expiry: '', lastPrice: 0, change: 0, changePct: 0, open: 0, high: 0, low: 0,
+      oi: 0, oiChg: 0, oiChgPct: 0, volume: 0, value: 0,
+    },
+    farMonth,
+    basis: Math.round(basis * 100) / 100,
+    basisPct: Math.round(basisPct * 100) / 100,
+  };
+}
+
+// ==================== MAIN ROUTE ====================
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const underlying = searchParams.get('underlying') || 'NIFTY';
-  const type = searchParams.get('type') || 'option';
+  const type = searchParams.get('type') || 'both';
   const expiry = searchParams.get('expiry') || '';
+  const source = searchParams.get('source') || 'nse';
   
   const allUnderlyings = stockList.optionUnderlyings;
+  const cacheHeaders = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' };
   
+ // Try NSE live data first (unless source=mock)
+  if (source === 'nse') {
+    try {
+      const nseData = isIndexSymbol(underlying)
+        ? await fetchIndexOptionChain(underlying)
+        : await fetchStockOptionChain(underlying);
+      
+      if (nseData) {
+        const optionResult = parseNSEOptionChain(nseData, underlying, expiry || undefined);
+        const futuresResult = parseNSEFutures(nseData, underlying);
+        
+        if (type === 'option') {
+          return NextResponse.json({
+            ...optionResult,
+            underlyings: allUnderlyings,
+            lastUpdated: new Date().toISOString(),
+          }, { headers: cacheHeaders });
+        }
+        
+        if (type === 'futures') {
+          return NextResponse.json({
+            ...futuresResult,
+            underlyings: allUnderlyings,
+            lastUpdated: new Date().toISOString(),
+          }, { headers: cacheHeaders });
+        }
+        
+        // Both
+        return NextResponse.json({
+          option: optionResult,
+          futures: futuresResult,
+          underlyings: allUnderlyings,
+          lastUpdated: new Date().toISOString(),
+        }, { headers: cacheHeaders });
+      }
+      
+      console.warn(`[OI] NSE data unavailable for ${underlying}, falling back to mock`);
+    } catch (err) {
+      console.error(`[OI] NSE fetch error for ${underlying}:`, (err as Error).message);
+    }
+  }
+  
+  // Mock fallback
   if (type === 'option') {
     const data = generateOptionChain(underlying, expiry || undefined);
     return NextResponse.json({
       ...data,
       underlyings: allUnderlyings,
-    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+      lastUpdated: new Date().toISOString(),
+    }, { headers: cacheHeaders });
   }
   
   if (type === 'futures') {
@@ -225,15 +448,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ...data,
       underlyings: allUnderlyings,
-    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+      lastUpdated: new Date().toISOString(),
+    }, { headers: cacheHeaders });
   }
   
-  // Both
+  // Both (mock)
   const optionData = generateOptionChain(underlying, expiry || undefined);
   const futuresData = generateFuturesOI(underlying);
   return NextResponse.json({
     option: optionData,
     futures: futuresData,
     underlyings: allUnderlyings,
-  }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    lastUpdated: new Date().toISOString(),
+  }, { headers: cacheHeaders });
 }

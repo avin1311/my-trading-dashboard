@@ -58,6 +58,7 @@ export function useDashboardData() {
   const [oiLoading, setOiLoading] = useState(false);
   const [oiExpiryFilter, setOiExpiryFilter] = useState('');
   const [oiUnderlyings, setOiUnderlyings] = useState<string[]>([]);
+  const [oiLastUpdated, setOiLastUpdated] = useState<string>('');
 
   // Save points
   const [savePoints, setSavePoints] = useState<SavePoint[]>([]);
@@ -193,6 +194,7 @@ export function useDashboardData() {
       }
       if (data.futures) setOiFuturesData(data.futures);
       if (data.underlyings) setOiUnderlyings(data.underlyings);
+      if (data.lastUpdated) setOiLastUpdated(data.lastUpdated);
       addSavePoint('OI Data Loaded', `${underlying} | PCR: ${data.option?.pcr?.toFixed(2) || 'N/A'} | MaxPain: ${data.option?.maxPain?.toLocaleString('en-IN') || 'N/A'}`);
     } catch {} finally { setOiLoading(false); }
   }, [addSavePoint, oiExpiryFilter]);
@@ -311,6 +313,7 @@ export function useDashboardData() {
     oiOptionData, oiFuturesData,
     oiLoading, oiExpiryFilter, setOiExpiryFilter,
     oiUnderlyings,
+    oiLastUpdated,
     savePoints,
     // Derived
     chartData, visibleData, latestSignal,

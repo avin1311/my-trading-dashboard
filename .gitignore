@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files
+.env*.local
+.env
 
 # vercel
 .vercel
@@ -50,5 +51,21 @@ test
 prompt
 
 server.log
+
 # Skills directory
 /skills/
+
+# Tool results & temp files
+tool-results/
+upload/
+download/*.tar.gz
+download/*.bundle
+download/*.git/
+scripts/search-results*.json
+
+# Scripts output
+scripts/*.json
+
+# keepalive/start scripts (env-specific)
+keepalive.sh
+start.sh

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch } from 'lucide-react';
+import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1179,8 +1179,20 @@ function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
         </div>
 
         <Button variant="ghost" size="sm" className="ml-auto h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800/50" onClick={() => d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter)}>
-          <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+          <RefreshCw className={cn("w-3 h-3 mr-1", d.oiLoading && "animate-spin")} /> Refresh
         </Button>
+        {d.oiOptionData?.dataSource === 'nse_live' ? (
+          <Badge className="h-7 text-[10px] font-semibold bg-emerald-600/90 text-white border-0 gap-1">
+            <Radio className="w-2.5 h-2.5" /> LIVE NSE
+          </Badge>
+        ) : (
+          <Badge className="h-7 text-[10px] font-semibold bg-amber-600/20 text-amber-400 border border-amber-600/30 gap-1">
+            <WifiOff className="w-2.5 h-2.5" /> SIMULATED
+          </Badge>
+        )}
+        {d.oiLastUpdated && (
+          <span className="text-[10px] text-slate-600">{new Date(d.oiLastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+        )}
       </div>
 
       {/* Summary KPI Cards */}
