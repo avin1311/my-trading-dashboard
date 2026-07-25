@@ -99,24 +99,26 @@ export function SectionCard({ title, icon: Icon, children, className, badge }: {
 
 // ==================== MktTicker ====================
 export function MktTicker({ label, q }: { label: string; q: LiveQuote | null }) {
-  if (!q) return <div className="flex flex-col items-center px-3 py-1.5"><Skeleton className="h-3 w-16 bg-slate-800" /></div>;
-  const up = q.changePct >= 0;
+  if (!q || typeof q.price !== 'number') return <div className="flex flex-col items-center px-3 py-1.5"><Skeleton className="h-3 w-16 bg-slate-800" /></div>;
+  const up = (q.changePct || 0) >= 0;
+  const price = q.price ?? 0;
+  const changePct = q.changePct ?? 0;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div className="flex flex-col items-center px-3 py-1.5 cursor-default">
           <span className="text-[10px] text-slate-500 font-medium">{label}</span>
           <span className="text-xs font-bold text-slate-200 font-mono">
-            {q.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            {price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </span>
           <span className={cn('text-[10px] font-semibold font-mono', up ? 'text-emerald-400' : 'text-red-400')}>
-            {up ? '+' : ''}{q.changePct.toFixed(2)}%
+            {up ? '+' : ''}{changePct.toFixed(2)}%
           </span>
         </div>
       </TooltipTrigger>
       <TooltipContent className="text-xs bg-slate-900 border-slate-700">
-        <div>H: {q.dayHigh.toLocaleString('en-IN')} L: {q.dayLow.toLocaleString('en-IN')}</div>
-        <div>Vol: {fNum(q.volume)}</div>
+        <div>H: {(q.dayHigh || 0).toLocaleString('en-IN')} L: {(q.dayLow || 0).toLocaleString('en-IN')}</div>
+        <div>Vol: {fNum(q.volume || 0)}</div>
       </TooltipContent>
     </Tooltip>
   );
