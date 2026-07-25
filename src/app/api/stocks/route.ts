@@ -85,9 +85,13 @@ export async function GET(request: NextRequest) {
     if (sector && sector !== "all") {
       instruments = instruments.filter((s: any) => s.sec === sector);
     }
+    const mapped = instruments.map((s: any) => ({
+      symbol: s.s, name: s.n, sector: s.sec,
+      basePrice: s.bp, volatility: s.v, lotSize: s.ls, type: 'equity' as const,
+    }));
     const stats = { totalEquities: stockList.equities.length, totalIndices: stockList.indices.length, optionUnderlyings: stockList.optionUnderlyings.length };
     const sectors = [...new Set(stockList.equities.map((s: any) => s.sec))];
-    return NextResponse.json({ instruments, stats, sectors: sectors.sort() }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    return NextResponse.json({ instruments: mapped, stats, sectors: sectors.sort() }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   if (type === "index") {
@@ -96,7 +100,11 @@ export async function GET(request: NextRequest) {
       const q = search.toLowerCase();
       instruments = instruments.filter((s: any) => s.s.toLowerCase().includes(q) || s.n.toLowerCase().includes(q));
     }
-    return NextResponse.json({ instruments, stats: { totalIndices: stockList.indices.length } }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    const mapped = instruments.map((s: any) => ({
+      symbol: s.s, name: s.n, sector: s.sec || 'Index',
+      basePrice: s.bp || 0, volatility: s.v || 0, lotSize: s.ls || 1, type: 'index' as const,
+    }));
+    return NextResponse.json({ instruments: mapped, stats: { totalIndices: stockList.indices.length } }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   if (type === "option") {
@@ -110,8 +118,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ instruments, underlyings, expiryDates, stats: { optionUnderlyings: underlyings.length } }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
+  const allMapped = [...stockList.equities, ...stockList.indices].map((s: any) => ({
+    symbol: s.s, name: s.n, sector: s.sec || '',
+    basePrice: s.bp || 0, volatility: s.v || 0, lotSize: s.ls || 1, type: s.ls ? 'equity' : 'index' as const,
+  }));
   return NextResponse.json({
-    instruments: [...stockList.equities, ...stockList.indices],
+    instruments: allMapped,
     stats: { totalEquities: stockList.equities.length, totalIndices: stockList.indices.length, optionUnderlyings: stockList.optionUnderlyings.length },
     sectors: [...new Set(stockList.equities.map((s: any) => s.sec))].sort(),
   }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
