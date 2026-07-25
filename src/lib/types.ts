@@ -210,3 +210,59 @@ export const DEFAULT_PARAMS: StrategyParams = {
   macdSlow: 26,
   macdSignal: 9,
 };
+
+// ==================== OPEN INTEREST TYPES ====================
+export interface OIStrikeData {
+  strikePrice: number;
+  callOI: number;
+  callOIChg: number;
+  callVolume: number;
+  callIV: number;
+  callLTP: number;
+  callChg: number;
+  putOI: number;
+  putOIChg: number;
+  putVolume: number;
+  putIV: number;
+  putLTP: number;
+  putChg: number;
+}
+
+export interface OptionChainData {
+  underlying: string;
+  spotPrice: number;
+  expiryDates: string[];
+  currentExpiry: string;
+  strikes: OIStrikeData[];
+  totalCallOI: number;
+  totalPutOI: number;
+  totalCallOIChg: number;
+  totalPutOIChg: number;
+  maxPain: number;
+  pcr: number;
+}
+
+export interface FuturesOIData {
+  symbol: string;
+  name: string;
+  currentMonth: FuturesContract;
+  nextMonth: FuturesContract;
+  farMonth: FuturesContract | null;
+  basis: number;
+  basisPct: number;
+}
+
+export interface FuturesContract {
+  expiry: string;
+  lastPrice: number;
+  change: number;
+  changePct: number;
+  open: number;
+  high: number;
+  low: number;
+  oi: number;
+  oiChg: number;
+  oiChgPct: number;
+  volume: number;
+  value: number;
+}

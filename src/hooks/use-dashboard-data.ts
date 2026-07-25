@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   StockInfo, OHLCV, StrategySignal, BacktestResult, StrategyParams,
   StockDetail, MarketOverview, NewsItem, ScreenerResult, SavePoint, ChartDataPoint,
+  OptionChainData, FuturesOIData,
 } from '@/lib/types';
 import { DEFAULT_PARAMS } from '@/lib/types';
 
@@ -49,6 +50,14 @@ export function useDashboardData() {
   const [optionsExpiries, setOptionsExpiries] = useState<string[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [optionsExpiryFilter, setOptionsExpiryFilter] = useState('');
+
+  // OI (Open Interest) state
+  const [oiUnderlying, setOiUnderlying] = useState('NIFTY');
+  const [oiOptionData, setOiOptionData] = useState<OptionChainData | null>(null);
+  const [oiFuturesData, setOiFuturesData] = useState<FuturesOIData | null>(null);
+  const [oiLoading, setOiLoading] = useState(false);
+  const [oiExpiryFilter, setOiExpiryFilter] = useState('');
+  const [oiUnderlyings, setOiUnderlyings] = useState<string[]>([]);
 
   // Save points
   const [savePoints, setSavePoints] = useState<SavePoint[]>([]);
@@ -169,6 +178,31 @@ export function useDashboardData() {
   // Fetch options on demand
   useEffect(() => { if (optionsData.length === 0) fetchOptions(optionsUnderlying); }, [optionsUnderlying]);
 
+  const fetchOIData = useCallback(async (underlying: string, expiry?: string) => {
+    setOiLoading(true);
+    try {
+      const sp = new URLSearchParams({ underlying, type: 'both' });
+      if (expiry) sp.append('expiry', expiry);
+      const res = await fetch('/api/oi-data?' + sp.toString());
+      const data = await res.json();
+      if (data.option) {
+        setOiOptionData(data.option);
+        if (data.option.expiryDates?.length > 0 && !oiExpiryFilter) {
+          setOiExpiryFilter(data.option.expiryDates[0]);
+        }
+      }
+      if (data.futures) setOiFuturesData(data.futures);
+      if (data.underlyings) setOiUnderlyings(data.underlyings);
+      addSavePoint('OI Data Loaded', `${underlying} | PCR: ${data.option?.pcr?.toFixed(2) || 'N/A'} | MaxPain: ${data.option?.maxPain?.toLocaleString('en-IN') || 'N/A'}`);
+    } catch {} finally { setOiLoading(false); }
+  }, [addSavePoint, oiExpiryFilter]);
+
+  // Fetch OI on underlying change
+  useEffect(() => { fetchOIData(oiUnderlying); }, [oiUnderlying]);
+
+  // Re-fetch OI when expiry filter changes
+  useEffect(() => { if (oiExpiryFilter && oiUnderlying) fetchOIData(oiUnderlying, oiExpiryFilter); }, [oiExpiryFilter]);
+
   // Auto-refresh polling
   useEffect(() => {
     if (!autoRefresh || !selectedSymbol) return;
@@ -273,6 +307,10 @@ export function useDashboardData() {
     optionsUnderlying, setOptionsUnderlying,
     optionsData, setOptionsData, optionsExpiries, setOptionsExpiries,
     optionsLoading, optionsExpiryFilter, setOptionsExpiryFilter,
+    oiUnderlying, setOiUnderlying,
+    oiOptionData, oiFuturesData,
+    oiLoading, oiExpiryFilter, setOiExpiryFilter,
+    oiUnderlyings,
     savePoints,
     // Derived
     chartData, visibleData, latestSignal,
@@ -280,7 +318,7 @@ export function useDashboardData() {
     q, t, perf, own, fin,
     // Actions
     handleRefresh, handleSelect,
-    fetchSignals, fetchNews, fetchScreener, fetchOptions,
+    fetchSignals, fetchNews, fetchScreener, fetchOptions, fetchOIData,
     silentFetchDetail,
   };
 }

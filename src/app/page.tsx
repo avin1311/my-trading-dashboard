@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot } from 'lucide-react';
+import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ import { VolumeProfile } from '@/components/dashboard/volume-profile';
 import type { LiveQuote, StrategySignal, ScreenerResult, PeerData, StrategyParams } from '@/lib/types';
 
 // ==================== TYPES ====================
-type ViewType = 'overview' | 'screener' | 'chart' | 'fundamentals' | 'technicals' | 'strategy' | 'news' | 'watchlist';
+type ViewType = 'overview' | 'screener' | 'chart' | 'fundamentals' | 'technicals' | 'strategy' | 'news' | 'watchlist' | 'oi';
 
 interface NavItem {
   id: ViewType;
@@ -47,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'strategy', label: 'Strategy', icon: Target, source: 'Signal Engine', color: 'from-rose-500/20 to-red-500/10' },
   { id: 'news', label: 'News', icon: Newspaper, source: 'Moneycontrol', color: 'from-teal-500/20 to-emerald-500/10' },
   { id: 'watchlist', label: 'Watchlist', icon: Star, source: 'Custom', color: 'from-amber-500/20 to-yellow-500/10' },
+  { id: 'oi', label: 'Open Interest', icon: GitBranch, source: 'NSE OI Data', color: 'from-violet-500/20 to-purple-500/10' },
 ];
 
 const ChartSection = dynamic(() => import('@/components/dashboard/charts'), { ssr: false, loading: () => <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div> });
@@ -1071,6 +1072,387 @@ function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   );
 }
 
+// ==================== OPEN INTEREST VIEW ====================
+function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+  const [oiTab, setOiTab] = useState<'options' | 'futures'>('options');
+  const [strikeRange, setStrikeRange] = useState(5);
+
+  const oc = d.oiOptionData;
+  const fc = d.oiFuturesData;
+
+  // Filter strikes around ATM
+  const filteredStrikes = useMemo(() => {
+    if (!oc) return [];
+    const atmIdx = oc.strikes.findIndex(s => s.strikePrice >= oc.spotPrice);
+    const start = Math.max(0, (atmIdx >= 0 ? atmIdx : Math.floor(oc.strikes.length / 2)) - strikeRange);
+    const end = start + strikeRange * 2 + 1;
+    return oc.strikes.slice(start, end);
+  }, [oc, strikeRange]);
+
+  // Max OI for bar visualization
+  const maxCallOI = useMemo(() => Math.max(...filteredStrikes.map(s => s.callOI), 1), [filteredStrikes]);
+  const maxPutOI = useMemo(() => Math.max(...filteredStrikes.map(s => s.putOI), 1), [filteredStrikes]);
+
+  // Top 5 CE/PE OI strikes
+  const topCallOI = useMemo(() => {
+    if (!oc) return [];
+    return [...oc.strikes].sort((a, b) => b.callOI - a.callOI).slice(0, 5);
+  }, [oc]);
+  const topPutOI = useMemo(() => {
+    if (!oc) return [];
+    return [...oc.strikes].sort((a, b) => b.putOI - a.putOI).slice(0, 5);
+  }, [oc]);
+
+  const fmtOI = (n: number) => {
+    if (n >= 10000000) return (n / 10000000).toFixed(2) + ' Cr';
+    if (n >= 100000) return (n / 100000).toFixed(2) + ' L';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toLocaleString('en-IN');
+  };
+
+  const fmtValue = (n: number) => {
+    if (n >= 10000000) return '₹' + (n / 10000000).toFixed(2) + ' Cr';
+    if (n >= 100000) return '₹' + (n / 100000).toFixed(2) + ' L';
+    if (n >= 1000) return '₹' + (n / 1000).toFixed(1) + 'K';
+    return '₹' + n.toLocaleString('en-IN');
+  };
+
+  if (d.oiLoading) {
+    return (
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        {[1, 2].map(i => (
+          <div key={i} className="rounded-xl border border-slate-800/60 bg-[#0d1117]/90">
+            <Skeleton className="h-10 bg-slate-800/50" />
+            <div className="p-4 space-y-3">{Array.from({ length: 8 }).map((_, j) => <Skeleton key={j} className="h-8 bg-slate-800/30" />)}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Controls Bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Underlying</span>
+          <Select value={d.oiUnderlying} onValueChange={(v) => { d.setOiUnderlying(v); d.setOiExpiryFilter(''); }}>
+            <SelectTrigger className="w-[180px] h-8 text-xs bg-slate-800/50 border-slate-700/50 text-slate-200">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-900 border-slate-700/50 max-h-[300px]">
+              {d.oiUnderlyings.length > 0 ? d.oiUnderlyings.map(u => (
+                <SelectItem key={u} value={u} className="text-xs text-slate-300 focus:bg-slate-800 focus:text-white">{u}</SelectItem>
+              )) : <SelectItem value="NIFTY" className="text-xs">NIFTY</SelectItem>}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {oc && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Expiry</span>
+            <Select value={d.oiExpiryFilter} onValueChange={d.setOiExpiryFilter}>
+              <SelectTrigger className="w-[150px] h-8 text-xs bg-slate-800/50 border-slate-700/50 text-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-700/50">
+                {oc.expiryDates.map(exp => (
+                  <SelectItem key={exp} value={exp} className="text-xs text-slate-300 focus:bg-slate-800 focus:text-white">{exp}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Strikes</span>
+          <Select value={String(strikeRange)} onValueChange={(v) => setStrikeRange(Number(v))}>
+            <SelectTrigger className="w-[70px] h-8 text-xs bg-slate-800/50 border-slate-700/50 text-slate-200">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-900 border-slate-700/50">
+              {[3, 5, 8, 12, 15].map(n => (
+                <SelectItem key={n} value={String(n)} className="text-xs text-slate-300">+/- {n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button variant="ghost" size="sm" className="ml-auto h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800/50" onClick={() => d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter)}>
+          <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+        </Button>
+      </div>
+
+      {/* Summary KPI Cards */}
+      {oc && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Spot Price</div>
+            <div className="text-sm font-bold font-mono text-slate-100">{oc.spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">PCR (OI)</div>
+            <div className={cn('text-sm font-bold font-mono', oc.pcr > 1 ? 'text-emerald-400' : oc.pcr < 0.8 ? 'text-red-400' : 'text-amber-400')}>
+              {oc.pcr.toFixed(3)}
+            </div>
+            <div className="text-[9px] text-slate-600">{oc.pcr > 1 ? 'Bullish' : oc.pcr < 0.8 ? 'Bearish' : 'Neutral'}</div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Max Pain</div>
+            <div className="text-sm font-bold font-mono text-violet-400">{oc.maxPain.toLocaleString('en-IN')}</div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Total Call OI</div>
+            <div className="text-sm font-bold font-mono text-cyan-400">{fmtOI(oc.totalCallOI)}</div>
+            <div className={cn('text-[9px]', oc.totalCallOIChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+              {oc.totalCallOIChg >= 0 ? '+' : ''}{fmtOI(oc.totalCallOIChg)}
+            </div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Total Put OI</div>
+            <div className="text-sm font-bold font-mono text-rose-400">{fmtOI(oc.totalPutOI)}</div>
+            <div className={cn('text-[9px]', oc.totalPutOIChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+              {oc.totalPutOIChg >= 0 ? '+' : ''}{fmtOI(oc.totalPutOIChg)}
+            </div>
+          </div>
+          <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Expiry</div>
+            <div className="text-xs font-bold text-slate-200">{oc.currentExpiry}</div>
+            <div className="text-[9px] text-slate-600">{oc.expiryDates.length} expiries</div>
+          </div>
+        </div>
+      )}
+
+      {/* Top OI Strikes sidebar + Main Option Chain Table */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
+        {/* Top OI Strikes Panel */}
+        <div className="xl:col-span-1 space-y-3">
+          <P title="Top Call OI" icon={ArrowUp} source="Calls" className="h-auto">
+            <div className="space-y-1.5">
+              {topCallOI.map((s, i) => (
+                <div key={s.strikePrice} className="flex items-center justify-between p-1.5 rounded bg-slate-800/20 border border-slate-800/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-slate-600 w-3">{i + 1}</span>
+                    <span className="text-xs font-mono font-bold text-cyan-400">{s.strikePrice.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[11px] font-mono text-slate-300">{fmtOI(s.callOI)}</div>
+                    <div className={cn('text-[9px] font-mono', s.callOIChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                      {s.callOIChg >= 0 ? '+' : ''}{fmtOI(s.callOIChg)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </P>
+          <P title="Top Put OI" icon={ArrowDown} source="Puts" className="h-auto">
+            <div className="space-y-1.5">
+              {topPutOI.map((s, i) => (
+                <div key={s.strikePrice} className="flex items-center justify-between p-1.5 rounded bg-slate-800/20 border border-slate-800/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-slate-600 w-3">{i + 1}</span>
+                    <span className="text-xs font-mono font-bold text-rose-400">{s.strikePrice.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[11px] font-mono text-slate-300">{fmtOI(s.putOI)}</div>
+                    <div className={cn('text-[9px] font-mono', s.putOIChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                      {s.putOIChg >= 0 ? '+' : ''}{fmtOI(s.putOIChg)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </P>
+        </div>
+
+        {/* Main Option Chain Table */}
+        <div className="xl:col-span-3">
+          <P title={`${d.oiUnderlying} Option Chain`} icon={Layers} source="NSE OI" badge={
+            <div className="flex gap-1">
+              <button onClick={() => setOiTab('options')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'options' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'text-slate-500 hover:text-slate-300')}>Options</button>
+              <button onClick={() => setOiTab('futures')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'futures' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-500 hover:text-slate-300')}>Futures</button>
+            </div>
+          } className="h-auto">
+            <ScrollArea className="h-[520px]">
+              {oiTab === 'options' ? (
+                <div className="min-w-[800px]">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_70px_1fr_1fr_1fr_1fr_1fr_1fr] gap-px bg-slate-800/60 text-[9px] font-bold uppercase tracking-wider text-slate-500 px-2 py-2 sticky top-0 z-10 bg-[#0d1117]">
+                    <div className="text-right text-cyan-500/70">Call LTP</div>
+                    <div className="text-right text-cyan-500/70">Call IV</div>
+                    <div className="text-right text-cyan-500/70">Call OI</div>
+                    <div className="text-right text-cyan-500/70">OI Chg</div>
+                    <div className="text-right text-cyan-500/70">Call Vol</div>
+                    <div className="text-right text-cyan-500/70">OI Bar</div>
+                    <div className="text-center text-slate-400">Strike</div>
+                    <div className="text-left text-rose-500/70">OI Bar</div>
+                    <div className="text-left text-rose-500/70">Put Vol</div>
+                    <div className="text-left text-rose-500/70">OI Chg</div>
+                    <div className="text-left text-rose-500/70">Put OI</div>
+                    <div className="text-left text-rose-500/70">Put IV</div>
+                    <div className="text-left text-rose-500/70">Put LTP</div>
+                  </div>
+                  {/* Table Rows */}
+                  {filteredStrikes.map((s) => {
+                    const isATM = oc && s.strikePrice >= oc.spotPrice - (oc.spotPrice * 0.001) && s.strikePrice <= oc.spotPrice + (oc.spotPrice * 0.001);
+                    const isITMCall = oc && s.strikePrice < oc.spotPrice;
+                    const isITMPut = oc && s.strikePrice > oc.spotPrice;
+                    const callBarW = (s.callOI / maxCallOI) * 100;
+                    const putBarW = (s.putOI / maxPutOI) * 100;
+                    return (
+                      <div key={s.strikePrice} className={cn(
+                        'grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_70px_1fr_1fr_1fr_1fr_1fr_1fr] gap-px px-2 py-1.5 border-b border-slate-800/20 text-[11px] font-mono hover:bg-slate-800/30 transition-colors',
+                        isATM && 'bg-emerald-500/5 border-emerald-500/20'
+                      )}>
+                        {/* Call Side (right-aligned) */}
+                        <div className={cn('text-right', isITMCall ? 'text-cyan-300' : 'text-slate-400')}>{s.callLTP.toFixed(2)}
+                          {s.callChg !== 0 && <span className={cn('ml-1 text-[9px]', s.callChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>{s.callChg >= 0 ? '+' : ''}{s.callChg.toFixed(2)}</span>}
+                        </div>
+                        <div className={cn('text-right', isITMCall ? 'text-cyan-300' : 'text-slate-400')}>{s.callIV.toFixed(1)}%</div>
+                        <div className={cn('text-right font-semibold', isITMCall ? 'text-cyan-200' : 'text-slate-300')}>{fmtOI(s.callOI)}</div>
+                        <div className={cn('text-right', s.callOIChg >= 0 ? 'text-emerald-400' : 'text-red-400')}>{s.callOIChg >= 0 ? '+' : ''}{fmtOI(s.callOIChg)}</div>
+                        <div className="text-right text-slate-500">{fmtOI(s.callVolume)}</div>
+                        <div className="flex items-center justify-end pr-1">
+                          <div className="w-full h-3 bg-slate-800/40 rounded-sm overflow-hidden">
+                            <div className="h-full bg-cyan-500/40 rounded-sm" style={{ width: callBarW + '%' }} />
+                          </div>
+                        </div>
+                        {/* Strike (center) */}
+                        <div className={cn(
+                          'text-center font-bold px-1 rounded',
+                          isATM ? 'bg-emerald-500/20 text-emerald-300 text-xs' :
+                          isITMCall ? 'text-cyan-300 bg-cyan-500/5' :
+                          isITMPut ? 'text-rose-300 bg-rose-500/5' :
+                          'text-slate-300'
+                        )}>
+                          {s.strikePrice.toLocaleString('en-IN')}
+                          {isATM && <div className="text-[8px] text-emerald-400 font-semibold">ATM</div>}
+                        </div>
+                        {/* Put Side (left-aligned) */}
+                        <div className="flex items-center pl-1">
+                          <div className="w-full h-3 bg-slate-800/40 rounded-sm overflow-hidden">
+                            <div className="h-full bg-rose-500/40 rounded-sm" style={{ width: putBarW + '%' }} />
+                          </div>
+                        </div>
+                        <div className="text-left text-slate-500">{fmtOI(s.putVolume)}</div>
+                        <div className={cn('text-left', s.putOIChg >= 0 ? 'text-emerald-400' : 'text-red-400')}>{s.putOIChg >= 0 ? '+' : ''}{fmtOI(s.putOIChg)}</div>
+                        <div className={cn('text-left font-semibold', isITMPut ? 'text-rose-200' : 'text-slate-300')}>{fmtOI(s.putOI)}</div>
+                        <div className={cn('text-left', isITMPut ? 'text-rose-300' : 'text-slate-400')}>{s.putIV.toFixed(1)}%</div>
+                        <div className={cn('text-left', isITMPut ? 'text-rose-300' : 'text-slate-400')}>{s.putLTP.toFixed(2)}
+                          {s.putChg !== 0 && <span className={cn('ml-1 text-[9px]', s.putChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>{s.putChg >= 0 ? '+' : ''}{s.putChg.toFixed(2)}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Futures Tab */
+                fc ? (
+                  <div className="space-y-3">
+                    {/* Basis Info */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Spot vs Future</div>
+                        <div className={cn('text-sm font-bold font-mono', fc.basis >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                          {fc.basis >= 0 ? '+' : ''}{fc.basis.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Basis %</div>
+                        <div className={cn('text-sm font-bold font-mono', fc.basisPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                          {fc.basisPct >= 0 ? '+' : ''}{fc.basisPct.toFixed(3)}%
+                        </div>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
+                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Contango/Bkwdn</div>
+                        <div className={cn('text-sm font-bold', fc.basis > 0 ? 'text-cyan-400' : 'text-orange-400')}>
+                          {fc.basis > 0 ? 'Contango' : 'Backwardation'}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Futures Contracts Table */}
+                    {[fc.currentMonth, fc.nextMonth, fc.farMonth].filter(Boolean).map((contract, idx) => {
+                      if (!contract) return null;
+                      const labels = ['Current Month', 'Next Month', 'Far Month'];
+                      return (
+                        <div key={idx} className="rounded-lg border border-slate-800/40 bg-slate-800/10 overflow-hidden">
+                          <div className="px-3 py-2 border-b border-slate-800/30 bg-slate-900/30">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-300">{labels[idx]}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/8 border-amber-500/20 text-amber-400">{contract.expiry}</Badge>
+                                <span className={cn('text-xs font-bold font-mono', contract.changePct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                                  {contract.changePct >= 0 ? '+' : ''}{contract.changePct.toFixed(2)}%
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3">
+                            <div>
+                              <div className="text-[9px] text-slate-500">Last Price</div>
+                              <div className="text-sm font-bold font-mono text-slate-200">{contract.lastPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                            </div>
+                            <div>
+                              <div className="text-[9px] text-slate-500">Open / High / Low</div>
+                              <div className="text-[11px] font-mono text-slate-400">
+                                {contract.open.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / {contract.high.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / {contract.low.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[9px] text-slate-500">Open Interest</div>
+                              <div className="text-sm font-bold font-mono text-violet-400">{fmtOI(contract.oi)}</div>
+                              <div className={cn('text-[10px] font-mono', contract.oiChg >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                                Chg: {contract.oiChg >= 0 ? '+' : ''}{fmtOI(contract.oiChg)} ({contract.oiChgPct >= 0 ? '+' : ''}{contract.oiChgPct.toFixed(2)}%)
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[9px] text-slate-500">Volume / Value</div>
+                              <div className="text-[11px] font-mono text-slate-400">
+                                {fmtOI(contract.volume)} / {fmtValue(contract.value)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* OI Comparison Bar */}
+                    <div className="rounded-lg border border-slate-800/40 bg-slate-800/10 p-3">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">OI Across Contracts</div>
+                      <div className="space-y-2">
+                        {[fc.currentMonth, fc.nextMonth, fc.farMonth].filter(Boolean).map((c, i) => {
+                          if (!c) return null;
+                          const maxOI = Math.max(fc.currentMonth.oi, fc.nextMonth.oi, fc.farMonth?.oi || 0, 1);
+                          const w = (c.oi / maxOI) * 100;
+                          const labels = ['Current Month', 'Next Month', 'Far Month'];
+                          return (
+                            <div key={i} className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500 w-24 shrink-0">{labels[i]}</span>
+                              <div className="flex-1 h-4 bg-slate-800/40 rounded-sm overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-violet-500/60 to-violet-400/30 rounded-sm flex items-center justify-end pr-2" style={{ width: w + '%' }}>
+                                  <span className="text-[9px] font-mono font-bold text-white/90">{fmtOI(c.oi)}</span>
+                                </div>
+                              </div>
+                              <div className={cn('text-[10px] font-mono w-16 text-right', c.oiChg >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                                {c.oiChg >= 0 ? '+' : ''}{fmtOI(c.oiChg)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-16 text-slate-500">No futures OI data available</div>
+                )
+              )}
+            </ScrollArea>
+          </P>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ==================== WATCHLIST VIEW ====================
 function WatchlistView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
   const [watchlistQuotes, setWatchlistQuotes] = useState<Record<string, { price: number; changePct: number; name: string; loading: boolean }>>({});
@@ -1173,6 +1555,7 @@ export default function Home() {
             {view === 'strategy' && <StrategyView d={d} />}
             {view === 'news' && <NewsView d={d} />}
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
+            {view === 'oi' && <OpenInterestView d={d} />}
           </main>
           {/* Footer */}
           <div className="border-t border-slate-800/30 py-2 px-4 flex items-center justify-between text-[9px] text-slate-600">
