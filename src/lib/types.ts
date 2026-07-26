@@ -240,7 +240,7 @@ export interface OptionChainData {
   totalPutOIChg: number;
   maxPain: number;
   pcr: number;
-  dataSource?: 'nse_live' | 'mock';
+  dataSource?: 'nse_live' | 'upstox_live' | 'mock';
 }
 
 export interface FuturesOIData {

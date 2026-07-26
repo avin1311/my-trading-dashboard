@@ -8,6 +8,13 @@ import {
   isIndexSymbol,
   type NSEOptionChainResponse,
 } from "@/lib/nse-option-chain";
+import {
+  isUpstoxConnected,
+  fetchUpstoxOptionChain,
+  fetchUpstoxFuturesQuote,
+  findSpotInstrumentKey,
+  getFuturesExpiries,
+} from "@/lib/upstox-client";
 
 // ==================== MOCK DATA GENERATORS ====================
 
@@ -379,6 +386,156 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
   };
 }
 
+// ==================== UPSTOX PARSERS ====================
+
+function parseUpstoxOptionChain(
+  data: { strikes: Map<number, { CE: any; PE: any }>; expiryDates: string[]; spotPrice: number },
+  underlying: string,
+  expiryFilter?: string
+): OptionChainData {
+  const { strikes: strikeMap, expiryDates: allExpiryDates, spotPrice } = data;
+  const currentExpiry = expiryFilter || allExpiryDates[0] || '';
+
+  const strikes: OIStrikeData[] = [];
+  let totalCallOI = 0, totalPutOI = 0;
+  let totalCallOIChg = 0, totalPutOIChg = 0;
+
+  for (const [strikePrice, { CE, PE }] of strikeMap) {
+    if (strikePrice <= 0) continue;
+
+    strikes.push({
+      strikePrice,
+      callOI: CE?.open_interest || 0,
+      callOIChg: CE?.change_in_open_interest || CE?.day_change || 0,
+      callVolume: CE?.volume || CE?.total_buy_quantity || 0,
+      callIV: CE?.iv || 0,
+      callLTP: CE?.last_price || CE?.ohlc?.close || 0,
+      callChg: CE?.change || 0,
+      putOI: PE?.open_interest || 0,
+      putOIChg: PE?.change_in_open_interest || PE?.day_change || 0,
+      putVolume: PE?.volume || PE?.total_buy_quantity || 0,
+      putIV: PE?.iv || 0,
+      putLTP: PE?.last_price || PE?.ohlc?.close || 0,
+      putChg: PE?.change || 0,
+    });
+
+    totalCallOI += CE?.open_interest || 0;
+    totalPutOI += PE?.open_interest || 0;
+    totalCallOIChg += CE?.change_in_open_interest || CE?.day_change || 0;
+    totalPutOIChg += PE?.change_in_open_interest || PE?.day_change || 0;
+  }
+
+  // Sort by strike price
+  strikes.sort((a, b) => a.strikePrice - b.strikePrice);
+
+  // Calculate max pain
+  let maxPain = 0;
+  let minPainValue = Infinity;
+  for (const s of strikes) {
+    let painValue = 0;
+    for (const s2 of strikes) {
+      if (s2.strikePrice < s.strikePrice) painValue += s2.callOI * (s.strikePrice - s2.strikePrice);
+      if (s2.strikePrice > s.strikePrice) painValue += s2.putOI * (s2.strikePrice - s.strikePrice);
+    }
+    if (painValue < minPainValue) {
+      minPainValue = painValue;
+      maxPain = s.strikePrice;
+    }
+  }
+
+  const pcr = totalPutOI > 0 ? totalCallOI / totalPutOI : 0;
+
+  return {
+    underlying,
+    spotPrice,
+    expiryDates: allExpiryDates,
+    currentExpiry,
+    strikes,
+    totalCallOI,
+    totalPutOI,
+    totalCallOIChg,
+    totalPutOIChg,
+    maxPain,
+    pcr: Math.round(pcr * 1000) / 1000,
+    dataSource: 'upstox_live',
+  };
+}
+
+async function parseUpstoxFutures(underlying: string): Promise<FuturesOIData | null> {
+  const allInstruments = [...stockList.equities, ...stockList.indices];
+  const base = allInstruments.find((s: any) => s.s === underlying);
+  const name = base?.n || underlying;
+  const lotSize = base?.ls || 25;
+
+  const futuresExpiries = await getFuturesExpiries(underlying);
+  if (futuresExpiries.length === 0) return null;
+
+  async function makeContract(exp: string): Promise<FuturesContract | null> {
+    const quote = await fetchUpstoxFuturesQuote(underlying, exp);
+    if (!quote) return null;
+    return {
+      expiry: exp,
+      lastPrice: quote.last_price || 0,
+      change: quote.change || 0,
+      changePct: quote.change_percent || 0,
+      open: quote.ohlc?.open || 0,
+      high: quote.ohlc?.high || 0,
+      low: quote.ohlc?.low || 0,
+      oi: quote.open_interest || 0,
+      oiChg: quote.change_in_open_interest || 0,
+      oiChgPct: quote.open_interest > 0
+        ? Math.round(((quote.change_in_open_interest || 0) / quote.open_interest) * 10000) / 100
+        : 0,
+      volume: quote.volume || 0,
+      value: Math.round((quote.volume || 0) * (quote.last_price || 0) * lotSize),
+    };
+  }
+
+  const currentMonth = await makeContract(futuresExpiries[0]);
+  const nextMonth = futuresExpiries[1] ? await makeContract(futuresExpiries[1]) : null;
+  const farMonth = futuresExpiries[2] ? await makeContract(futuresExpiries[2]) : null;
+
+  if (!currentMonth) return null;
+
+  // Get spot price for basis calculation
+  let spotPrice = 0;
+  const spotKey = await findSpotInstrumentKey(underlying);
+  if (spotKey) {
+    const { getUpstoxToken } = await import('@/lib/upstox-client');
+    const token = getUpstoxToken();
+    if (token) {
+      try {
+        const res = await fetch(`https://api.upstox.com/v2/market-quote/ohlc?instrument_key=${encodeURIComponent(spotKey)}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'x-api-version': '2.0' },
+          signal: AbortSignal.timeout(10000),
+        });
+        const json = await res.json();
+        const d = json.data;
+        if (d) {
+          const q = Array.isArray(d) ? d[0] : Object.values(d)[0] as any;
+          spotPrice = q?.last_price || q?.ohlc?.close || 0;
+        }
+      } catch {}
+    }
+  }
+
+  const basis = currentMonth.lastPrice - spotPrice;
+  const basisPct = spotPrice > 0 ? (basis / spotPrice) * 100 : 0;
+
+  return {
+    symbol: underlying,
+    name,
+    currentMonth,
+    nextMonth: nextMonth || {
+      expiry: '', lastPrice: 0, change: 0, changePct: 0, open: 0, high: 0, low: 0,
+      oi: 0, oiChg: 0, oiChgPct: 0, volume: 0, value: 0,
+    },
+    farMonth,
+    basis: Math.round(basis * 100) / 100,
+    basisPct: Math.round(basisPct * 100) / 100,
+  };
+}
+
 // ==================== MAIN ROUTE ====================
 
 export async function GET(request: NextRequest) {
@@ -386,22 +543,27 @@ export async function GET(request: NextRequest) {
   const underlying = searchParams.get('underlying') || 'NIFTY';
   const type = searchParams.get('type') || 'both';
   const expiry = searchParams.get('expiry') || '';
-  const source = searchParams.get('source') || 'nse';
-  
+  const source = searchParams.get('source') || 'auto';
+
   const allUnderlyings = stockList.optionUnderlyings;
   const cacheHeaders = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' };
-  
-  // Try live data first (unless source=mock)
-  if (source === 'nse') {
+
+  // === DATA SOURCE PRIORITY: Upstox (if connected) → NSE → Mock ===
+
+  // 1. Try Upstox (if connected and source is not 'mock')
+  if (isUpstoxConnected() && source !== 'mock') {
     try {
-      const nseData = isIndexSymbol(underlying)
-        ? await fetchIndexOptionChain(underlying)
-        : await fetchStockOptionChain(underlying);
-      
-      if (nseData) {
-        const optionResult = parseNSEOptionChain(nseData, underlying, expiry || undefined);
-        const futuresResult = parseNSEFutures(nseData, underlying);
-        
+      console.log(`[OI] Trying Upstox for ${underlying}...`);
+      const upstoxData = await fetchUpstoxOptionChain(underlying, expiry || undefined);
+
+      if (upstoxData) {
+        const optionResult = parseUpstoxOptionChain(upstoxData, underlying, expiry || undefined);
+
+        let futuresResult: FuturesOIData | null = null;
+        if (type !== 'option') {
+          futuresResult = await parseUpstoxFutures(underlying);
+        }
+
         if (type === 'option') {
           return NextResponse.json({
             ...optionResult,
@@ -409,7 +571,49 @@ export async function GET(request: NextRequest) {
             lastUpdated: new Date().toISOString(),
           }, { headers: cacheHeaders });
         }
-        
+
+        if (type === 'futures') {
+          const fData = futuresResult || generateFuturesOI(underlying);
+          return NextResponse.json({
+            ...fData,
+            underlyings: allUnderlyings,
+            lastUpdated: new Date().toISOString(),
+          }, { headers: cacheHeaders });
+        }
+
+        return NextResponse.json({
+          option: optionResult,
+          futures: futuresResult || generateFuturesOI(underlying),
+          underlyings: allUnderlyings,
+          lastUpdated: new Date().toISOString(),
+        }, { headers: cacheHeaders });
+      }
+
+      console.warn(`[OI] Upstox data unavailable for ${underlying}, trying NSE...`);
+    } catch (err) {
+      console.error(`[OI] Upstox fetch error for ${underlying}:`, (err as Error).message);
+    }
+  }
+
+  // 2. Try NSE (if source is not 'mock' and source is not 'upstox')
+  if (source !== 'mock' && source !== 'upstox') {
+    try {
+      const nseData = isIndexSymbol(underlying)
+        ? await fetchIndexOptionChain(underlying)
+        : await fetchStockOptionChain(underlying);
+
+      if (nseData) {
+        const optionResult = parseNSEOptionChain(nseData, underlying, expiry || undefined);
+        const futuresResult = parseNSEFutures(nseData, underlying);
+
+        if (type === 'option') {
+          return NextResponse.json({
+            ...optionResult,
+            underlyings: allUnderlyings,
+            lastUpdated: new Date().toISOString(),
+          }, { headers: cacheHeaders });
+        }
+
         if (type === 'futures') {
           return NextResponse.json({
             ...futuresResult,
@@ -417,7 +621,7 @@ export async function GET(request: NextRequest) {
             lastUpdated: new Date().toISOString(),
           }, { headers: cacheHeaders });
         }
-        
+
         // Both
         return NextResponse.json({
           option: optionResult,
@@ -426,14 +630,14 @@ export async function GET(request: NextRequest) {
           lastUpdated: new Date().toISOString(),
         }, { headers: cacheHeaders });
       }
-      
+
       console.warn(`[OI] NSE data unavailable for ${underlying}, falling back to mock`);
     } catch (err) {
       console.error(`[OI] NSE fetch error for ${underlying}:`, (err as Error).message);
     }
   }
-  
-  // Mock fallback
+
+  // 3. Mock fallback
   if (type === 'option') {
     const data = generateOptionChain(underlying, expiry || undefined);
     return NextResponse.json({
@@ -442,7 +646,7 @@ export async function GET(request: NextRequest) {
       lastUpdated: new Date().toISOString(),
     }, { headers: cacheHeaders });
   }
-  
+
   if (type === 'futures') {
     const data = generateFuturesOI(underlying);
     return NextResponse.json({
@@ -451,7 +655,7 @@ export async function GET(request: NextRequest) {
       lastUpdated: new Date().toISOString(),
     }, { headers: cacheHeaders });
   }
-  
+
   // Both (mock)
   const optionData = generateOptionChain(underlying, expiry || undefined);
   const futuresData = generateFuturesOI(underlying);

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff } from 'lucide-react';
+import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff, Link2, Unplug, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1073,7 +1073,7 @@ function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 }
 
 // ==================== OPEN INTEREST VIEW ====================
-function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUpstox, upstoxUser }: { d: ReturnType<typeof useDashboardData>; upstoxConnected: boolean; onConnectUpstox: () => void; onDisconnectUpstox: () => void; upstoxUser: string | null }) {
   const [oiTab, setOiTab] = useState<'options' | 'futures'>('options');
   const [strikeRange, setStrikeRange] = useState(5);
 
@@ -1178,17 +1178,30 @@ function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </Select>
         </div>
 
-        <Button variant="ghost" size="sm" className="ml-auto h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800/50" onClick={() => d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter)}>
+        <Button variant="ghost" size="sm" className="h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800/50" onClick={() => d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter)}>
           <RefreshCw className={cn("w-3 h-3 mr-1", d.oiLoading && "animate-spin")} /> Refresh
         </Button>
-        {d.oiOptionData?.dataSource === 'nse_live' ? (
+        {d.oiOptionData?.dataSource === 'upstox_live' ? (
           <Badge className="h-7 text-[10px] font-semibold bg-emerald-600/90 text-white border-0 gap-1">
+            <Radio className="w-2.5 h-2.5" /> LIVE UPSTOX
+          </Badge>
+        ) : d.oiOptionData?.dataSource === 'nse_live' ? (
+          <Badge className="h-7 text-[10px] font-semibold bg-emerald-700/70 text-emerald-100 border-0 gap-1">
             <Radio className="w-2.5 h-2.5" /> LIVE NSE
           </Badge>
         ) : (
           <Badge className="h-7 text-[10px] font-semibold bg-amber-600/20 text-amber-400 border border-amber-600/30 gap-1">
             <WifiOff className="w-2.5 h-2.5" /> SIMULATED
           </Badge>
+        )}
+        {upstoxConnected ? (
+          <Button variant="ghost" size="sm" className="h-7 text-[10px] text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 gap-1" onClick={onDisconnectUpstox}>
+            <LogOut className="w-3 h-3" /> {upstoxUser ? upstoxUser.split(' ')[0] : 'Disconnect'}
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="h-7 text-[10px] text-blue-400 hover:bg-blue-500/10 border-blue-500/30 gap-1" onClick={onConnectUpstox}>
+            <Link2 className="w-3 h-3" /> Connect Upstox
+          </Button>
         )}
         {d.oiLastUpdated && (
           <span className="text-[10px] text-slate-600">{new Date(d.oiLastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -1538,6 +1551,48 @@ export default function Home() {
   const [view, setView] = useState<ViewType>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
+  // Upstox connection state
+  const [upstoxConnected, setUpstoxConnected] = useState(false);
+  const [upstoxUser, setUpstoxUser] = useState<string | null>(null);
+
+  // Check Upstox status on mount and after OAuth callback
+  const checkUpstoxStatus = async () => {
+    try {
+      const res = await fetch('/api/upstox/status');
+      const data = await res.json();
+      setUpstoxConnected(data.connected);
+      setUpstoxUser(data.user?.name || null);
+    } catch {}
+  };
+
+  useEffect(() => {
+    checkUpstoxStatus();
+    // Check URL params for OAuth callback result
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upstox') === 'connected') {
+      // Clear the param and check status
+      window.history.replaceState({}, '', window.location.pathname);
+      setTimeout(checkUpstoxStatus, 500);
+    }
+    if (params.get('upstox')?.startsWith('error')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const handleConnectUpstox = async () => {
+    try {
+      const res = await fetch('/api/upstox/connect');
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {}
+  };
+
+  const handleDisconnectUpstox = async () => {
+    await fetch('/api/upstox/disconnect', { method: 'POST' });
+    setUpstoxConnected(false);
+    setUpstoxUser(null);
+  };
+
   const activeNav = NAV_ITEMS.find(n => n.id === view);
 
   return (
@@ -1567,12 +1622,13 @@ export default function Home() {
             {view === 'strategy' && <StrategyView d={d} />}
             {view === 'news' && <NewsView d={d} />}
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
-            {view === 'oi' && <OpenInterestView d={d} />}
+            {view === 'oi' && <OpenInterestView d={d} upstoxConnected={upstoxConnected} onConnectUpstox={handleConnectUpstox} onDisconnectUpstox={handleDisconnectUpstox} upstoxUser={upstoxUser} />}
           </main>
           {/* Footer */}
           <div className="border-t border-slate-800/30 py-2 px-4 flex items-center justify-between text-[9px] text-slate-600">
             <span>NSE Analytics Dashboard — Power BI Style</span>
             <div className="flex items-center gap-3">
+              {upstoxConnected && <span className="flex items-center gap-1 text-emerald-500"><Link2 className="w-2 h-2" /> Upstox Connected</span>}
               {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
               <span>Data: Yahoo Finance Real-time — For educational purposes only</span>
             </div>
