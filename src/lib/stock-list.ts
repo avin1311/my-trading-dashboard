@@ -895,7 +895,535 @@ export const stockList = {
 "bp": 285,
 "v": 0.027,
 "ls": 2000
-}
+},
+{
+"s": "ZYDUSLIFE",
+"n": "Zydus Lifesciences",
+"sec": "Pharma",
+"bp": 1180,
+"v": 0.02,
+"ls": 700
+},
+{
+"s": "UNIONBANK",
+"n": "Union Bank of India",
+"sec": "Banking",
+"bp": 165,
+"v": 0.02,
+"ls": 4500
+},
+{
+"s": "BANDHANBNK",
+"n": "Bandhan Bank",
+"sec": "Banking",
+"bp": 245,
+"v": 0.02,
+"ls": 2500
+},
+{
+"s": "AUBANK",
+"n": "AU Small Finance Bank",
+"sec": "Banking",
+"bp": 725,
+"v": 0.02,
+"ls": 1000
+},
+{
+"s": "RBLBANK",
+"n": "RBL Bank",
+"sec": "Banking",
+"bp": 290,
+"v": 0.02,
+"ls": 1500
+},
+{
+"s": "ICICIPRULI",
+"n": "ICICI Prudential Life",
+"sec": "Insurance",
+"bp": 680,
+"v": 0.02,
+"ls": 900
+},
+{
+"s": "LICHSGFIN",
+"n": "LIC Housing Finance",
+"sec": "Finance",
+"bp": 1720,
+"v": 0.02,
+"ls": 300
+},
+{
+"s": "SHRIRAMFIN",
+"n": "Shriram Finance",
+"sec": "Finance",
+"bp": 3150,
+"v": 0.02,
+"ls": 300
+},
+{
+"s": "RECLTD",
+"n": "REC Limited",
+"sec": "Finance",
+"bp": 620,
+"v": 0.02,
+"ls": 2000
+},
+{
+"s": "PNBHOUSING",
+"n": "PNB Housing Finance",
+"sec": "Finance",
+"bp": 1200,
+"v": 0.02,
+"ls": 550
+},
+{
+"s": "CDSL",
+"n": "CDSL",
+"sec": "Finance",
+"bp": 1850,
+"v": 0.02,
+"ls": 250
+},
+{
+"s": "TATAELXSI",
+"n": "Tata Elxsi",
+"sec": "IT",
+"bp": 9500,
+"v": 0.02,
+"ls": 75
+},
+{
+"s": "OFSS",
+"n": "Oracle Financial Services",
+"sec": "IT",
+"bp": 14500,
+"v": 0.02,
+"ls": 25
+},
+{
+"s": "NAUKRI",
+"n": "Info Edge (Naukri)",
+"sec": "Internet",
+"bp": 8200,
+"v": 0.02,
+"ls": 50
+},
+{
+"s": "SYNGENE",
+"n": "Syngene International",
+"sec": "Pharma",
+"bp": 860,
+"v": 0.02,
+"ls": 1050
+},
+{
+"s": "WOCKPHARMA",
+"n": "Wockhardt",
+"sec": "Pharma",
+"bp": 1950,
+"v": 0.02,
+"ls": 400
+},
+{
+"s": "AUROPHARMA",
+"n": "Aurobindo Pharma",
+"sec": "Pharma",
+"bp": 1620,
+"v": 0.02,
+"ls": 900
+},
+{
+"s": "AMARAJABAT",
+"n": "Amara Raja Batteries",
+"sec": "Auto Ancillary",
+"bp": 1580,
+"v": 0.02,
+"ls": 250
+},
+{
+"s": "APOLLOTYRE",
+"n": "Apollo Tyres",
+"sec": "Auto Ancillary",
+"bp": 520,
+"v": 0.02,
+"ls": 1600
+},
+{
+"s": "ASHOKLEY",
+"n": "Ashok Leyland",
+"sec": "Auto",
+"bp": 260,
+"v": 0.02,
+"ls": 3000
+},
+{
+"s": "CEATLTD",
+"n": "Ceat Ltd",
+"sec": "Auto Ancillary",
+"bp": 3050,
+"v": 0.02,
+"ls": 200
+},
+{
+"s": "ESCORTS",
+"n": "Escorts Kubota",
+"sec": "Capital Goods",
+"bp": 4750,
+"v": 0.02,
+"ls": 50
+},
+{
+"s": "EXIDEIND",
+"n": "Exide Industries",
+"sec": "Auto Ancillary",
+"bp": 560,
+"v": 0.02,
+"ls": 1500
+},
+{
+"s": "NATIONALUM",
+"n": "National Aluminium",
+"sec": "Metals",
+"bp": 225,
+"v": 0.02,
+"ls": 3000
+},
+{
+"s": "NMDC",
+"n": "NMDC",
+"sec": "Mining",
+"bp": 90,
+"v": 0.02,
+"ls": 6000
+},
+{
+"s": "HINDPETRO",
+"n": "Hindustan Petroleum",
+"sec": "Energy",
+"bp": 580,
+"v": 0.02,
+"ls": 1200
+},
+{
+"s": "GAIL",
+"n": "GAIL (India)",
+"sec": "Energy",
+"bp": 195,
+"v": 0.02,
+"ls": 4500
+},
+{
+"s": "PETRONET",
+"n": "Petronet LNG",
+"sec": "Energy",
+"bp": 310,
+"v": 0.02,
+"ls": 1800
+},
+{
+"s": "JSWENERGY",
+"n": "JSW Energy",
+"sec": "Power",
+"bp": 545,
+"v": 0.02,
+"ls": 1800
+},
+{
+"s": "ADANIPOWER",
+"n": "Adani Power",
+"sec": "Power",
+"bp": 570,
+"v": 0.02,
+"ls": 5000
+},
+{
+"s": "IGL",
+"n": "Indraprastha Gas",
+"sec": "Energy",
+"bp": 530,
+"v": 0.02,
+"ls": 1200
+},
+{
+"s": "RAMCOCEM",
+"n": "Ramco Cements",
+"sec": "Cement",
+"bp": 1350,
+"v": 0.02,
+"ls": 400
+},
+{
+"s": "CGPOWER",
+"n": "CG Power & Ind",
+"sec": "Capital Goods",
+"bp": 7100,
+"v": 0.02,
+"ls": 50
+},
+{
+"s": "CUMMINSIND",
+"n": "Cummins India",
+"sec": "Capital Goods",
+"bp": 9500,
+"v": 0.02,
+"ls": 50
+},
+{
+"s": "KEI",
+"n": "KEI Industries",
+"sec": "Capital Goods",
+"bp": 3950,
+"v": 0.02,
+"ls": 100
+},
+{
+"s": "POLYCAB",
+"n": "Polycab India",
+"sec": "Capital Goods",
+"bp": 7100,
+"v": 0.02,
+"ls": 50
+},
+{
+"s": "HAVELLS",
+"n": "Havells India",
+"sec": "Consumer",
+"bp": 1680,
+"v": 0.02,
+"ls": 500
+},
+{
+"s": "NBCC",
+"n": "NBCC (India)",
+"sec": "Infrastructure",
+"bp": 240,
+"v": 0.02,
+"ls": 5000
+},
+{
+"s": "NCC",
+"n": "NCC Limited",
+"sec": "Infrastructure",
+"bp": 390,
+"v": 0.02,
+"ls": 4000
+},
+{
+"s": "IRCTC",
+"n": "IRCTC",
+"sec": "Services",
+"bp": 1150,
+"v": 0.02,
+"ls": 450
+},
+{
+"s": "CONCOR",
+"n": "Container Corp",
+"sec": "Logistics",
+"bp": 380,
+"v": 0.02,
+"ls": 1250
+},
+{
+"s": "RITES",
+"n": "RITES Limited",
+"sec": "Infrastructure",
+"bp": 780,
+"v": 0.02,
+"ls": 1500
+},
+{
+"s": "VODAIDEA",
+"n": "Vodafone Idea",
+"sec": "Telecom",
+"bp": 18,
+"v": 0.03,
+"ls": 20000
+},
+{
+"s": "COLPAL",
+"n": "Colgate-Palmolive",
+"sec": "FMCG",
+"bp": 3100,
+"v": 0.02,
+"ls": 175
+},
+{
+"s": "MCDOWELL-N",
+"n": "United Spirits",
+"sec": "FMCG",
+"bp": 1580,
+"v": 0.02,
+"ls": 400
+},
+{
+"s": "UBL",
+"n": "United Breweries",
+"sec": "FMCG",
+"bp": 1780,
+"v": 0.02,
+"ls": 400
+},
+{
+"s": "JUBLFOOD",
+"n": "Jubilant Foodworks",
+"sec": "FMCG",
+"bp": 780,
+"v": 0.02,
+"ls": 500
+},
+{
+"s": "BATAINDIA",
+"n": "Bata India",
+"sec": "Consumer",
+"bp": 1650,
+"v": 0.02,
+"ls": 350
+},
+{
+"s": "SUNTV",
+"n": "Sun TV Network",
+"sec": "Media",
+"bp": 860,
+"v": 0.02,
+"ls": 500
+},
+{
+"s": "JIOFIN",
+"n": "Jio Financial Services",
+"sec": "Finance",
+"bp": 385,
+"v": 0.02,
+"ls": 2500
+},
+{
+"s": "TATAINVEST",
+"n": "Tata Investment Corp",
+"sec": "Finance",
+"bp": 4250,
+"v": 0.02,
+"ls": 100
+},
+{
+"s": "BEL",
+"n": "Bharat Electronics",
+"sec": "Defence",
+"bp": 335,
+"v": 0.02,
+"ls": 1500
+},
+{
+"s": "HAL",
+"n": "Hindustan Aeronautics",
+"sec": "Defence",
+"bp": 4800,
+"v": 0.02,
+"ls": 150
+},
+{
+"s": "ADANITRANS",
+"n": "Adani Total Gas",
+"sec": "Energy",
+"bp": 1100,
+"v": 0.02,
+"ls": 500
+},
+{
+"s": "DABUR",
+"n": "Dabur India",
+"sec": "FMCG",
+"bp": 590,
+"v": 0.02,
+"ls": 1200
+},
+{
+"s": "PEL",
+"n": "Phoenix Electricals",
+"sec": "Consumer",
+"bp": 220,
+"v": 0.02,
+"ls": 5000
+},
+{
+"s": "TATACHEM",
+"n": "Tata Chemicals",
+"sec": "Chemicals",
+"bp": 1320,
+"v": 0.02,
+"ls": 550
+},
+{
+"s": "BALRAMCHIN",
+"n": "Balarampur Chini",
+"sec": "Sugar",
+"bp": 520,
+"v": 0.02,
+"ls": 1800
+},
+{
+"s": "MANAPPURAM",
+"n": "Manappuram Finance",
+"sec": "Finance",
+"bp": 195,
+"v": 0.02,
+"ls": 5500
+},
+{
+"s": "EQUITASBNK",
+"n": "Equitas Small Finance Bank",
+"sec": "Banking",
+"bp": 110,
+"v": 0.02,
+"ls": 8000
+},
+{
+"s": "FIVESTAR",
+"n": "Five Star Business Finance",
+"sec": "Finance",
+"bp": 840,
+"v": 0.02,
+"ls": 500
+},
+{
+"s": "CHALET",
+"n": "Chalet Hotels",
+"sec": "Hospitality",
+"bp": 165,
+"v": 0.02,
+"ls": 4000
+},
+{
+"s": "MEDPLUS",
+"n": "Medplus Health Services",
+"sec": "Healthcare",
+"bp": 1750,
+"v": 0.02,
+"ls": 450
+},
+{
+"s": "SAREGAMA",
+"n": "Saregama India",
+"sec": "Media",
+"bp": 4850,
+"v": 0.02,
+"ls": 100
+},
+{
+"s": "HAPPSTMNDS",
+"n": "Happiest Minds Tech",
+"sec": "IT",
+"bp": 920,
+"v": 0.02,
+"ls": 1200
+},
+{
+"s": "SCHAEFFLER",
+"n": "Schaeffler India",
+"sec": "Auto Ancillary",
+"bp": 4350,
+"v": 0.02,
+"ls": 75
+},
 ],
 "indices": [
 {
