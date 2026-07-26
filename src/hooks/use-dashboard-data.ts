@@ -146,7 +146,7 @@ export function useDashboardData() {
   const fetchScreener = useCallback(async () => {
     setScreenerLoading(true);
     try {
-      const sp = new URLSearchParams({ limit: '60' });
+      const sp = new URLSearchParams({ limit: '0' });
       if (screenerFilter !== 'ALL') sp.append('signal', screenerFilter);
       if (screenerSector !== 'all') sp.append('sector', screenerSector);
       const res = await fetch('/api/screener?' + sp.toString());
@@ -168,11 +168,12 @@ export function useDashboardData() {
     } catch {} finally { setOptionsLoading(false); }
   }, []);
 
-  // When symbol changes: fetch detail + news (NOT signals — user triggers backtest manually)
+  // When symbol changes: fetch detail + news + auto-generate signals/backtest
   useEffect(() => {
     if (!selectedSymbol) return;
     fetchDetail(selectedSymbol);
     fetchNews(selectedSymbol);
+    fetchSignals(selectedSymbol, params, backtestDays);
   }, [selectedSymbol]);
 
   // Fetch screener on first load
@@ -203,6 +204,21 @@ export function useDashboardData() {
 
   // Fetch OI on underlying change
   useEffect(() => { fetchOIData(oiUnderlying); }, [oiUnderlying]);
+
+  // Auto-switch OI underlying when selected stock is an F&O underlying
+  useEffect(() => {
+    if (!selectedSymbol) return;
+    let target = selectedSymbol.toUpperCase();
+    // Map index display names to OI underlyings
+    if (selectedType === 'index') {
+      const idxMap: Record<string, string> = { 'NIFTY 50': 'NIFTY', 'NIFTY BANK': 'BANKNIFTY', 'NIFTY FIN SERVICE': 'FINNIFTY', 'NIFTY IT': 'NIFTYIT', 'NIFTY NEXT 50': 'NIFTYNXT50' };
+      target = idxMap[selectedSymbol.toUpperCase()] || selectedSymbol.toUpperCase();
+    }
+    if (oiUnderlyings.length > 0 && oiUnderlyings.includes(target) && oiUnderlying !== target) {
+      setOiUnderlying(target);
+      setOiExpiryFilter('');
+    }
+  }, [selectedSymbol, selectedType, oiUnderlyings]);
 
   // Re-fetch OI when expiry filter changes
   useEffect(() => { if (oiExpiryFilter && oiUnderlying) fetchOIData(oiUnderlying, oiExpiryFilter); }, [oiExpiryFilter]);

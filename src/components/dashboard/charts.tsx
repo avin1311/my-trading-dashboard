@@ -81,7 +81,18 @@ function TradingViewWidget({ symbol, timeframe }: { symbol: string; timeframe: T
   // equities use "NSE:SYMBOL", Bank Nifty uses "NSE:BANKNIFTY".
   const tvSymbol = useMemo(() => {
     if (!symbol) return 'NSE:NIFTY';
-    return 'NSE:' + symbol;
+    const s = symbol.toUpperCase();
+    // Map common NSE index names to TradingView-compatible symbols
+    const indexMap: Record<string, string> = {
+      'NIFTY': 'NSE:NIFTY',
+      'BANKNIFTY': 'NSE:BANKNIFTY',
+      'FINNIFTY': 'NSE:FINNIFTY',
+      'NIFTYIT': 'NSE:NIFTYIT',
+    };
+    if (indexMap[s]) return indexMap[s];
+    // For equities, TradingView expects NSE:SYMBOL
+    // Some symbols need .NS suffix for Yahoo but NSE: prefix for TradingView
+    return 'NSE:' + s;
   }, [symbol]);
 
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
@@ -118,6 +129,29 @@ function TradingViewWidget({ symbol, timeframe }: { symbol: string; timeframe: T
       inner.style.width = '100%';
       inner.style.height = '100%';
       containerRef.current.appendChild(inner);
+
+      // Auto-dismiss TradingView notification popups ("symbol not available" etc.)
+      const dismissTimer = setInterval(() => {
+        if (!containerRef.current) { clearInterval(dismissTimer); return; }
+        const iframes = containerRef.current.querySelectorAll('iframe');
+        for (const iframe of iframes) {
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (doc) {
+              const popups = doc.querySelectorAll('[class*="popup"], [class*="dialog"], [class*="notification"], [class*="overlay"]');
+              popups.forEach((p: Element) => (p as HTMLElement).style.display = 'none');
+            }
+          } catch { /* cross-origin — use overlay approach below */ }
+        }
+        // Also dismiss any popup divs that TradingView injects as siblings to the iframe
+        const wrapper = containerRef.current;
+        for (const child of Array.from(wrapper.children)) {
+          if (child !== inner && child.tagName !== 'STYLE' && !child.classList?.contains('absolute')) {
+            (child as HTMLElement).style.display = 'none';
+          }
+        }
+      }, 500);
+      setTimeout(() => clearInterval(dismissTimer), 15000); // stop after 15s
 
       try {
         new (window as any).TradingView.widget({

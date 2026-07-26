@@ -574,7 +574,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
       {/* Row 3: Screener + News */}
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 xl:col-span-7">
-          <P title="Multi-Stock Signal Screener" icon={Search} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">{d.screenerData.length} stocks</Badge>} source="Screener.in">
+          <P title="Multi-Stock Signal Screener" icon={Search} badge={<div className="flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">{d.screenerData.length} matched</Badge><Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{d.screenerData.length > 0 ? 'scanned all' : 'scanning...'}</Badge></div>} source="Screener.in">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Button size="sm" className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener} disabled={d.screenerLoading}>
                 {d.screenerLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{d.screenerLoading ? 'Scanning...' : 'Run Scan'}
@@ -674,8 +674,8 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
           </P>
         </div>
         <div className="col-span-12 xl:col-span-5">
-          <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
-            <VolumeProfile data={d.stockData} currentPrice={d.q?.price} />
+          <P title="Volume Profile" icon={BarChart3} badge={d.stockData.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{d.stockData.length} candles</Badge>} source="Technical Analysis">
+            {d.signalsLoading ? <div className="text-center py-4 text-slate-500 text-xs animate-pulse">Loading volume data...</div> : <VolumeProfile data={d.stockData} currentPrice={d.q?.price} />}
           </P>
         </div>
       </div>
@@ -753,25 +753,25 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('price charts & indicators');
   return (
     <div className="space-y-3">
-      <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
+      <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<div className="flex items-center gap-1.5"><ExportButton symbol={d.selectedSymbol} /><Button size="sm" variant="ghost" className="h-6 text-[10px] text-slate-400 hover:text-white gap-1" onClick={() => { d.fetchSignals(d.selectedSymbol, d.params, d.backtestDays); }} disabled={d.signalsLoading}><RefreshCw className={cn('w-3 h-3', d.signalsLoading && 'animate-spin')} /> Regenerate</Button></div>} source="TradingView Style" className="col-span-full">
         <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
       </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
           <P title="Signal Analysis" icon={Gauge} source="Signal Engine">
-            {d.latestSignal ? (
+            {d.signalsLoading ? <div className="text-center py-8 text-slate-500 text-xs animate-pulse">Calculating signals...</div> : d.latestSignal ? (
               <div className="flex flex-col items-center gap-3">
                 <SignalGauge signal={d.latestSignal} />
                 <div className="w-full p-2 rounded-lg bg-slate-800/15 border border-slate-800/30">
                   <p className="text-[9px] text-slate-400 leading-relaxed">{d.latestSignal.reason}</p>
                 </div>
               </div>
-            ) : <div className="text-center py-8 text-slate-500 text-xs">Loading signals...</div>}
+            ) : <div className="text-center py-8 text-slate-500 text-xs">No signals yet — select a stock to auto-generate</div>}
           </P>
         </div>
         <div className="col-span-12 lg:col-span-6">
-          <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
-            <VolumeProfile data={d.stockData} currentPrice={d.q.price} />
+          <P title="Volume Profile" icon={BarChart3} badge={d.stockData.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{d.stockData.length} candles</Badge>} source="Technical Analysis">
+            {d.signalsLoading ? <div className="text-center py-4 text-slate-500 text-xs animate-pulse">Loading volume data...</div> : <VolumeProfile data={d.stockData} currentPrice={d.q.price} />}
           </P>
         </div>
       </div>
@@ -947,19 +947,38 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 }
 
 // ==================== STRATEGY VIEW ====================
+const STRATEGY_PRESETS: Record<string, { label: string; params: Partial<StrategyParams>; desc: string }> = {
+  default: { label: 'Default (ST+RSI+MACD)', params: {}, desc: 'Standard multi-indicator strategy' },
+  supertrend_only: { label: 'Supertrend Only', params: { supertrendPeriod: 10, supertrendMultiplier: 3 }, desc: 'Pure trend following' },
+  rsi_reversal: { label: 'RSI Mean Reversion', params: { rsiPeriod: 14, rsiOverbought: 75, rsiOversold: 25 }, desc: 'Buy oversold, sell overbought' },
+  macd_crossover: { label: 'MACD Crossover', params: { macdFast: 12, macdSlow: 26, macdSignal: 9 }, desc: 'Classic MACD signal crossover' },
+  conservative: { label: 'Conservative', params: { supertrendPeriod: 14, supertrendMultiplier: 4, rsiOverbought: 75, rsiOversold: 25 }, desc: 'Fewer trades, higher conviction' },
+  aggressive: { label: 'Aggressive', params: { supertrendPeriod: 7, supertrendMultiplier: 2, rsiOverbought: 65, rsiOversold: 35 }, desc: 'More signals, higher frequency' },
+};
+
 function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+  const [strategyPreset, setStrategyPreset] = useState('default');
+  const runBacktestWithPreset = (presetKey: string) => {
+    const preset = STRATEGY_PRESETS[presetKey];
+    if (preset) {
+      d.setParams(p => ({ ...p, ...preset.params }));
+      d.setRecalculating(true);
+      d.fetchSignals(d.selectedSymbol, { ...d.params, ...preset.params }, d.backtestDays);
+      setStrategyPreset(presetKey);
+    }
+  };
   if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('trading strategies & signals');
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-5">
           <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
-            {d.latestSignal ? <SignalGauge signal={d.latestSignal} /> : <div className="text-center py-8 text-slate-500 text-xs">Loading signals...</div>}
+            {d.signalsLoading ? <div className="text-center py-8 text-slate-500 text-xs animate-pulse">Loading signals...</div> : d.latestSignal ? <SignalGauge signal={d.latestSignal} /> : <div className="text-center py-8 text-slate-500 text-xs">No signals generated yet</div>}
           </P>
         </div>
         <div className="col-span-12 lg:col-span-7">
-          <P title="Backtest Performance" icon={Trophy} source="200-day Historical">
-            <div className="flex items-center gap-2 mb-3">
+          <P title="Backtest Performance" icon={Trophy} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{d.backtestDays}-day</Badge>} source="Historical">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <Button
                 size="sm"
                 className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5"
@@ -967,9 +986,9 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                 disabled={d.recalculating || !d.selectedSymbol}
               >
                 {d.recalculating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                {d.recalculating ? 'Running...' : 'Run Backtest'}
+                {d.recalculating ? 'Running...' : 'Re-Run Backtest'}
               </Button>
-              <span className="text-[10px] text-slate-500">Configure params & period below, then click to run</span>
+              <span className="text-[10px] text-slate-500">Auto-loaded on stock select. Click to re-run with current params.</span>
             </div>
             {d.backtest ? (
               <div className="space-y-3">
@@ -1010,7 +1029,7 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                   </div>
                 )}
               </div>
-            ) : <div className="text-center py-8 text-slate-500 text-xs">Click <span className="text-emerald-400 font-semibold">Run Backtest</span> above to analyze this stock</div>}
+            ) : d.signalsLoading ? <div className="text-center py-8 text-slate-500 text-xs animate-pulse">Running backtest...</div> : <div className="text-center py-8 text-slate-500 text-xs">Backtest auto-loads on stock select. Click <span className="text-emerald-400 font-semibold">Re-Run</span> above to re-analyze.</div>}
           </P>
         </div>
       </div>
@@ -1034,8 +1053,29 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       </P>
       {/* Strategy Parameters */}
       <P title="Strategy Parameters" icon={Settings2} source="Customizable">
+        {/* Strategy Presets */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-[10px] text-slate-500 font-semibold">Strategy:</span>
+          {Object.entries(STRATEGY_PRESETS).map(([key, preset]) => (
+            <button
+              key={key}
+              onClick={() => runBacktestWithPreset(key)}
+              disabled={d.recalculating}
+              className={cn(
+                'px-2 py-1 rounded text-[10px] font-semibold transition-all border',
+                strategyPreset === key
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : 'text-slate-400 hover:text-slate-200 border-slate-700/50 hover:bg-slate-700/40'
+              )}
+              title={preset.desc}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        {/* Timeframe / Period */}
         <div className="flex flex-wrap items-center gap-3 mb-3">
-          <span className="text-[10px] text-slate-500">Period:</span>
+          <span className="text-[10px] text-slate-500 font-semibold">Period:</span>
           <div className="flex items-center gap-0.5 rounded-lg bg-slate-800/40 border border-slate-700/50 p-0.5">
             {[{d: 30, l: '1M'}, {d: 90, l: '3M'}, {d: 200, l: '200D'}, {d: 365, l: '1Y'}, {d: 730, l: '2Y'}].map(opt => (
               <button
