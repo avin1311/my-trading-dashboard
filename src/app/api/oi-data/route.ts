@@ -391,7 +391,7 @@ export async function GET(request: NextRequest) {
   const allUnderlyings = stockList.optionUnderlyings;
   const cacheHeaders = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' };
   
- // Try NSE live data first (unless source=mock)
+  // Try live data first (unless source=mock)
   if (source === 'nse') {
     try {
       const nseData = isIndexSymbol(underlying)
