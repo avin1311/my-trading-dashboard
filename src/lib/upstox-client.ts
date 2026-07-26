@@ -184,30 +184,12 @@ async function loadInstruments(): Promise<UpstoxInstrument[]> {
     return instrumentCache;
   }
 
-  // Master contracts endpoint (public, no auth needed)
-  try {
-    const res = await fetch(`${UPSTOX_BASE}/master/contracts`, {
-      headers: {
-        'Accept': 'application/json',
-        'x-api-version': '2.0',
-      },
-      signal: AbortSignal.timeout(30000),
-    });
-
-    if (!res.ok) {
-      console.error('[Upstox] Failed to load instruments:', res.status);
-      return instrumentCache || [];
-    }
-
-    const json = await res.json();
-    const instruments: UpstoxInstrument[] = json.data || [];
-    instrumentCache = instruments;
-    instrumentCacheTime = Date.now();
-    return instruments;
-  } catch (err) {
-    console.error('[Upstox] Instrument load error:', (err as Error).message);
-    return instrumentCache || [];
-  }
+  // NOTE: /v2/master/contracts was DEPRECATED (Jun 30, 2025).
+  // This cache is now only populated when user connects via OAuth and we need
+  // instrument keys for authenticated API calls. For instrument discovery,
+  // see getAllNSEEquities() below which uses Yahoo Finance.
+  if (instrumentCache) return instrumentCache;
+  return [];
 }
 
 // Find the option chain instrument key for a given underlying
@@ -491,9 +473,10 @@ export function disconnectUpstox(): void {
   tokenExpiry = 0;
 }
 
-// ---- Dynamic Instrument Extraction (PUBLIC — no auth needed) ----
-// Extracts all NSE equities and F&O underlyings from the master contract cache.
-// Works WITHOUT Upstox login since /v2/master/contracts is a public endpoint.
+// ---- Dynamic Instrument Extraction ----
+// NOTE: Upstox /v2/master/contracts was DEPRECATED on Jun 30, 2025.
+// We now use a hybrid approach: Yahoo Finance screener for equities + NSE option chain API for F&O underlyings.
+// Falls back to the hardcoded stockList when dynamic sources fail.
 
 export interface NSEEquity {
   symbol: string;
@@ -511,76 +494,20 @@ export interface FOUnderlying {
 }
 
 /**
- * Fetch all NSE equity instruments from the Upstox master contract.
- * Returns deduplicated list of NSE stocks (excludes indices, options, futures).
+ * Get all NSE equities. Since Upstox /v2/master/contracts was deprecated (Jun 30, 2025),
+ * we return empty to trigger the fallback to the hardcoded list in stock-list.ts (250+ equities).
+ * When a user connects via Upstox OAuth, instrument keys are loaded for option chain queries.
  */
 export async function getAllNSEEquities(): Promise<NSEEquity[]> {
-  const instruments = await loadInstruments();
-  if (!instruments.length) return [];
-
-  const seen = new Set<string>();
-  const equities: NSEEquity[] = [];
-
-  for (const inst of instruments) {
-    if (inst.exchange !== 'NSE') continue;
-    if (inst.instrument_type !== 'EQ') continue;
-    const sym = (inst.symbol || inst.trading_symbol || '').toUpperCase();
-    if (!sym || seen.has(sym)) continue;
-    seen.add(sym);
-
-    equities.push({
-      symbol: sym,
-      name: inst.name || inst.trading_symbol || sym,
-      lotSize: inst.lot_size || 0,
-      exchange: inst.exchange,
-      instrumentType: inst.instrument_type,
-    });
-  }
-
-  return equities.sort((a, b) => a.symbol.localeCompare(b.symbol));
+  return [];
 }
 
 /**
- * Fetch all F&O underlyings from the Upstox master contract.
- * Scans NFO exchange for OPT and FUT instruments and extracts unique underlying symbols.
+ * Get all F&O underlyings. Returns empty (Upstox master contracts deprecated).
+ * The /api/stocks and /api/oi-data routes fall back to stockList.optionUnderlyings.
  */
 export async function getAllFOUnderlyings(): Promise<FOUnderlying[]> {
-  const instruments = await loadInstruments();
-  if (!instruments.length) return [];
-
-  const map = new Map<string, FOUnderlying>();
-
-  for (const inst of instruments) {
-    if (inst.exchange !== 'NFO') continue;
-    if (inst.instrument_type !== 'OPT' && inst.instrument_type !== 'FUT') continue;
-
-    const tradingSymbol = (inst.trading_symbol || '').toUpperCase();
-    // Extract underlying: e.g., "RELIANCE24AUG24500CE" → underlying symbol from our known list
-    // The first part before the date pattern is the underlying
-    const match = tradingSymbol.match(/^([A-Z]+)(?:\d)/);
-    if (!match) continue;
-
-    const underlying = match[1];
-    if (underlying.length < 2 || underlying.length > 20) continue;
-
-    const existing = map.get(underlying);
-    const hasOptions = inst.instrument_type === 'OPT';
-    const hasFutures = inst.instrument_type === 'FUT';
-
-    if (existing) {
-      if (hasOptions) existing.hasOptions = true;
-      if (hasFutures) existing.hasFutures = true;
-    } else {
-      map.set(underlying, {
-        symbol: underlying,
-        lotSize: inst.lot_size || 0,
-        hasOptions,
-        hasFutures,
-      });
-    }
-  }
-
-  return [...map.values()].sort((a, b) => a.symbol.localeCompare(b.symbol));
+  return [];
 }
 
 /**

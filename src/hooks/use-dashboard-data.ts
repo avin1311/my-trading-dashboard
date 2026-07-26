@@ -60,6 +60,9 @@ export function useDashboardData() {
   const [oiUnderlyings, setOiUnderlyings] = useState<string[]>([]);
   const [oiLastUpdated, setOiLastUpdated] = useState<string>('');
 
+  // Backtest configuration
+  const [backtestDays, setBacktestDays] = useState(200);
+
   // Save points
   const [savePoints, setSavePoints] = useState<SavePoint[]>([]);
   const spId = useRef(0);
@@ -112,10 +115,10 @@ export function useDashboardData() {
     } catch {}
   }, []);
 
-  const fetchSignals = useCallback(async (sym: string, p: StrategyParams) => {
+  const fetchSignals = useCallback(async (sym: string, p: StrategyParams, days = 200) => {
     setSignalsLoading(true);
     try {
-      const sp = new URLSearchParams({ symbol: sym, days: '200' });
+      const sp = new URLSearchParams({ symbol: sym, days: String(days) });
       for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
       const res = await fetch('/api/signals?' + sp.toString());
       const data = await res.json();
@@ -165,11 +168,10 @@ export function useDashboardData() {
     } catch {} finally { setOptionsLoading(false); }
   }, []);
 
-  // When symbol changes: fetch detail + signals + news
+  // When symbol changes: fetch detail + news (NOT signals — user triggers backtest manually)
   useEffect(() => {
     if (!selectedSymbol) return;
     fetchDetail(selectedSymbol);
-    fetchSignals(selectedSymbol, params);
     fetchNews(selectedSymbol);
   }, [selectedSymbol]);
 
@@ -314,6 +316,7 @@ export function useDashboardData() {
     oiLoading, oiExpiryFilter, setOiExpiryFilter,
     oiUnderlyings,
     oiLastUpdated,
+    backtestDays, setBacktestDays,
     savePoints,
     // Derived
     chartData, visibleData, latestSignal,

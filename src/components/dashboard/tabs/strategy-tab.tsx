@@ -34,7 +34,7 @@ export function StrategyTab({
   selectedSymbol: string;
   backtest: BacktestResult | null;
   recalculating: boolean;
-  fetchSignals: (sym: string, p: StrategyParams) => void;
+  fetchSignals: (sym: string, p: StrategyParams, days?: number) => void;
   setRecalculating: (v: boolean) => void;
 }) {
   return (

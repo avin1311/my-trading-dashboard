@@ -959,6 +959,18 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
         </div>
         <div className="col-span-12 lg:col-span-7">
           <P title="Backtest Performance" icon={Trophy} source="200-day Historical">
+            <div className="flex items-center gap-2 mb-3">
+              <Button
+                size="sm"
+                className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5"
+                onClick={() => { d.setRecalculating(true); d.fetchSignals(d.selectedSymbol, d.params, d.backtestDays); }}
+                disabled={d.recalculating || !d.selectedSymbol}
+              >
+                {d.recalculating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                {d.recalculating ? 'Running...' : 'Run Backtest'}
+              </Button>
+              <span className="text-[10px] text-slate-500">Configure params & period below, then click to run</span>
+            </div>
             {d.backtest ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
@@ -998,7 +1010,7 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                   </div>
                 )}
               </div>
-            ) : <div className="text-center py-8 text-slate-500 text-xs">Run signals to see backtest results</div>}
+            ) : <div className="text-center py-8 text-slate-500 text-xs">Click <span className="text-emerald-400 font-semibold">Run Backtest</span> above to analyze this stock</div>}
           </P>
         </div>
       </div>
@@ -1022,6 +1034,25 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       </P>
       {/* Strategy Parameters */}
       <P title="Strategy Parameters" icon={Settings2} source="Customizable">
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <span className="text-[10px] text-slate-500">Period:</span>
+          <div className="flex items-center gap-0.5 rounded-lg bg-slate-800/40 border border-slate-700/50 p-0.5">
+            {[{d: 30, l: '1M'}, {d: 90, l: '3M'}, {d: 200, l: '200D'}, {d: 365, l: '1Y'}, {d: 730, l: '2Y'}].map(opt => (
+              <button
+                key={opt.d}
+                onClick={() => d.setBacktestDays(opt.d)}
+                className={cn(
+                  'px-2.5 py-1 rounded text-[10px] font-semibold transition-all',
+                  d.backtestDays === opt.d
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'text-slate-400 hover:text-slate-200 border border-transparent hover:bg-slate-700/40'
+                )}
+              >
+                {opt.l}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
           {([['supertrendPeriod', 'ST Period', 5, 30, 1], ['supertrendMultiplier', 'ST Multiplier', 1, 7, 0.5], ['rsiPeriod', 'RSI Period', 5, 30, 1], ['rsiOverbought', 'RSI Overbought', 60, 90, 1], ['rsiOversold', 'RSI Oversold', 10, 40, 1], ['macdFast', 'MACD Fast', 5, 20, 1], ['macdSlow', 'MACD Slow', 15, 50, 1], ['macdSignal', 'MACD Signal', 3, 15, 1]] as [keyof StrategyParams, string, number, number, number][]).map(([key, label, min, max, step]) => (
             <div key={key} className="space-y-1">
@@ -1033,7 +1064,7 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
             </div>
           ))}
         </div>
-        <Button size="sm" className="mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500 w-full md:w-auto" onClick={() => { d.setRecalculating(true); d.fetchSignals(d.selectedSymbol, d.params); }} disabled={d.recalculating}>
+        <Button size="sm" className="mt-3 h-8 text-xs bg-emerald-600 hover:bg-emerald-500 w-full md:w-auto" onClick={() => { d.setRecalculating(true); d.fetchSignals(d.selectedSymbol, d.params, d.backtestDays); }} disabled={d.recalculating}>
           {d.recalculating ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1.5" />}
           {d.recalculating ? 'Recalculating...' : 'Recalculate Signals'}
         </Button>
@@ -1149,9 +1180,10 @@ function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUps
   const fc = d.oiFuturesData;
 
   // Self-consistent spot price for the entire OI section.
-  // Falls back to the live equity quote only if OI data is missing.
-  // This prevents price mismatches between OI KPI cards and strike highlighting.
-  const spotPrice = oc?.spotPrice ?? d.q?.price ?? 0;
+  // When OI data is from a live source (NSE/Upstox), use its spotPrice.
+  // When SIMULATED (mock), use the live quote price from Yahoo to avoid mismatch.
+  const isMockOI = oc?.dataSource === 'mock';
+  const spotPrice = (!isMockOI && oc?.spotPrice) ? oc.spotPrice : (d.q?.price ?? 0);
 
   // Filter strikes around ATM (and optionally by CE/PE type)
   const filteredStrikes = useMemo(() => {
@@ -1323,7 +1355,7 @@ function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUps
           <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
             <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-between">
               <span>Spot Price</span>
-              <span className="text-[8px] text-slate-600 normal-case" title="Source from OI data feed">OI</span>
+              <span className="text-[8px] normal-case" title={isMockOI ? 'Price from Yahoo Finance live quote' : 'Price from OI data feed'}>{isMockOI ? 'Live' : 'OI'}</span>
             </div>
             <div className="text-sm font-bold font-mono text-slate-100">{spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
           </div>

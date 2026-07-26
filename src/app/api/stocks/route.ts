@@ -234,7 +234,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(
-      { instruments, stats, sectors },
+      { instruments, stats, sectors, sourceNote: source === 'fallback' ? 'Using offline list (250+ stocks). Connect Upstox for live instrument discovery.' : 'Live from exchange' },
       { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }

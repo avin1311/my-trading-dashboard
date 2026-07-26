@@ -9,8 +9,8 @@ interface NewsItem {
   sentiment: "positive" | "negative" | "neutral";
 }
 
-const newsCache = new Map<string, { data: NewsItem[]; timestamp: number }>();
-const CACHE_TTL = 10 * 60_000;
+const newsCache = new Map<string, { data: NewsItem[]; timestamp: number; error?: string }>();
+const CACHE_TTL = 5 * 60_000; // 5 min (reduced from 10 for freshness)
 
 // Decode HTML entities that Google News RSS commonly returns
 function decodeEntities(s: string): string {
@@ -182,7 +182,11 @@ export async function GET(request: NextRequest) {
 
   const cached = newsCache.get(symbol);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return NextResponse.json({ news: cached.data, cached: true }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    return NextResponse.json({ news: cached.data, cached: true, source: 'cache' }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+  }
+  if (cached && cached.error && Date.now() - cached.timestamp < 60_000) {
+    // Return cached error for 1 min to avoid hammering the API
+    return NextResponse.json({ news: [], cached: true, error: cached.error, source: 'error_cache' }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   try {
@@ -220,8 +224,9 @@ export async function GET(request: NextRequest) {
     const finalNews = unique.slice(0, 20);
 
     newsCache.set(symbol, { data: finalNews, timestamp: Date.now() });
-    return NextResponse.json({ news: finalNews, cached: false }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    return NextResponse.json({ news: finalNews, cached: false, source: 'live' }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message, news: [] }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    newsCache.set(symbol, { data: [], timestamp: Date.now(), error: err.message });
+    return NextResponse.json({ error: err.message, news: [], source: 'error' }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 }

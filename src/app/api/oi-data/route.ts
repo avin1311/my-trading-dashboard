@@ -483,9 +483,9 @@ async function parseUpstoxFutures(underlying: string): Promise<FuturesOIData | n
       high: quote.ohlc?.high || 0,
       low: quote.ohlc?.low || 0,
       oi: quote.open_interest || 0,
-      oiChg: quote.change_in_open_interest || 0,
+      oiChg: (quote as any).change_in_open_interest || 0,
       oiChgPct: quote.open_interest > 0
-        ? Math.round(((quote.change_in_open_interest || 0) / quote.open_interest) * 10000) / 100
+        ? Math.round((((quote as any).change_in_open_interest || 0) / quote.open_interest) * 10000) / 100
         : 0,
       volume: quote.volume || 0,
       value: Math.round((quote.volume || 0) * (quote.last_price || 0) * lotSize),
