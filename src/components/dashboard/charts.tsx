@@ -236,6 +236,7 @@ export default function StrategySection({
   symbol?: string;
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
+  const [showTV, setShowTV] = useState(false);
   const priceMin = useMemo(() => {
     if (visibleData.length === 0) return 0;
     return Math.min(...visibleData.map(d => d.low)) * 0.998;
@@ -250,8 +251,22 @@ export default function StrategySection({
       {/* Timeframe toggle bar */}
       <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      {/* TradingView advanced chart widget (recreated when symbol/timeframe changes) */}
-      {symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
+      {/* TradingView advanced chart — togglable to avoid wrong-symbol fallback (e.g. AAPL) */}
+      <div className="flex items-center gap-2 mb-1">
+        <button
+          onClick={() => setShowTV(!showTV)}
+          className={cn(
+            'text-[10px] font-semibold px-2 py-0.5 rounded border transition-all',
+            showTV
+              ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+              : 'text-slate-500 border-slate-700 hover:text-slate-300 hover:border-slate-600'
+          )}
+        >
+          {showTV ? 'Hide' : 'Show'} TradingView Chart
+        </button>
+        {showTV && <span className="text-[9px] text-slate-600">External chart — may show default symbol if stock is not listed on TradingView</span>}
+      </div>
+      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
 
       {/* Price Chart with Supertrend (Recharts — shows signals) */}
       {signalsLoading ? (
