@@ -14,6 +14,7 @@ import {
   fetchUpstoxFuturesQuote,
   findSpotInstrumentKey,
   getFuturesExpiries,
+  getAllFOUnderlyings,
 } from "@/lib/upstox-client";
 
 // ==================== MOCK DATA GENERATORS ====================
@@ -545,7 +546,23 @@ export async function GET(request: NextRequest) {
   const expiry = searchParams.get('expiry') || '';
   const source = searchParams.get('source') || 'auto';
 
-  const allUnderlyings = stockList.optionUnderlyings;
+  // Dynamic F&O underlyings from Upstox master contracts (public, no auth needed)
+  let allUnderlyings = [...stockList.optionUnderlyings]; // fallback
+  try {
+    const foList = await getAllFOUnderlyings();
+    if (foList.length > 0) {
+      allUnderlyings = foList.map(f => f.symbol);
+    }
+  } catch {
+    console.warn('[OI] Could not load dynamic F&O underlyings, using fallback');
+  }
+
+  // Add indices that may not appear in NFO (they trade on NSE_INDEX)
+  const indexSyms = stockList.indices.map((i: any) => i.s);
+  for (const idx of indexSyms) {
+    if (!allUnderlyings.includes(idx)) allUnderlyings.push(idx);
+  }
+
   const cacheHeaders = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' };
 
   // === DATA SOURCE PRIORITY: Upstox (if connected) → NSE → Mock ===

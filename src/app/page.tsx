@@ -369,7 +369,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
             <P title="Quick Browse" icon={Search} source="All NSE Stocks">
               <div className="space-y-3">
                 <Button onClick={() => d.setSheetOpen(true)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">
-                  <Search className="w-4 h-4 mr-2" /> Browse All {d.equities.length} Stocks
+                  <Search className="w-4 h-4 mr-2" /> Browse All {d.equities.length > 200 ? d.equities.length + '+' : d.equities.length} Stocks
                 </Button>
                 <div className="grid grid-cols-2 gap-2">
                   {['BANKNIFTY', 'NIFTYIT', 'NIFTYMIDCAP', 'NIFTYPHARMA'].map(sym => {
@@ -1624,13 +1624,36 @@ export default function Home() {
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
             {view === 'oi' && <OpenInterestView d={d} upstoxConnected={upstoxConnected} onConnectUpstox={handleConnectUpstox} onDisconnectUpstox={handleDisconnectUpstox} upstoxUser={upstoxUser} />}
           </main>
-          {/* Footer */}
-          <div className="border-t border-slate-800/30 py-2 px-4 flex items-center justify-between text-[9px] text-slate-600">
-            <span>NSE Analytics Dashboard — Power BI Style</span>
-            <div className="flex items-center gap-3">
-              {upstoxConnected && <span className="flex items-center gap-1 text-emerald-500"><Link2 className="w-2 h-2" /> Upstox Connected</span>}
-              {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
-              <span>Data: Yahoo Finance Real-time — For educational purposes only</span>
+          {/* Footer & SEBI Disclaimer */}
+          <div className="border-t border-slate-800/30">
+            {/* Expandable SEBI Disclaimer */}
+            <details className="group">
+              <summary className="px-4 py-1.5 cursor-pointer text-[10px] text-amber-500/80 hover:text-amber-400 transition-colors flex items-center gap-1.5 select-none">
+                <span className="text-[9px]">⚠</span>
+                Important Disclaimer — SEBI Compliance Notice
+                <ChevronRight className="w-3 h-3 ml-auto transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="px-4 pb-3 pt-1 text-[9px] text-slate-500 leading-relaxed space-y-1.5 border-t border-slate-800/20">
+                <p className="text-amber-500/90 font-semibold text-[10px]">SEBI (Investment Advisers) Regulations, 2013 & SEBI (Research Analysts) Regulations, 2014 — Mandatory Disclosure</p>
+                <p><span className="text-slate-400 font-medium">Registration Status:</span> This platform, its operators, and developers are <span className="text-amber-400">NOT registered</span> with SEBI as Investment Advisers (Reg. 2013) or Research Analysts (Reg. 2014). No SEBI registration number is available for this service.</p>
+                <p><span className="text-slate-400 font-medium">Purpose:</span> All data, analytics, option chain information, open interest data, signals, charts, and any other information displayed on this dashboard is provided <span className="text-amber-400">solely for educational, informational, and learning purposes</span>. This does not constitute investment advice, stock recommendation, or solicitation to buy/sell any securities or financial instruments.</p>
+                <p><span className="text-slate-400 font-medium">No Guarantee of Returns:</span> Past performance, backtesting results, strategy signals, technical indicators, or any derived metrics shown herein are <span className="text-amber-400">not indicative of future results</span>. There is no guarantee of profit or assurance against loss in any trade or investment activity based on information from this platform.</p>
+                <p><span className="text-slate-400 font-medium">Risk of Loss:</span> Trading in securities, derivatives (F&O), and other financial instruments involves <span className="text-amber-400">substantial risk of loss</span> and is not suitable for every investor. You should carefully consider your financial condition, investment experience, and risk tolerance before making any trading or investment decisions.</p>
+                <p><span className="text-slate-400 font-medium">Independent Due Diligence:</span> Users are strongly advised to conduct their own independent research and analysis. Always consult with a <span className="text-amber-400">SEBI-registered Investment Adviser</span> or Research Analyst and/or a qualified financial advisor before making any investment or trading decisions.</p>
+                <p><span className="text-slate-400 font-medium">Data Accuracy:</span> While we strive for accuracy, data displayed may be delayed, incomplete, or contain errors. Real-time data depends on third-party sources (NSE, Upstox API, Yahoo Finance). We make <span className="text-amber-400">no warranty</span> regarding the completeness, reliability, or accuracy of this data. Users should verify all information from official exchange sources before acting on it.</p>
+                <p><span className="text-slate-400 font-medium">No Liability:</span> The developers, operators, and affiliates of this platform shall <span className="text-amber-400">not be held liable</span> for any direct, indirect, incidental, consequential, or any other damages arising from the use of this platform or reliance on any information provided herein, including but not limited to trading losses.</p>
+                <p><span className="text-slate-400 font-medium">Grievance Redressal:</span> For any SEBI-related grievances, contact SEBI at: <span className="text-slate-300">www.sebi.gov.in</span> | Scores portal: <span className="text-slate-300">www.scores.gov.in</span> | Toll-free: <span className="text-slate-300">1800 22 7575 / 1800 267 7575</span></p>
+                <p className="text-slate-600 pt-1 border-t border-slate-800/20">By continuing to use this dashboard, you acknowledge that you have read, understood, and agree to the above disclosures. This disclaimer is subject to change as per regulatory requirements.</p>
+              </div>
+            </details>
+            {/* Status bar */}
+            <div className="px-4 py-2 flex items-center justify-between text-[9px] text-slate-600 border-t border-slate-800/20">
+              <span>NSE Analytics Dashboard</span>
+              <div className="flex items-center gap-3">
+                {upstoxConnected && <span className="flex items-center gap-1 text-emerald-500"><Link2 className="w-2 h-2" /> Upstox Connected</span>}
+                {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
+                <span className="text-amber-500/60">Educational purpose only — Not SEBI registered</span>
+              </div>
             </div>
           </div>
         </div>
