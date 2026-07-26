@@ -398,7 +398,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 xl:col-span-8">
           <P title="Price Chart with Signals" icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="Yahoo Finance">
-            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} />
+            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
           </P>
         </div>
         <div className="col-span-12 xl:col-span-4 space-y-3">
@@ -754,7 +754,7 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   return (
     <div className="space-y-3">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
-        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} />
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
       </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
@@ -1009,12 +1009,14 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
             symbol={d.selectedSymbol}
             name={d.equities.find(e => e.symbol === d.selectedSymbol)?.name || d.selectedSymbol}
             sector={d.q.sector || ''}
-            price={d.q.regularMarketPrice || 0}
-            changePct={d.q.regularMarketChangePercent || 0}
+            price={d.q.price || 0}
+            changePct={d.q.changePct || 0}
             rsi={d.latestSignal?.rsi ?? null}
             signal={d.latestSignal?.signal ?? ''}
             supertrendDir={d.latestSignal?.supertrendDir ?? 0}
             macdHistogram={d.latestSignal?.macdHistogram ?? null}
+            onRunBacktest={() => d.fetchSignals(d.selectedSymbol, d.params)}
+            backtestLoading={d.signalsLoading || d.recalculating}
           />
         ) : <div className="text-center py-8 text-slate-500 text-xs">Loading...</div>}
       </P>
@@ -1041,53 +1043,135 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 }
 
 // ==================== NEWS VIEW (Moneycontrol Style) ====================
+function timeAgo(iso: string): string {
+  const dt = new Date(iso);
+  const now = new Date();
+  const diff = Math.max(0, now.getTime() - dt.getTime());
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+}
+
 function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('news & headlines');
+
+  // Determine data freshness
+  const latestNews = d.news.length > 0 ? d.news[0] : null;
+  const latestTime = latestNews ? timeAgo(latestNews.publishedAt) : null;
+
   return (
-    <P title={`${d.selectedSymbol} — News & Headlines`} icon={Newspaper} badge={d.news.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-700 text-slate-400">{d.news.length} articles</Badge>} source="Moneycontrol / Google News">
-      <Button size="sm" variant="ghost" className="h-7 text-[10px] mb-3 text-slate-400 hover:text-white" onClick={() => d.fetchNews(d.selectedSymbol)} disabled={d.newsLoading}>
-        <RefreshCw className={cn('w-3 h-3 mr-1', d.newsLoading && 'animate-spin')} /> Refresh News
-      </Button>
-      <div className="space-y-2">
-        {d.newsLoading ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 bg-slate-800/50 rounded-lg" />)
-          : d.news.length > 0 ? d.news.map((n, i) => (
-          <a key={i} href={n.url} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-xl bg-slate-800/15 hover:bg-slate-800/30 border border-slate-800/30 hover:border-slate-700/40 transition-colors group">
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm text-slate-200 font-medium leading-relaxed group-hover:text-emerald-400 transition-colors">{n.title}</h3>
-                {n.summary && <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{n.summary}</p>}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[10px] text-slate-500 font-medium">{n.source}</span>
-                  <span className="text-slate-700">&middot;</span>
-                  <span className="text-[10px] text-slate-600 flex items-center gap-0.5"><Clock className="w-3 h-3" />{fTime(n.publishedAt)}</span>
-                  <SentimentBadge sentiment={n.sentiment} />
+    <div className="space-y-3">
+      {/* Market News Header Card */}
+      <P title="Market News" icon={Newspaper} badge={
+        <div className="flex items-center gap-2">
+          {d.news.length > 0 && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+              {d.news.length} articles
+            </Badge>
+          )}
+          {latestTime && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">
+              <Clock className="w-2 h-2 mr-0.5" /> Latest: {latestTime}
+            </Badge>
+          )}
+        </div>
+      } source="Google News RSS / Moneycontrol">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <Button size="sm" className="h-8 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5" onClick={() => d.fetchNews(d.selectedSymbol)} disabled={d.newsLoading}>
+            <RefreshCw className={cn('w-3.5 h-3.5', d.newsLoading && 'animate-spin')} />
+            {d.newsLoading ? 'Fetching...' : 'Refresh News'}
+          </Button>
+          <div className="text-[10px] text-slate-500">
+            Latest news for <span className="text-emerald-400 font-semibold">{d.selectedSymbol}</span> from Google News RSS &amp; Moneycontrol
+          </div>
+        </div>
+
+        {/* News list */}
+        <div className="space-y-2 max-h-[calc(100vh-260px)] overflow-y-auto pr-1">
+          {d.newsLoading ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 bg-slate-800/50 rounded-xl" />)
+            : d.news.length > 0 ? d.news.map((n, i) => (
+            <a key={i} href={n.url} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-xl bg-slate-800/15 hover:bg-slate-800/30 border border-slate-800/30 hover:border-emerald-500/30 transition-colors group">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  {/* Title (clickable) */}
+                  <h3 className="text-sm text-slate-100 font-semibold leading-relaxed group-hover:text-emerald-400 transition-colors line-clamp-2">{n.title}</h3>
+
+                  {/* Summary */}
+                  {n.summary && n.summary !== n.title && (
+                    <p className="text-[11px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">{n.summary}</p>
+                  )}
+
+                  {/* Meta: source name + relative time + sentiment */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-900/60 border border-slate-700/50 text-emerald-400/90">
+                      {n.source}
+                    </span>
+                    <span className="text-slate-700">&middot;</span>
+                    <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
+                      <Clock className="w-3 h-3" />{timeAgo(n.publishedAt)}
+                    </span>
+                    <span className="text-slate-700">&middot;</span>
+                    <span className="text-[9px] text-slate-600">
+                      {new Date(n.publishedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <SentimentBadge sentiment={n.sentiment} />
+                  </div>
                 </div>
+                <ExternalLink className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 shrink-0 mt-0.5" />
               </div>
-              <ExternalLink className="w-4 h-4 text-slate-600 group-hover:text-emerald-400 shrink-0 mt-0.5" />
+            </a>
+          )) : (
+            <div className="text-center py-16">
+              <Newspaper className="w-12 h-12 mx-auto mb-3 text-slate-700" />
+              <p className="text-sm text-slate-400">No news available for {d.selectedSymbol}</p>
+              <p className="text-xs text-slate-600 mt-1">Try clicking Refresh News to fetch the latest headlines</p>
             </div>
-          </a>
-        )) : <div className="text-center py-16 text-slate-500">No news available for {d.selectedSymbol}</div>}
-      </div>
-    </P>
+          )}
+        </div>
+      </P>
+    </div>
   );
 }
 
 // ==================== OPEN INTEREST VIEW ====================
 function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUpstox, upstoxUser }: { d: ReturnType<typeof useDashboardData>; upstoxConnected: boolean; onConnectUpstox: () => void; onDisconnectUpstox: () => void; upstoxUser: string | null }) {
   const [oiTab, setOiTab] = useState<'options' | 'futures'>('options');
-  const [strikeRange, setStrikeRange] = useState(5);
+  const [strikeRange, setStrikeRange] = useState<number | 'all'>(5);
+  const [optionTypeFilter, setOptionTypeFilter] = useState<'both' | 'ce' | 'pe'>('both');
 
   const oc = d.oiOptionData;
   const fc = d.oiFuturesData;
 
-  // Filter strikes around ATM
+  // Self-consistent spot price for the entire OI section.
+  // Falls back to the live equity quote only if OI data is missing.
+  // This prevents price mismatches between OI KPI cards and strike highlighting.
+  const spotPrice = oc?.spotPrice ?? d.q?.price ?? 0;
+
+  // Filter strikes around ATM (and optionally by CE/PE type)
   const filteredStrikes = useMemo(() => {
     if (!oc) return [];
-    const atmIdx = oc.strikes.findIndex(s => s.strikePrice >= oc.spotPrice);
-    const start = Math.max(0, (atmIdx >= 0 ? atmIdx : Math.floor(oc.strikes.length / 2)) - strikeRange);
-    const end = start + strikeRange * 2 + 1;
-    return oc.strikes.slice(start, end);
-  }, [oc, strikeRange]);
+    let list = oc.strikes;
+    // Strike range filter
+    if (strikeRange !== 'all') {
+      const atmIdx = list.findIndex(s => s.strikePrice >= spotPrice);
+      const start = Math.max(0, (atmIdx >= 0 ? atmIdx : Math.floor(list.length / 2)) - strikeRange);
+      const end = start + strikeRange * 2 + 1;
+      list = list.slice(start, end);
+    }
+    // CE/PE type filter (filters out rows that have no OI on the selected side)
+    if (optionTypeFilter !== 'both') {
+      list = list.filter(s => optionTypeFilter === 'ce' ? s.callOI > 0 : s.putOI > 0);
+    }
+    return list;
+  }, [oc, strikeRange, optionTypeFilter, spotPrice]);
+
+  const totalStrikesCount = oc?.strikes?.length ?? 0;
 
   // Max OI for bar visualization
   const maxCallOI = useMemo(() => Math.max(...filteredStrikes.map(s => s.callOI), 1), [filteredStrikes]);
@@ -1164,14 +1248,39 @@ function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUps
           </div>
         )}
 
+        {/* CE/PE Type Filter */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Type</span>
+          <div className="flex items-center gap-0.5 rounded-lg bg-slate-800/40 border border-slate-700/50 p-0.5">
+            {(['both', 'ce', 'pe'] as const).map(opt => (
+              <button
+                key={opt}
+                onClick={() => setOptionTypeFilter(opt)}
+                className={cn(
+                  'px-2 py-1 rounded text-[10px] font-semibold uppercase transition-colors',
+                  optionTypeFilter === opt
+                    ? opt === 'ce' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                      : opt === 'pe' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'text-slate-500 hover:text-slate-300 border border-transparent'
+                )}
+              >
+                {opt === 'both' ? 'Both' : opt === 'ce' ? 'CE' : 'PE'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Strike Range Filter */}
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Strikes</span>
-          <Select value={String(strikeRange)} onValueChange={(v) => setStrikeRange(Number(v))}>
-            <SelectTrigger className="w-[70px] h-8 text-xs bg-slate-800/50 border-slate-700/50 text-slate-200">
+          <Select value={String(strikeRange)} onValueChange={(v) => setStrikeRange(v === 'all' ? 'all' : Number(v))}>
+            <SelectTrigger className="w-[90px] h-8 text-xs bg-slate-800/50 border-slate-700/50 text-slate-200">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-slate-900 border-slate-700/50">
-              {[3, 5, 8, 12, 15].map(n => (
+              <SelectItem value="all" className="text-xs text-slate-300">All</SelectItem>
+              {[3, 5, 8, 10, 12, 15].map(n => (
                 <SelectItem key={n} value={String(n)} className="text-xs text-slate-300">+/- {n}</SelectItem>
               ))}
             </SelectContent>
@@ -1212,8 +1321,11 @@ function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUps
       {oc && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
           <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
-            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Spot Price</div>
-            <div className="text-sm font-bold font-mono text-slate-100">{oc.spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5 flex items-center justify-between">
+              <span>Spot Price</span>
+              <span className="text-[8px] text-slate-600 normal-case" title="Source from OI data feed">OI</span>
+            </div>
+            <div className="text-sm font-bold font-mono text-slate-100">{spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
           </div>
           <div className="p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30">
             <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">PCR (OI)</div>
@@ -1293,9 +1405,16 @@ function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUps
         {/* Main Option Chain Table */}
         <div className="xl:col-span-3">
           <P title={`${d.oiUnderlying} Option Chain`} icon={Layers} source="NSE OI" badge={
-            <div className="flex gap-1">
-              <button onClick={() => setOiTab('options')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'options' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'text-slate-500 hover:text-slate-300')}>Options</button>
-              <button onClick={() => setOiTab('futures')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'futures' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-500 hover:text-slate-300')}>Futures</button>
+            <div className="flex items-center gap-2">
+              {totalStrikesCount > 0 && (
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">
+                  {filteredStrikes.length}/{totalStrikesCount} strikes
+                </Badge>
+              )}
+              <div className="flex gap-1">
+                <button onClick={() => setOiTab('options')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'options' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'text-slate-500 hover:text-slate-300')}>Options</button>
+                <button onClick={() => setOiTab('futures')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'futures' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-500 hover:text-slate-300')}>Futures</button>
+              </div>
             </div>
           } className="h-auto">
             <ScrollArea className="h-[520px]">
@@ -1319,9 +1438,9 @@ function OpenInterestView({ d, upstoxConnected, onConnectUpstox, onDisconnectUps
                   </div>
                   {/* Table Rows */}
                   {filteredStrikes.map((s) => {
-                    const isATM = oc && s.strikePrice >= oc.spotPrice - (oc.spotPrice * 0.001) && s.strikePrice <= oc.spotPrice + (oc.spotPrice * 0.001);
-                    const isITMCall = oc && s.strikePrice < oc.spotPrice;
-                    const isITMPut = oc && s.strikePrice > oc.spotPrice;
+                    const isATM = s.strikePrice >= spotPrice - (spotPrice * 0.001) && s.strikePrice <= spotPrice + (spotPrice * 0.001);
+                    const isITMCall = s.strikePrice < spotPrice;
+                    const isITMPut = s.strikePrice > spotPrice;
                     const callBarW = (s.callOI / maxCallOI) * 100;
                     const putBarW = (s.putOI / maxPutOI) * 100;
                     return (

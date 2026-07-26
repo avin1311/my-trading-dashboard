@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Trash2, Sparkles, ShieldCheck, ClipboardList, Calculator, BarChart3, BookOpen } from 'lucide-react';
+import { Bot, Send, Trash2, Sparkles, ShieldCheck, ClipboardList, Calculator, BarChart3, BookOpen, PlayCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -109,13 +109,21 @@ interface AIProps {
   macdHistogram: number | null;
   sector: string;
   name: string;
+  /** Optional callback to manually re-run the backtest / signal computation */
+  onRunBacktest?: () => void;
+  /** Whether a backtest is currently running (controls spinner + disabled state) */
+  backtestLoading?: boolean;
 }
 
 export function AIStrategyPanel(props: AIProps) {
+  const { onRunBacktest, backtestLoading = false } = props;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null);
+  // Tracks the moment a manual backtest was triggered so we can show a transient
+  // success hint once it completes.
+  const [manualRunTs, setManualRunTs] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -124,6 +132,20 @@ export function AIStrategyPanel(props: AIProps) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Show a brief confirmation once a manual backtest completes
+  useEffect(() => {
+    if (manualRunTs !== null && !backtestLoading) {
+      const t = setTimeout(() => setManualRunTs(null), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [backtestLoading, manualRunTs]);
+
+  const handleRunBacktest = () => {
+    if (!onRunBacktest || backtestLoading) return;
+    setManualRunTs(Date.now());
+    onRunBacktest();
+  };
 
   const buildContext = () => {
     return `Asset: ${props.symbol} (${props.name})\nSector: ${props.sector}\nCurrent Price: ₹${props.price.toFixed(2)}\nChange: ${props.changePct >= 0 ? '+' : ''}${props.changePct.toFixed(2)}%\nRSI: ${props.rsi ?? 'N/A'}\nSignal: ${props.signal || 'N/A'}\nSupertrend: ${props.supertrendDir === 1 ? 'Bullish' : props.supertrendDir === -1 ? 'Bearish' : 'Neutral'}\nMACD Histogram: ${props.macdHistogram ?? 'N/A'}\nEntry: ₹${props.price.toFixed(2)}`;
@@ -188,6 +210,39 @@ export function AIStrategyPanel(props: AIProps) {
 
   return (
     <div className="flex flex-col h-full gap-3">
+      {/* Manual Run Backtest button — prominently placed at the top */}
+      {onRunBacktest && (
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            type="button"
+            onClick={handleRunBacktest}
+            disabled={backtestLoading}
+            className={cn(
+              'h-8 text-[11px] font-semibold gap-1.5',
+              'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/40',
+              'shadow-sm shadow-emerald-500/20',
+              backtestLoading && 'opacity-70 cursor-wait'
+            )}
+          >
+            {backtestLoading
+              ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              : <PlayCircle className="w-3.5 h-3.5" />}
+            {backtestLoading ? 'Running Backtest...' : 'Run Backtest'}
+          </Button>
+          {manualRunTs !== null && !backtestLoading && (
+            <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Backtest refreshed
+            </span>
+          )}
+          {manualRunTs !== null && backtestLoading && (
+            <span className="text-[10px] text-slate-400 font-medium">
+              Recalculating signals &amp; trades for {props.symbol}...
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-1.5">
         {WORKFLOWS.map(wf => (
           <button
