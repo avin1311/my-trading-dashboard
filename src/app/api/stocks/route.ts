@@ -34,7 +34,7 @@ const SECTOR_MAP: Record<string, string> = {
   JINDALSTEL: "Metals", JIOFIN: "Financial Services", DIXON: "Electronics",
   BEL: "Defence", HAL: "Defence", ADANITRANS: "Energy", DABUR: "FMCG",
   VBL: "FMCG", UBL: "FMCG", COLPAL: "FMCG", GODREJCP: "FMCG",
-  MCDOWELL_N: "FMCG", JUBLFOOD: "FMCG", PAGEIND: "Consumer",
+  JUBLFOOD: "FMCG", PAGEIND: "Consumer",
   BATAINDIA: "Consumer", DELHIVERY: "Logistics", ZOMATO: "Internet",
   IRCTC: "Services", IRFC: "NBFC", RVNL: "Infrastructure", CONCOR: "Logistics",
   SIEMENS: "Industrial", ABB: "Industrial", CGPOWER: "Industrial", POLYCAB: "Electrical",
@@ -135,16 +135,26 @@ function generateOptionsChain(underlying: string, lotSizeOverride?: number): Arr
 }
 
 // ==================== Dynamic equity data with fallback ====================
-let cachedDynamicEquities: any[] | null = null;
-let cachedDynamicTime = 0;
-const DYNAMIC_CACHE_TTL = 30 * 60 * 1000; // 30 min cache for equities list
+// Since Upstox /v2/master/contracts was deprecated (Jun 30, 2025),
+// getAllNSEEquities() and getAllFOUnderlyings() now return [].
+// We always use the fallback hardcoded list (250+ equities from stock-list.ts).
+// The dynamic path is kept for when a future working alternative is found.
+
+const MIN_EQUITY_COUNT = 150; // Minimum expected equities — if dynamic returns fewer, use fallback
 
 async function getDynamicEquities(): Promise<{ instruments: any[]; sectors: string[]; source: string }> {
-  // Return cached if fresh
-  if (cachedDynamicEquities && Date.now() - cachedDynamicTime < DYNAMIC_CACHE_TTL) {
-    const sectors = [...new Set(cachedDynamicEquities.map((s: any) => s.sector).filter(Boolean))].sort();
-    return { instruments: cachedDynamicEquities, sectors, source: 'upstox_dynamic' };
-  }
+  // Build fallback list upfront (used when dynamic source is unavailable or returns too few stocks)
+  const buildFallback = () => {
+    const fallbackSectors = [...new Set(stockList.equities.map((s: any) => s.sec))].sort();
+    return {
+      instruments: stockList.equities.map((s: any) => ({
+        symbol: s.s, name: s.n, sector: s.sec,
+        basePrice: s.bp, volatility: s.v, lotSize: s.ls, type: 'equity' as const,
+      })),
+      sectors: fallbackSectors,
+      source: 'fallback' as const,
+    };
+  };
 
   try {
     const [upstoxEquities, foUnderlyings] = await Promise.all([
@@ -152,8 +162,17 @@ async function getDynamicEquities(): Promise<{ instruments: any[]; sectors: stri
       getAllFOUnderlyings(),
     ]);
 
+    // If dynamic source returned no data, use fallback immediately
     if (upstoxEquities.length === 0) {
-      throw new Error('No equities from Upstox');
+      console.log(`[Instruments] Dynamic source returned 0 equities, using fallback (${stockList.equities.length} stocks)`);
+      return buildFallback();
+    }
+
+    // If dynamic source returned suspiciously few stocks, log warning and prefer fallback.
+    // This prevents partial results (e.g. 112 out of 250+) from hiding the full list.
+    if (upstoxEquities.length < MIN_EQUITY_COUNT) {
+      console.warn(`[Instruments] Dynamic source returned only ${upstoxEquities.length} equities (minimum ${MIN_EQUITY_COUNT}), using fallback (${stockList.equities.length} stocks)`);
+      return buildFallback();
     }
 
     // Build a lot-size map from F&O underlyings for those that have F&O
@@ -183,23 +202,24 @@ async function getDynamicEquities(): Promise<{ instruments: any[]; sectors: stri
       };
     });
 
-    cachedDynamicEquities = instruments;
-    cachedDynamicTime = Date.now();
+    // Merge: add any fallback stocks not in the dynamic list (ensures no stock is missing)
+    const dynamicSymbols = new Set(instruments.map(i => i.symbol));
+    for (const fb of stockList.equities) {
+      if (!dynamicSymbols.has((fb as any).s)) {
+        instruments.push({
+          symbol: (fb as any).s, name: (fb as any).n, sector: (fb as any).sec,
+          basePrice: (fb as any).bp, volatility: (fb as any).v, lotSize: (fb as any).ls, type: 'equity' as const,
+        });
+      }
+    }
+
     const sectors = [...new Set(instruments.map(s => s.sector).filter(Boolean))].sort();
 
-    console.log(`[Instruments] Loaded ${instruments.length} NSE equities + ${foUnderlyings.length} F&O underlyings from Upstox`);
+    console.log(`[Instruments] Loaded ${upstoxEquities.length} from exchange + ${instruments.length - upstoxEquities.length} from fallback = ${instruments.length} total equities`);
     return { instruments, sectors, source: 'upstox_dynamic' };
   } catch (err) {
     console.error('[Instruments] Dynamic load failed, using fallback:', (err as Error).message);
-    const fallbackSectors = [...new Set(stockList.equities.map((s: any) => s.sec))].sort();
-    return {
-      instruments: stockList.equities.map((s: any) => ({
-        symbol: s.s, name: s.n, sector: s.sec,
-        basePrice: s.bp, volatility: s.v, lotSize: s.ls, type: 'equity' as const,
-      })),
-      sectors: fallbackSectors,
-      source: 'fallback',
-    };
+    return buildFallback();
   }
 }
 

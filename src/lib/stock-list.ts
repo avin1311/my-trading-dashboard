@@ -1249,14 +1249,6 @@ export const stockList = {
 "ls": 175
 },
 {
-"s": "MCDOWELL-N",
-"n": "United Spirits",
-"sec": "FMCG",
-"bp": 1580,
-"v": 0.02,
-"ls": 400
-},
-{
 "s": "UBL",
 "n": "United Breweries",
 "sec": "FMCG",
@@ -1857,7 +1849,7 @@ export const stockList = {
 "ls": 1200
 },
 {
-"s": "TBO Tek",
+"s": "TBOTEK",
 "n": "TBO Tek",
 "sec": "Internet",
 "bp": 1785,
@@ -2195,7 +2187,6 @@ export const stockList = {
 "YESBANK",
 "COLPAL",
 "GODREJCP",
-"MCDOWELL-N",
 "UBL",
 "VBL",
 "JUBLFOOD",
