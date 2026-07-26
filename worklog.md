@@ -29,3 +29,23 @@ Stage Summary:
 - News feed has shorter cache, error visibility
 - Chart timeframe feeds into backtest period selector
 - Options tab has strategy filters (IV, OI, range) and strategy builder with P&L
+---
+Task ID: 1
+Agent: main
+Task: Fix blank fundamentals, Apple chart, and new stocks not loading
+
+Work Log:
+- Investigated all three reported issues
+- Found that FUNDAMENTALS_DB only had ~100 stocks hardcoded, leaving ~140 stocks with null PE/PB/EPS/beta
+- Added Yahoo v6 quote API enrichment to getLiveQuote() that fetches fundamentals for ALL stocks
+- Found TradingView embed widget falls back to AAPL when symbol not recognized (cross-origin, can't prevent)
+- Fixed by making TradingView hidden by default with toggle button
+- Verified stock list returns 238 equities from fallback
+- Tested enrichment for BATAINDIA, SCHAEFFLER, EQUITASBNK, TITAGARH, BEL, HAL - all return PE/PB/EPS/beta
+- Tested RELIANCE (existing fundamentals) still works correctly
+- Build passes, all tests pass
+
+Stage Summary:
+- market-data.ts: Added enrichWithYahooQuote() function that calls Yahoo v6 /finance/quote
+- charts.tsx: Added showTV toggle state, TradingView hidden by default
+- All changes committed and pushed

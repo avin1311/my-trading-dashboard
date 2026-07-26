@@ -336,6 +336,23 @@ async function enrichWithYahooQuote(quote: LiveQuote, yahooSymbol: string): Prom
     if (quote.beta == null && result.beta != null) quote.beta = result.beta;
     if (quote.dividendYield == null && result.dividendYield != null) quote.dividendYield = result.dividendYield * 100; // Yahoo returns decimal (0.01 = 1%)
     
+    // Financial data (revenue, EBITDA, margins, etc.) from Yahoo quote
+    // The quote endpoint includes financialData fields alongside defaultKeyStatistics
+    if (result.financialData) {
+      const fd = result.financialData;
+      if (quote.totalRevenue == null && fd.totalRevenue?.raw) quote.totalRevenue = fd.totalRevenue.raw;
+      if (quote.ebitda == null && fd.ebitda?.raw) quote.ebitda = fd.ebitda.raw;
+      if (quote.grossProfits == null && fd.grossProfits?.raw) quote.grossProfits = fd.grossProfits.raw;
+      if (quote.freeCashflow == null && fd.freeCashflow?.raw) quote.freeCashflow = fd.freeCashflow.raw;
+      if (quote.profitMargins == null && fd.profitMargins?.raw) quote.profitMargins = fd.profitMargins.raw * 100; // Yahoo returns decimal
+      if (quote.operatingMargins == null && fd.operatingMargins?.raw) quote.operatingMargins = fd.operatingMargins.raw * 100;
+      if (quote.revenueGrowth == null && fd.revenueGrowth?.raw) quote.revenueGrowth = fd.revenueGrowth.raw * 100;
+      if (quote.currentRatio == null && fd.currentRatio?.raw) quote.currentRatio = fd.currentRatio.raw;
+      if (quote.debtToEquity == null && fd.debtToEquity?.raw) quote.debtToEquity = fd.debtToEquity.raw;
+      if (quote.roe == null && fd.returnOnEquity?.raw) quote.roe = fd.returnOnEquity.raw * 100;
+      if (quote.roa == null && fd.returnOnAssets?.raw) quote.roa = fd.returnOnAssets.raw * 100;
+    }
+
     // Market cap from Yahoo is more reliable for all stocks
     if (result.marketCap != null && (quote.marketCap === 0 || !quote.marketCap)) {
       quote.marketCap = result.marketCap;
