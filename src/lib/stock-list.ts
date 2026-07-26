@@ -931,7 +931,7 @@ export const stockList = {
 "ls": 25
 },
 {
-"s": "NIFTYFIN",
+"s": "FINNIFTY",
 "n": "NIFTY FIN SVC",
 "sec": "Index",
 "bp": 24300,
