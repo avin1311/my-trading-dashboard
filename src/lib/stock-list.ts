@@ -1424,6 +1424,502 @@ export const stockList = {
 "v": 0.02,
 "ls": 75
 },
+{
+"s": "HINDCOPPER",
+"n": "Hindustan Copper",
+"sec": "Metals",
+"bp": 345,
+"v": 0.028,
+"ls": 4500
+},
+{
+"s": "MOIL",
+"n": "MOIL Limited",
+"sec": "Mining",
+"bp": 535,
+"v": 0.027,
+"ls": 1500
+},
+{
+"s": "TATAMETALI",
+"n": "Tata Metaliks",
+"sec": "Metals",
+"bp": 1650,
+"v": 0.024,
+"ls": 600
+},
+{
+"s": "RATNAMANI",
+"n": "Ratnamani Metals & Tubes",
+"sec": "Metals",
+"bp": 2850,
+"v": 0.025,
+"ls": 150
+},
+{
+"s": "HDFCAMC",
+"n": "HDFC Asset Management",
+"sec": "Financial Services",
+"bp": 3850,
+"v": 0.020,
+"ls": 125
+},
+{
+"s": "LICI",
+"n": "Life Insurance Corporation",
+"sec": "Insurance",
+"bp": 895,
+"v": 0.018,
+"ls": 1875
+},
+{
+"s": "TATACOMM",
+"n": "Tata Communications",
+"sec": "Telecom",
+"bp": 1785,
+"v": 0.022,
+"ls": 700
+},
+{
+"s": "BHARATFORG",
+"n": "Bharat Forge",
+"sec": "Auto Ancillary",
+"bp": 1525,
+"v": 0.024,
+"ls": 400
+},
+{
+"s": "MOTHERSON",
+"n": "Motherson Sumi Wiring",
+"sec": "Auto Ancillary",
+"bp": 185,
+"v": 0.025,
+"ls": 4000
+},
+{
+"s": "SAMVARDHNA",
+"n": "Samvardhana Motherson",
+"sec": "Auto Ancillary",
+"bp": 135,
+"v": 0.025,
+"ls": 5500
+},
+{
+"s": "ENDURANCE",
+"n": "Endurance Technologies",
+"sec": "Auto Ancillary",
+"bp": 4850,
+"v": 0.025,
+"ls": 100
+},
+{
+"s": "SUBROS",
+"n": "Subros",
+"sec": "Auto Ancillary",
+"bp": 795,
+"v": 0.025,
+"ls": 1400
+},
+{
+"s": "TORNTPOWER",
+"n": "Torrent Power",
+"sec": "Power",
+"bp": 1885,
+"v": 0.021,
+"ls": 500
+},
+{
+"s": "NHPC",
+"n": "NHPC Limited",
+"sec": "Power",
+"bp": 95,
+"v": 0.019,
+"ls": 12000
+},
+{
+"s": "SJVN",
+"n": "SJVN Limited",
+"sec": "Power",
+"bp": 125,
+"v": 0.022,
+"ls": 8000
+},
+{
+"s": "MGL",
+"n": "Mahanagar Gas",
+"sec": "Energy",
+"bp": 1680,
+"v": 0.023,
+"ls": 400
+},
+{
+"s": "GUJGASLTD",
+"n": "Gujarat Gas",
+"sec": "Energy",
+"bp": 565,
+"v": 0.022,
+"ls": 3000
+},
+{
+"s": "GLAXO",
+"n": "GlaxoSmithKline Pharma",
+"sec": "Pharma",
+"bp": 6850,
+"v": 0.017,
+"ls": 100
+},
+{
+"s": "IPCALAB",
+"n": "IPCA Laboratories",
+"sec": "Pharma",
+"bp": 1680,
+"v": 0.022,
+"ls": 700
+},
+{
+"s": "STRTECH",
+"n": "Strides Pharma Science",
+"sec": "Pharma",
+"bp": 825,
+"v": 0.028,
+"ls": 1400
+},
+{
+"s": "LALPATHLAB",
+"n": "Dr Lal PathLabs",
+"sec": "Healthcare",
+"bp": 3250,
+"v": 0.023,
+"ls": 200
+},
+{
+"s": "AARTIDRUG",
+"n": "Aarti Drugs",
+"sec": "Pharma",
+"bp": 785,
+"v": 0.027,
+"ls": 1700
+},
+{
+"s": "ORIENTELEC",
+"n": "Orient Electric",
+"sec": "Consumer Durables",
+"bp": 1280,
+"v": 0.022,
+"ls": 1200
+},
+{
+"s": "CREDITACC",
+"n": "CreditAccess Grameen",
+"sec": "NBFC",
+"bp": 1150,
+"v": 0.027,
+"ls": 700
+},
+{
+"s": "APTUS",
+"n": "Aptus Value Housing Finance",
+"sec": "NBFC",
+"bp": 350,
+"v": 0.026,
+"ls": 2400
+},
+{
+"s": "MAHABANK",
+"n": "Bank of Maharashtra",
+"sec": "Banking",
+"bp": 85,
+"v": 0.025,
+"ls": 12000
+},
+{
+"s": "IOB",
+"n": "Indian Overseas Bank",
+"sec": "Banking",
+"bp": 65,
+"v": 0.026,
+"ls": 15000
+},
+{
+"s": "UCOBANK",
+"n": "UCO Bank",
+"sec": "Banking",
+"bp": 58,
+"v": 0.025,
+"ls": 15000
+},
+{
+"s": "CENTRALBK",
+"n": "Central Bank of India",
+"sec": "Banking",
+"bp": 82,
+"v": 0.026,
+"ls": 12000
+},
+{
+"s": "IDBI",
+"n": "IDBI Bank",
+"sec": "Banking",
+"bp": 85,
+"v": 0.024,
+"ls": 12000
+},
+{
+"s": "NEWINDIA",
+"n": "New India Assurance",
+"sec": "Insurance",
+"bp": 195,
+"v": 0.020,
+"ls": 4500
+},
+{
+"s": "GICRE",
+"n": "General Insurance Corp",
+"sec": "Insurance",
+"bp": 345,
+"v": 0.019,
+"ls": 3500
+},
+{
+"s": "NIITTECH",
+"n": "NIIT Technologies",
+"sec": "IT",
+"bp": 3250,
+"v": 0.022,
+"ls": 600
+},
+{
+"s": "ZENSARTECH",
+"n": "Zensar Technologies",
+"sec": "IT",
+"bp": 845,
+"v": 0.024,
+"ls": 2400
+},
+{
+"s": "SONATSOFTW",
+"n": "Sonata Software",
+"sec": "IT",
+"bp": 695,
+"v": 0.026,
+"ls": 2400
+},
+{
+"s": "DEEPAKNTR",
+"n": "Deepak Nitrite",
+"sec": "Chemicals",
+"bp": 2750,
+"v": 0.025,
+"ls": 400
+},
+{
+"s": "AARTIIND",
+"n": "Aarti Industries",
+"sec": "Chemicals",
+"bp": 645,
+"v": 0.026,
+"ls": 2400
+},
+{
+"s": "SRF",
+"n": "SRF Limited",
+"sec": "Chemicals",
+"bp": 2850,
+"v": 0.024,
+"ls": 250
+},
+{
+"s": "CLARIANT",
+"n": "Clariant Chemicals",
+"sec": "Chemicals",
+"bp": 3450,
+"v": 0.022,
+"ls": 200
+},
+{
+"s": "NAVNETEDUL",
+"n": "Navneet Education",
+"sec": "Consumer",
+"bp": 155,
+"v": 0.024,
+"ls": 6000
+},
+{
+"s": "SCI",
+"n": "Shipping Corp of India",
+"sec": "Logistics",
+"bp": 285,
+"v": 0.026,
+"ls": 4500
+},
+{
+"s": "BALMERLAW",
+"n": "Balmer Lawrie",
+"sec": "Logistics",
+"bp": 595,
+"v": 0.022,
+"ls": 2000
+},
+{
+"s": "CASTROLIND",
+"n": "Castrol India",
+"sec": "Auto Ancillary",
+"bp": 285,
+"v": 0.018,
+"ls": 5000
+},
+{
+"s": "TITAGARH",
+"n": "Titagarh Rail Systems",
+"sec": "Infrastructure",
+"bp": 1485,
+"v": 0.028,
+"ls": 1200
+},
+{
+"s": "KALYANKJIL",
+"n": "Kalyani Jewellers",
+"sec": "Consumer",
+"bp": 545,
+"v": 0.028,
+"ls": 2400
+},
+{
+"s": "SHOPERSTOP",
+"n": "Shoppers Stop",
+"sec": "Retail",
+"bp": 685,
+"v": 0.024,
+"ls": 1200
+},
+{
+"s": "VIPIND",
+"n": "VIP Industries",
+"sec": "Consumer",
+"bp": 485,
+"v": 0.024,
+"ls": 2400
+},
+{
+"s": "RAYMOND",
+"n": "Raymond",
+"sec": "Textiles",
+"bp": 1845,
+"v": 0.022,
+"ls": 700
+},
+{
+"s": "WELCORP",
+"n": "Welspun Corp",
+"sec": "Textiles",
+"bp": 245,
+"v": 0.025,
+"ls": 4500
+},
+{
+"s": "TRIDENT",
+"n": "Trident",
+"sec": "Textiles",
+"bp": 48,
+"v": 0.026,
+"ls": 12000
+},
+{
+"s": "GINNIIFIN",
+"n": "GIC Housing Finance",
+"sec": "NBFC",
+"bp": 625,
+"v": 0.024,
+"ls": 2400
+},
+{
+"s": "SPARC",
+"n": "SPARC International",
+"sec": "Textiles",
+"bp": 415,
+"v": 0.027,
+"ls": 3600
+},
+{
+"s": "JTECHPLAT",
+"n": "Jupiter Travels (Jupiter Platform)",
+"sec": "Internet",
+"bp": 385,
+"v": 0.030,
+"ls": 2500
+},
+{
+"s": "EASEMYTRIP",
+"n": "EaseMyTrip",
+"sec": "Internet",
+"bp": 685,
+"v": 0.028,
+"ls": 1200
+},
+{
+"s": "TBO Tek",
+"n": "TBO Tek",
+"sec": "Internet",
+"bp": 1785,
+"v": 0.028,
+"ls": 600
+},
+{
+"s": "LATENTVIEW",
+"n": "Latent View Analytics",
+"sec": "IT",
+"bp": 545,
+"v": 0.028,
+"ls": 1200
+},
+{
+"s": "SAFARI",
+"n": "Safari Industries",
+"sec": "Consumer",
+"bp": 1885,
+"v": 0.024,
+"ls": 700
+},
+{
+"s": "EIDSPARRY",
+"n": "EI DuPont India",
+"sec": "Chemicals",
+"bp": 685,
+"v": 0.022,
+"ls": 1800
+},
+{
+"s": "SOLARINDS",
+"n": "Solar Industries",
+"sec": "Chemicals",
+"bp": 5850,
+"v": 0.024,
+"ls": 100
+},
+{
+"s": "INDIANHOT",
+"n": "Indian Hotels Company",
+"sec": "Hotels",
+"bp": 845,
+"v": 0.022,
+"ls": 1350
+},
+{
+"s": "EIHOTEL",
+"n": "EIH Ltd (Oberoi Hotels)",
+"sec": "Hotels",
+"bp": 285,
+"v": 0.023,
+"ls": 3200
+},
+{
+"s": "JCUPAIBLT",
+"n": "Jubilant Bhartia Group",
+"sec": "Diversified",
+"bp": 685,
+"v": 0.024,
+"ls": 1200
+},
 ],
 "indices": [
 {
@@ -1728,6 +2224,32 @@ export const stockList = {
 "SAREGAMA",
 "HAPPSTMNDS",
 "SCHAEFFLER",
-"MPHASIS"
+"MPHASIS",
+"HINDCOPPER",
+"MOIL",
+"TATAMETALI",
+"RATNAMANI",
+"HDFCAMC",
+"LICI",
+"TATACOMM",
+"BHARATFORG",
+"MOTHERSON",
+"ENDURANCE",
+"SUBROS",
+"TORNTPOWER",
+"NHPC",
+"SJVN",
+"MGL",
+"GUJGASLTD",
+"GLAXO",
+"IPCALAB",
+"STRTECH",
+"LALPATHLAB",
+"AARTIDRUG",
+"ORIENTELEC",
+"DEEPAKNTR",
+"SRF",
+"CASTROLIND",
+"INDIANHOT"
 ]
 } as const;
