@@ -3,5 +3,6 @@ import { getAuthUrl } from '@/lib/upstox-client';
 
 export async function GET() {
   const url = getAuthUrl();
-  return NextResponse.json({ url });
+  // Redirect the user's browser to Upstox OAuth login page
+  return NextResponse.redirect(url);
 }
