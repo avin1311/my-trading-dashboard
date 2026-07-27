@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
@@ -73,150 +73,177 @@ const TIMEFRAMES: { key: TimeframeKey; label: string; tvInterval: string }[] = [
   { key: '1M', label: '1M', tvInterval: 'M' },
 ];
 
-// ==================== SYMBOL RESOLVER ====================
-// TradingView uses EXCHANGE:SYMBOL format for Indian markets
-// NSE = National Stock Exchange, BSE = Bombay Stock Exchange, NSE_INDEX for indices
+// ==================== TRADINGVIEW SYMBOL RESOLVER ====================
+// TradingView uses EXCHANGE:SYMBOL format.
+// For NSE India: equities are NSE:SYMBOL, indices are NSE:INDEXNAME
+// Reference: https://www.tradingview.com/symbols/NSE-RELIANCE/
 function resolveTVSymbol(symbol: string): string {
-  if (!symbol) return 'NSEI';
+  if (!symbol) return 'NSE:NIFTY';
   const s = symbol.toUpperCase().trim();
 
-  // Map index names to TradingView symbols (TradingView uses specific ticker formats for indices)
+  // NSE indices — TradingView uses these exact ticker names
   const indexMap: Record<string, string> = {
-    'NIFTY': 'NSEI',           // Nifty 50
-    'NIFTY50': 'NSEI',
-    'BANKNIFTY': 'BANKNIFTY',   // Bank Nifty
-    'FINNIFTY': 'NIFTYFIN',     // Nifty Financial Services
-    'NIFTYIT': 'NIITTECH',      // Nifty IT
-    'INDIAVIX': 'INDIAVIX',     // India VIX
-    'NIFTYNXT50': 'NIFTYNXT50',
-    'MIDCPNIFTY': 'NIFTYMIDCAP50',
+    'NIFTY': 'NSE:NIFTY',
+    'NIFTY50': 'NSE:NIFTY',
+    'BANKNIFTY': 'NSE:BANKNIFTY',
+    'FINNIFTY': 'NSE:FINNIFTY',
+    'NIFTYIT': 'NSE:NIFTYIT',
+    'INDIAVIX': 'NSE:INDIAVIX',
+    'NIFTYNXT50': 'NSE:NIFTYNXT50',
+    'MIDCPNIFTY': 'NSE:MIDCPNIFTY',
   };
 
   if (indexMap[s]) return indexMap[s];
 
-  // For NSE equities, use NSE:SYMBOL format
-  // Special cases where TradingView symbol differs from NSE symbol
-  const equityMap: Record<string, string> = {
-    'M&M': 'MM',
-    'M&MFIN': 'MMFIN',
-    'L&TFH': 'LTFH',
-    'L&T': 'LT',
-    'HDFCBANK': 'HDFCBANK',
-    'ICICIBANK': 'ICICIBANK',
-    'SBIN': 'SBIN',
-    'RELIANCE': 'RELIANCE',
-    'TCS': 'TCS',
-    'INFY': 'INFOSYS',
-    'WIPRO': 'WIPRO',
-    'HCLTECH': 'HCLTECH',
-    'BAJFINANCE': 'BAJFINANCE',
-    'HDFC': 'HDFC',
-    'BHARTIARTL': 'BHARTIARTL',
-    'ITC': 'ITC',
-    'KOTAKBANK': 'KOTAKBANK',
-    'AXISBANK': 'AXISBANK',
-    'LT': 'LT',
-    'TATAMOTORS': 'TATAMOTORS',
-    'TATASTEEL': 'TATASTEEL',
-    'SUNPHARMA': 'SUNPHARMA',
-    'ASIANPAINT': 'ASIANPAINT',
-    'MARUTI': 'MARUTI',
-    'ADANIENT': 'ADANIENT',
-    'ADANIPORTS': 'ADANIPORTS',
-    'POWERGRID': 'POWERGRID',
-    'NTPC': 'NTPC',
-    'ONGC': 'ONGC',
-    'COALINDIA': 'COALINDIA',
-    'HINDUNILVR': 'HINDUNILVR',
-    'ITC': 'ITC',
-    'ULTRACEMCO': 'ULTRACEMCO',
-    'NESTLEIND': 'NESTLEIND',
-    'TITAN': 'TITAN',
-    'BAJAJFINSV': 'BAJAJFINSV',
-    'TECHM': 'TECHM',
-    'DRREDDY': 'DRREDDY',
-    'CIPLA': 'CIPLA',
-    'DIVISLAB': 'DIVISLAB',
-    'APOLLOHOSP': 'APOLLOHOSP',
-    'EICHERMOT': 'EICHERMOT',
-    'HEROMOTOCO': 'HEROMOTOCO',
-    'BPCL': 'BPCL',
-    'IOC': 'IOC',
-    'HINDALCO': 'HINDALCO',
-    'TATACONSUM': 'TATACONSUM',
-    'TATAPOWER': 'TATAPOWER',
-    'DLF': 'DLF',
-    'SRF': 'SRF',
+  // Equities — TradingView uses NSE:SYMBOL directly
+  // A few symbols have special characters that differ
+  const specialMap: Record<string, string> = {
+    'M&M': 'NSE:MM',
+    'M&MFIN': 'NSE:MMFIN',
+    'L&TFH': 'NSE:LTFH',
+    'L&T': 'NSE:LT',
   };
 
-  // Check special equity map first
-  if (equityMap[s]) return s;  // For NSE equities, we'll prefix with NSE: below
+  if (specialMap[s]) return specialMap[s];
 
-  return s;
+  // Default: NSE:SYMBOL
+  return 'NSE:' + s;
 }
 
-// ==================== TRADINGVIEW ADVANCED CHART WIDGET ====================
-// Uses the embed widget approach (same as Upstox uses) — no popups, no US stock fallback
-function TradingViewWidget({ symbol, timeframe }: { symbol: string; timeframe: TimeframeKey }) {
+// ==================== TRADINGVIEW WIDGET (full-featured tv.js) ====================
+// This creates a REAL TradingView chart with drawing tools, all indicators, studies.
+// Uses the official tv.js library — same as Upstox embeds on their platform.
+function TradingViewWidget({ symbol, timeframe, onReady }: {
+  symbol: string;
+  timeframe: TimeframeKey;
+  onReady?: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<any>(null);
 
-  const tvSymbol = useMemo(() => {
-    const resolved = resolveTVSymbol(symbol);
-    // Check if it's an index (no NSE: prefix for indices — TradingView handles them differently)
-    const indexSymbols = ['NSEI', 'BANKNIFTY', 'NIFTYFIN', 'NIITTECH', 'INDIAVIX', 'NIFTYNXT50', 'NIFTYMIDCAP50'];
-    if (indexSymbols.includes(resolved)) {
-      return 'NSE:' + resolved;
-    }
-    return 'NSE:' + resolved;
-  }, [symbol]);
-
+  const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
+  // Load tv.js script once globally
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Clear previous content
-    containerRef.current.innerHTML = '';
-
-    const widgetContainer = document.createElement('div');
-    widgetContainer.className = 'tradingview-widget-container__widget';
-    widgetContainer.style.height = '100%';
-    widgetContainer.style.width = '100%';
-    containerRef.current.appendChild(widgetContainer);
-
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: tvSymbol,
-      interval: tfConfig.tvInterval,
-      timezone: 'Asia/Kolkata',
-      theme: 'dark',
-      style: '1',
-      locale: 'in',
-      enable_publishing: false,
-      allow_symbol_change: false,
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      calendar: false,
-      studies: ['STD;Supertrend@tv-basicstudies'],
-      support_host: 'https://www.tradingview.com',
+    const loadScript = (): Promise<void> => new Promise((resolve, reject) => {
+      if ((window as any).TradingView) { resolve(); return; }
+      const existing = document.getElementById('tv-js-loader') as HTMLScriptElement | null;
+      if (existing) {
+        if (existing.dataset.ready === 'true') { resolve(); return; }
+        const onReady = () => { existing.dataset.ready = 'true'; resolve(); };
+        existing.addEventListener('load', onReady);
+        existing.addEventListener('error', () => reject(new Error('tv.js load failed')));
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'tv-js-loader';
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.async = true;
+      script.onload = () => { script.dataset.ready = 'true'; resolve(); };
+      script.onerror = () => reject(new Error('tv.js load failed'));
+      document.head.appendChild(script);
     });
 
-    containerRef.current.appendChild(script);
-  }, [tvSymbol, tfConfig.tvInterval]);
+    let cancelled = false;
+
+    loadScript().then(() => {
+      if (cancelled || !containerRef.current) return;
+
+      // Clear previous widget completely
+      containerRef.current.innerHTML = '';
+
+      // Create unique container for this widget instance
+      const id = 'tv-chart-' + Date.now();
+      const inner = document.createElement('div');
+      inner.id = id;
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      containerRef.current.appendChild(inner);
+
+      // Create the full TradingView widget
+      const TV = (window as any).TradingView;
+      const widget = new TV.widget({
+        // Container
+        container_id: id,
+        autosize: true,
+
+        // Symbol & data
+        symbol: tvSymbol,
+        interval: tfConfig.tvInterval,
+
+        // Appearance
+        timezone: 'Asia/Kolkata',
+        theme: 'dark',
+        style: '1', // Candles
+        locale: 'in',
+
+        // Toolbars — ENABLE drawing tools & studies
+        hide_top_toolbar: false,
+        hide_side_toolbar: false, // Drawing tools visible
+        hide_legend: false,
+        withdateranges: true,
+        details: true,
+
+        // Features
+        enable_publishing: false,
+        allow_symbol_change: false, // Lock to NSE symbol — no US stocks
+        save_image: true,
+        hotlist: false,
+        calendar: false,
+        studies: [
+          // Pre-loaded studies for strategy analysis
+          'STD;RSI@tv-basicstudies',
+          'STD;MACD@tv-basicstudies',
+          'STD;Supertrend@tv-basicstudies',
+          'STD;Volume@tv-basicstudies',
+        ],
+        // Chart settings
+        backgroundColor: '#0a0e1a',
+        gridColor: '#1e293b',
+
+        // Width/height (autosize handles this, but set as fallback)
+        width: '100%',
+        height: '100%',
+
+        // Disable popup notifications
+        popup: false,
+
+        // Pre-market / post-market data for NSE
+        extended_hours: false,
+
+        // No symbol search — prevents navigating to US stocks
+        toolbar_bg: '#0a0e1a',
+        enable_events: false,
+        disable_resolution: false,
+      });
+
+      widgetRef.current = widget;
+      onReady?.();
+    }).catch((err) => {
+      console.warn('[TradingView] Widget load error:', err);
+      // Show fallback message in container
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748b;font-size:13px;">TradingView chart loading...</div>';
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      // Cleanup: destroy widget and clear container
+      if (widgetRef.current) {
+        try { widgetRef.current.remove(); } catch {}
+        widgetRef.current = null;
+      }
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, [tvSymbol, tfConfig.tvInterval, onReady]);
 
   return (
-    <div className="tradingview-widget-container w-full h-[420px] rounded-lg overflow-hidden border border-slate-800/60 bg-[#131722]">
+    <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-slate-800/60 bg-[#0a0e1a]">
       <div ref={containerRef} className="w-full h-full" />
-      <div className="absolute top-2 right-2 z-10 pointer-events-none">
-        <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 bg-slate-900/80 border border-slate-700/50 rounded px-1.5 py-0.5">
-          TradingView
-        </span>
-      </div>
     </div>
   );
 }
@@ -267,12 +294,16 @@ export default function StrategySection({
     return Math.max(...visibleData.map(d => d.high)) * 1.002;
   }, [visibleData]);
 
+  const handleTVReady = useCallback(() => {
+    // Widget is ready — no action needed
+  }, []);
+
   return (
     <div className="space-y-3">
-      {/* Timeframe toggle bar */}
+      {/* Timeframe toggle bar — controls TradingView AND local charts */}
       <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      {/* TradingView chart — shown by default, uses Advanced Chart embed (no popup issues) */}
+      {/* TradingView full-featured chart */}
       <div className="flex items-center gap-2 mb-1">
         <button
           onClick={() => setShowTV(!showTV)}
@@ -285,16 +316,16 @@ export default function StrategySection({
         >
           {showTV ? 'Hide' : 'Show'} TradingView Chart
         </button>
-        {showTV && <span className="text-[9px] text-slate-600">NSE live chart with Supertrend overlay</span>}
+        {showTV && <span className="text-[9px] text-slate-600">Interactive chart — drawing tools, indicators, studies enabled</span>}
       </div>
-      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
+      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} onReady={handleTVReady} />}
 
-      {/* Price Chart with Supertrend (Recharts — shows signals) */}
+      {/* Price Chart with Supertrend (Recharts — shows signal markers) */}
       {signalsLoading ? (
         <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div>
       ) : (
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Price Chart with Supertrend &amp; Signals</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Signal Markers (Recharts)</span>
           <div className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={visibleData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
