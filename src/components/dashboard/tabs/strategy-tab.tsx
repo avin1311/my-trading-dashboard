@@ -45,7 +45,7 @@ export function StrategyTab({
           icon={LineChartIcon}
           badge={<ExportButton symbol={selectedSymbol} />}
         >
-          <ChartSection chartData={chartData} visibleData={visibleData} latestSignal={latestSignal} signalsLoading={signalsLoading} />
+          <ChartSection chartData={chartData} visibleData={visibleData} latestSignal={latestSignal} signalsLoading={signalsLoading} symbol={selectedSymbol} />
         </SectionCard>
         <SectionCard title="Strategy Parameters" icon={Settings2}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
