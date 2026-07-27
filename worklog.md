@@ -38,4 +38,25 @@ Work Log:
 Stage Summary:
 - 188 F&O underlyings available for OI scanning
 - Broker API infrastructure ready - just add API keys to .env to switch
-- GitHub repo is up to date with all changes
+- GitHub repo is up to date with all changes---
+Task ID: 1
+Agent: Main Agent
+Task: Complete recheck and fix of all 7 UI issues
+
+Work Log:
+- Read all critical source files to verify current state
+- CONFIRMED: None of the previous session's fixes were saved to disk
+- Identified root causes for all 7 issues
+- Fixed screener limit: changed from '60' to '0' (scans all stocks)
+- Fixed screener API: limit=0 now maps to 99999 internally
+- Fixed notification spam: reduced to 1 visible, 4s auto-dismiss
+- Fixed blank Volume Profile: added loading spinner during data fetch
+- Fixed blank Strategy tab: added loading state for Signal Gauge + Backtest
+- Fixed OI wrong underlying: added auto-sync when index selected
+- Added screener totalScanned badge to UI
+- Build verified: 0 errors
+
+Stage Summary:
+- 7 files modified: page.tsx, use-dashboard-data.ts, screener/route.ts, kpi-card.tsx
+- Build passes cleanly
+- Commit made locally (push needs GitHub auth)
