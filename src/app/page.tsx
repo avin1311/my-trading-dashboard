@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { fINR, fNum, fDate, fTime, pctVal, SIG_BG, TYPE_COLOR } from '@/lib/formatters';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useRealtimeData, type LiveTick } from '@/hooks/use-realtime-data';
 import { useWatchlist } from '@/components/dashboard/watchlist';
 import { SavePoints, MetricRow, OwnershipDonut, SentimentBadge, KPICard, MktTicker } from '@/components/dashboard/kpi-card';
 import { StockSelectorSheet } from '@/components/dashboard/stock-selector-sheet';
@@ -1538,6 +1539,16 @@ export default function Home() {
   const watchlist = useWatchlist();
   const [view, setView] = useState<ViewType>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
+  // Real-time WebSocket data via Upstox
+  const realtimeSymbols = [
+    ...(d.selectedSymbol ? [d.selectedSymbol] : []),
+    'NIFTY', 'BANKNIFTY', 'NIFTYIT', 'INDIAVIX',
+  ];
+  const rt = useRealtimeData(realtimeSymbols);
+
+  // Get live price for current symbol
+  const liveTick = d.selectedSymbol ? rt.getLivePrice(d.selectedSymbol) : null;
 
   const activeNav = NAV_ITEMS.find(n => n.id === view);
 
