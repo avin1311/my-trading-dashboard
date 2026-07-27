@@ -675,7 +675,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
         </div>
         <div className="col-span-12 xl:col-span-5">
           <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
-            <VolumeProfile data={d.stockData} currentPrice={d.q?.price} />
+            {d.signalsLoading ? <div className="flex items-center justify-center py-6"><RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400 mr-2" /><span className="text-[10px] text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q?.price} />}
           </P>
         </div>
       </div>
@@ -704,6 +704,7 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           {d.screenerLoading ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1.5" />}
           {d.screenerLoading ? 'Scanning All Stocks...' : 'Scan All Stocks'}
         </Button>
+        {d.screenerTotal > 0 && <Badge variant="outline" className="text-[9px] px-2 py-0.5 bg-blue-500/10 border-blue-500/20 text-blue-400">Scanned {d.screenerTotal} stocks</Badge>}
         <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); d.setScreenerData([]); }}>
           <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -771,7 +772,7 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
         </div>
         <div className="col-span-12 lg:col-span-6">
           <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
-            <VolumeProfile data={d.stockData} currentPrice={d.q.price} />
+            {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q.price} />}
           </P>
         </div>
       </div>
@@ -954,12 +955,12 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-5">
           <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
-            {d.latestSignal ? <SignalGauge signal={d.latestSignal} /> : <div className="text-center py-8 text-slate-500 text-xs">Loading signals...</div>}
+            {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /> <span className="text-xs text-slate-400">Analyzing signals...</span></div> : d.latestSignal ? <SignalGauge signal={d.latestSignal} /> : <div className="text-center py-8 text-slate-500 text-xs">No signals generated. Try Recalculate.</div>}
           </P>
         </div>
         <div className="col-span-12 lg:col-span-7">
           <P title="Backtest Performance" icon={Trophy} source="200-day Historical">
-            {d.backtest ? (
+            {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /> <span className="text-xs text-slate-400">Running backtest...</span></div> : d.backtest ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   <MBox label="Total Return" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />

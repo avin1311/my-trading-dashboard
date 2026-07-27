@@ -203,7 +203,7 @@ export function SavePoints({ points }: { points: SavePoint[] }) {
   if (points.length === 0) return null;
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 max-w-xs">
-      {points.slice(-3).map(sp => (
+      {points.slice(-1).map(sp => (
         <div key={sp.id} className="animate-in slide-in-from-right-4 fade-in duration-500 bg-slate-900/95 backdrop-blur-md border border-emerald-500/30 rounded-xl px-4 py-3 shadow-xl shadow-emerald-500/5 max-w-xs">
           <div className="flex items-center gap-2 mb-1">
             <Save className="w-3 h-3 text-emerald-400" />

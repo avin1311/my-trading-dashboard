@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const signalFilter = searchParams.get("signal") || "";
   const sectorFilter = searchParams.get("sector") || "";
-  const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);
+  const rawLimit = Number(searchParams.get("limit"));
+  const limit = rawLimit === 0 ? 99999 : Math.min(rawLimit || 50, 100);
 
   const params: StrategyParams = {
     supertrendPeriod: Number(searchParams.get("supertrendPeriod")) || DEFAULT_PARAMS.supertrendPeriod,

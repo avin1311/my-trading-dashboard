@@ -39,6 +39,7 @@ export function useDashboardData() {
   // Screener state
   const [screenerData, setScreenerData] = useState<ScreenerResult[]>([]);
   const [screenerCounts, setScreenerCounts] = useState<Record<string, number>>({});
+  const [screenerTotal, setScreenerTotal] = useState(0);
   const [screenerLoading, setScreenerLoading] = useState(false);
   const [screenerFilter, setScreenerFilter] = useState('ALL');
   const [screenerSector, setScreenerSector] = useState('all');
@@ -69,9 +70,9 @@ export function useDashboardData() {
       id: spId.current, label, detail,
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     };
-    setSavePoints(prev => [...prev.slice(-5), sp]);
+    setSavePoints(prev => [...prev.slice(-2), sp]);
     setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
-    setTimeout(() => setSavePoints(prev => prev.filter(p => p.id !== sp.id)), 8000);
+    setTimeout(() => setSavePoints(prev => prev.filter(p => p.id !== sp.id)), 4000);
   }, []);
 
   // Initial load — fetch stocks, indices, overview
@@ -143,13 +144,14 @@ export function useDashboardData() {
   const fetchScreener = useCallback(async () => {
     setScreenerLoading(true);
     try {
-      const sp = new URLSearchParams({ limit: '60' });
+      const sp = new URLSearchParams({ limit: '0' });
       if (screenerFilter !== 'ALL') sp.append('signal', screenerFilter);
       if (screenerSector !== 'all') sp.append('sector', screenerSector);
       const res = await fetch('/api/screener?' + sp.toString());
       const data = await res.json();
       setScreenerData(data.results || []);
       setScreenerCounts(data.signalCounts || {});
+      setScreenerTotal(data.totalScanned || 0);
       addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched`);
     } catch {} finally { setScreenerLoading(false); }
   }, [screenerFilter, screenerSector, addSavePoint]);
@@ -171,6 +173,16 @@ export function useDashboardData() {
     fetchDetail(selectedSymbol);
     fetchSignals(selectedSymbol, params);
     fetchNews(selectedSymbol);
+  }, [selectedSymbol]);
+
+  // Auto-switch OI underlying when selected symbol is a known index
+  useEffect(() => {
+    if (!selectedSymbol) return;
+    const upper = selectedSymbol.toUpperCase();
+    const indexNames = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTYIT', 'NIFTYMIDCAP', 'NIFTYBANK'];
+    if (indexNames.includes(upper)) {
+      setOiUnderlying(upper);
+    }
   }, [selectedSymbol]);
 
   // Fetch screener on first load
@@ -304,7 +316,7 @@ export function useDashboardData() {
     detail, overview, lastDate, lastUpdated,
     equitySearch, setEquitySearch, selectedSector, setSelectedSector,
     news, newsLoading,
-    screenerData, setScreenerData, screenerCounts, screenerLoading, screenerFilter, setScreenerFilter,
+    screenerData, setScreenerData, screenerCounts, screenerTotal, screenerLoading, screenerFilter, setScreenerFilter,
     screenerSector, setScreenerSector, screenerSearched, setScreenerSearched,
     optionsUnderlying, setOptionsUnderlying,
     optionsData, setOptionsData, optionsExpiries, setOptionsExpiries,
