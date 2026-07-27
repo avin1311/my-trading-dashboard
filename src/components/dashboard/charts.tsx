@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
@@ -59,15 +59,184 @@ function RSIGauge({ value }: { value: number | null }) {
 
 import { cn } from '@/lib/utils';
 
+// ==================== TIMEFRAME TOGGLE ====================
+type TimeframeKey = '1m' | '5m' | '15m' | '1H' | '4H' | '1D' | '1W' | '1M';
+
+const TIMEFRAMES: { key: TimeframeKey; label: string; interval: string; range: string }[] = [
+  { key: '1m', label: '1m', interval: '1', range: '1' },
+  { key: '5m', label: '5m', interval: '5', range: '1' },
+  { key: '15m', label: '15m', interval: '15', range: '1' },
+  { key: '1H', label: '1H', interval: '60', range: '5' },
+  { key: '4H', label: '4H', interval: '240', range: '5' },
+  { key: '1D', label: '1D', interval: 'D', range: '30' },
+  { key: '1W', label: '1W', interval: 'W', range: '52' },
+  { key: '1M', label: '1M', interval: 'M', range: '60' },
+];
+
+// ==================== TRADINGVIEW WIDGET ====================
+function TradingViewWidget({ symbol, timeframe }: { symbol: string; timeframe: TimeframeKey }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Resolve the TradingView symbol. NSE indices like NIFTY 50 use "NSE:NIFTY",
+  // equities use "NSE:SYMBOL", Bank Nifty uses "NSE:BANKNIFTY".
+  const tvSymbol = useMemo(() => {
+    if (!symbol) return 'NSE:NIFTY';
+    const s = symbol.toUpperCase();
+    // Map common NSE index names to TradingView-compatible symbols
+    const indexMap: Record<string, string> = {
+      'NIFTY': 'NSE:NIFTY',
+      'BANKNIFTY': 'NSE:BANKNIFTY',
+      'FINNIFTY': 'NSE:FINNIFTY',
+      'NIFTYIT': 'NSE:NIFTYIT',
+    };
+    if (indexMap[s]) return indexMap[s];
+    // For equities, TradingView expects NSE:SYMBOL
+    // Some symbols need .NS suffix for Yahoo but NSE: prefix for TradingView
+    return 'NSE:' + s;
+  }, [symbol]);
+
+  const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
+
+  useEffect(() => {
+    // Load the TradingView embed script once
+    const loadScript = () => new Promise<void>((resolve, reject) => {
+      if ((window as any).TradingView) return resolve();
+      const existing = document.getElementById('tv-embed-script') as HTMLScriptElement | null;
+      if (existing) {
+        if (existing.dataset.loaded === 'true') return resolve();
+        existing.addEventListener('load', () => resolve());
+        existing.addEventListener('error', () => reject(new Error('Failed to load TradingView script')));
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'tv-embed-script';
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.async = true;
+      script.onload = () => { script.dataset.loaded = 'true'; resolve(); };
+      script.onerror = () => reject(new Error('Failed to load TradingView script'));
+      document.head.appendChild(script);
+    });
+
+    let cancelled = false;
+
+    loadScript().then(() => {
+      if (cancelled || !containerRef.current || !(window as any).TradingView) return;
+      // Clear any previous widget content
+      containerRef.current.innerHTML = '';
+      const innerId = 'tv-widget-' + Math.random().toString(36).substring(2, 10);
+      const inner = document.createElement('div');
+      inner.id = innerId;
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      containerRef.current.appendChild(inner);
+
+      // Auto-dismiss TradingView notification popups ("symbol not available" etc.)
+      const dismissTimer = setInterval(() => {
+        if (!containerRef.current) { clearInterval(dismissTimer); return; }
+        const iframes = containerRef.current.querySelectorAll('iframe');
+        for (const iframe of iframes) {
+          try {
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (doc) {
+              const popups = doc.querySelectorAll('[class*="popup"], [class*="dialog"], [class*="notification"], [class*="overlay"]');
+              popups.forEach((p: Element) => (p as HTMLElement).style.display = 'none');
+            }
+          } catch { /* cross-origin — use overlay approach below */ }
+        }
+        // Also dismiss any popup divs that TradingView injects as siblings to the iframe
+        const wrapper = containerRef.current;
+        for (const child of Array.from(wrapper.children)) {
+          if (child !== inner && child.tagName !== 'STYLE' && !child.classList?.contains('absolute')) {
+            (child as HTMLElement).style.display = 'none';
+          }
+        }
+      }, 500);
+      setTimeout(() => clearInterval(dismissTimer), 15000); // stop after 15s
+
+      try {
+        new (window as any).TradingView.widget({
+          autosize: true,
+          symbol: tvSymbol,
+          interval: tfConfig.interval,
+          range: tfConfig.range,
+          timezone: 'Asia/Kolkata',
+          theme: 'dark',
+          style: '1',
+          locale: 'in',
+          enable_publishing: false,
+          allow_symbol_change: false,
+          hide_top_toolbar: false,
+          hide_legend: false,
+          save_image: false,
+          withdateranges: true,
+          details: false,
+          hotlist: false,
+          calendar: false,
+          studies: ['STD;Supertrend'],
+          container_id: innerId,
+        });
+      } catch {
+        // fail silently — widget is a nice-to-have
+      }
+    }).catch(() => {
+      // fail silently
+    });
+
+    return () => {
+      cancelled = true;
+      try { if (containerRef.current) containerRef.current.innerHTML = ''; } catch {}
+    };
+  }, [tvSymbol, tfConfig.interval, tfConfig.range]);
+
+  return (
+    <div className="relative w-full h-[420px] rounded-lg overflow-hidden border border-slate-800/60 bg-[#0a0e1a]">
+      <div ref={containerRef} className="w-full h-full" />
+      <div className="absolute top-2 right-2 z-10 pointer-events-none">
+        <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 bg-slate-900/80 border border-slate-700/50 rounded px-1.5 py-0.5">
+          TradingView
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ==================== TIMEFRAME TOGGLE BAR ====================
+function TimeframeToggle({ timeframe, setTimeframe }: { timeframe: TimeframeKey; setTimeframe: (t: TimeframeKey) => void }) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mr-1">Timeframe</span>
+      <div className="flex items-center gap-0.5 rounded-lg bg-slate-800/40 border border-slate-700/50 p-0.5">
+        {TIMEFRAMES.map(tf => (
+          <button
+            key={tf.key}
+            onClick={() => setTimeframe(tf.key)}
+            className={cn(
+              'px-2 py-1 rounded text-[10px] font-semibold transition-all',
+              timeframe === tf.key
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 border border-transparent hover:bg-slate-700/40'
+            )}
+          >
+            {tf.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Main export: full strategy section
 export default function StrategySection({
-  chartData, visibleData, latestSignal, signalsLoading,
+  chartData, visibleData, latestSignal, signalsLoading, symbol,
 }: {
   chartData: ChartDataPoint[];
   visibleData: ChartDataPoint[];
   latestSignal: StrategySignal | null;
   signalsLoading: boolean;
+  symbol?: string;
 }) {
+  const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
+  const [showTV, setShowTV] = useState(false);
   const priceMin = useMemo(() => {
     if (visibleData.length === 0) return 0;
     return Math.min(...visibleData.map(d => d.low)) * 0.998;
@@ -78,13 +247,33 @@ export default function StrategySection({
   }, [visibleData]);
 
   return (
-    <>
-      {/* Price Chart */}
+    <div className="space-y-3">
+      {/* Timeframe toggle bar */}
+      <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
+
+      {/* TradingView advanced chart — togglable to avoid wrong-symbol fallback (e.g. AAPL) */}
+      <div className="flex items-center gap-2 mb-1">
+        <button
+          onClick={() => setShowTV(!showTV)}
+          className={cn(
+            'text-[10px] font-semibold px-2 py-0.5 rounded border transition-all',
+            showTV
+              ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+              : 'text-slate-500 border-slate-700 hover:text-slate-300 hover:border-slate-600'
+          )}
+        >
+          {showTV ? 'Hide' : 'Show'} TradingView Chart
+        </button>
+        {showTV && <span className="text-[9px] text-slate-600">External chart — may show default symbol if stock is not listed on TradingView</span>}
+      </div>
+      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
+
+      {/* Price Chart with Supertrend (Recharts — shows signals) */}
       {signalsLoading ? (
         <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div>
       ) : (
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Price Chart with Supertrend</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Price Chart with Supertrend &amp; Signals</span>
           <div className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={visibleData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -136,6 +325,6 @@ export default function StrategySection({
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

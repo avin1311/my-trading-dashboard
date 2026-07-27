@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://upstox.com/developer/api-documentation/announcements",
+    "name": "Announcements | Upstox Developer API",
+    "snippet": "Upstox API now accessible at a new URL https://api.upstox.com/v2 with simplified header requirements. Old and new URLs operational during transition.\nWe are deprecating several v2 APIs to streamline our offerings and encourage users to migrate to the corresponding v3 endpoints . Read more →. Jun 20, 2025 ... Read more",
+    "host_name": "upstox.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/developer/api-documentation/announcements/new-url-and-simplified-headers",
+    "name": "New URL and Simplified Headers | Upstox Developer API",
+    "snippet": "The base URL for accessing the Upstox API has been updated to https://api.upstox.com/v2 . This change is designed to streamline our API structure for more ...",
+    "host_name": "upstox.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/developer/api-documentation/announcements/enhanced-url",
+    "name": "New Enhanced URL for Orders | Upstox Developer API",
+    "snippet": "Orders can now be placed, modified, and canceled using the New Enhanced URL - https://api-hft.upstox.com . This enhancement aims to improve the efficiency and ... Read more",
+    "host_name": "upstox.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/developer/api-documentation/get-option-contracts",
+    "name": "Option Contracts - Developer API",
+    "snippet": "Retrieve active option contracts for an underlying instrument using the Upstox API . Get strike prices, expiries, and contract details for options trading.\nRetrieve active option contracts for an underlying instrument using the Upstox API. Get strike prices, expiries, and contract details for options trading.",
+    "host_name": "upstox.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/developer/api-documentation/api-overview",
+    "name": "API Overview – Upstox Developer API",
+    "snippet": "Complete overview of all Upstox APIs — trading, portfolio, market data, and streaming endpoints in one place.",
+    "host_name": "upstox.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/developer/api-documentation/example-code/option-chain/option-contracts",
+    "name": "Option Contracts | Upstox Developer API",
+    "snippet": "Fetch option contract details using Upstox API with sample code in Python, Node.js, Java, and cURL for derivatives data access and strike price lookup.",
+    "host_name": "upstox.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.scribd.com/document/804587535/Struc",
+    "name": "Upstox Developer API Request Guide | PDF",
+    "snippet": "Dec 14, 2024 — All API requests must be encoded using the Standard URL Encoding - Encodes special characters and non-ASCII characters hexadecimal digits.",
+    "host_name": "www.scribd.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gist.github.com/Rahulzz/a0da2ad28a7dcc81e887f24cfdbc80a8",
+    "name": "Upstox Developer API - Postman Collection",
+    "snippet": "\"description\": \"This API provides the functionality to retrieve the full market quotes for one or more instruments.This API returns the complete market data ... Read more\nUpstox Developer API - Postman Collection. : instantly share code, notes, and snippets. frontend app will make your app vulnerable to threats and potential ...",
+    "host_name": "gist.github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/developer/api-documentation/request-structure",
+    "name": "Request Structure | Upstox Developer API",
+    "snippet": "Learn the Upstox API request structure including HTTP methods, headers, authorization tokens, and payload formats for REST API calls for trading apps.",
+    "host_name": "upstox.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://upstox.com/trading-api",
+    "name": "Free access to trading & market data APIs",
+    "snippet": "Free access to trading & market . Valid till 31 March 2026 Offer. Dedicated endpoint for split-second execution enabled with an exclusive endpoint for placing, ...",
+    "host_name": "upstox.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

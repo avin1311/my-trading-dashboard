@@ -61,6 +61,9 @@ export function useDashboardData() {
   const [oiUnderlyings, setOiUnderlyings] = useState<string[]>([]);
   const [oiLastUpdated, setOiLastUpdated] = useState<string>('');
 
+  // Backtest configuration
+  const [backtestDays, setBacktestDays] = useState(200);
+
   // Save points
   const [savePoints, setSavePoints] = useState<SavePoint[]>([]);
   const spId = useRef(0);
@@ -115,10 +118,10 @@ export function useDashboardData() {
     } catch {}
   }, []);
 
-  const fetchSignals = useCallback(async (sym: string, p: StrategyParams) => {
+  const fetchSignals = useCallback(async (sym: string, p: StrategyParams, days = 200) => {
     setSignalsLoading(true);
     try {
-      const sp = new URLSearchParams({ symbol: sym, days: '200' });
+      const sp = new URLSearchParams({ symbol: sym, days: String(days) });
       for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
       const res = await fetch('/api/signals?' + sp.toString());
       if (!res.ok) throw new Error(`signals API ${res.status}`);
@@ -173,12 +176,12 @@ export function useDashboardData() {
     } catch (err) { console.warn('[fetchOptions]', err); } finally { setOptionsLoading(false); }
   }, []);
 
-  // When symbol changes: fetch detail + signals + news
+  // When symbol changes: fetch detail + news + auto-generate signals/backtest
   useEffect(() => {
     if (!selectedSymbol) return;
     fetchDetail(selectedSymbol);
-    fetchSignals(selectedSymbol, params);
     fetchNews(selectedSymbol);
+    fetchSignals(selectedSymbol, params, backtestDays);
   }, [selectedSymbol]);
 
   // Auto-switch OI underlying when selected symbol is a known index
@@ -220,6 +223,21 @@ export function useDashboardData() {
 
   // Fetch OI on underlying change
   useEffect(() => { fetchOIData(oiUnderlying); }, [oiUnderlying]);
+
+  // Auto-switch OI underlying when selected stock is an F&O underlying
+  useEffect(() => {
+    if (!selectedSymbol) return;
+    let target = selectedSymbol.toUpperCase();
+    // Map index display names to OI underlyings
+    if (selectedType === 'index') {
+      const idxMap: Record<string, string> = { 'NIFTY 50': 'NIFTY', 'NIFTY BANK': 'BANKNIFTY', 'NIFTY FIN SERVICE': 'FINNIFTY', 'NIFTY IT': 'NIFTYIT', 'NIFTY NEXT 50': 'NIFTYNXT50' };
+      target = idxMap[selectedSymbol.toUpperCase()] || selectedSymbol.toUpperCase();
+    }
+    if (oiUnderlyings.length > 0 && oiUnderlyings.includes(target) && oiUnderlying !== target) {
+      setOiUnderlying(target);
+      setOiExpiryFilter('');
+    }
+  }, [selectedSymbol, selectedType, oiUnderlyings]);
 
   // Re-fetch OI when expiry filter changes
   useEffect(() => { if (oiExpiryFilter && oiUnderlying) fetchOIData(oiUnderlying, oiExpiryFilter); }, [oiExpiryFilter]);
@@ -333,6 +351,7 @@ export function useDashboardData() {
     oiLoading, oiExpiryFilter, setOiExpiryFilter,
     oiUnderlyings,
     oiLastUpdated,
+    backtestDays, setBacktestDays,
     savePoints,
     // Derived
     chartData, visibleData, latestSignal,

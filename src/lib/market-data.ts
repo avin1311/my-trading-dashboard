@@ -316,6 +316,67 @@ function calculateSMA(data: number[], period: number): number | null {
   return slice.reduce((a, b) => a + b, 0) / period;
 }
 
+
+// ==================== YAHOO V6 QUOTE ENRICHMENT ====================
+// Fetches fundamentals (PE, PB, EPS, beta, dividendYield, etc.) from Yahoo v6 quote API
+// This works for ALL NSE/BSE stocks, not just the hardcoded FUNDAMENTALS_DB
+async function enrichWithYahooQuote(quote: LiveQuote, yahooSymbol: string): Promise<void> {
+  try {
+    const url = `https://query2.finance.yahoo.com/v6/finance/quote?symbols=${encodeURIComponent(yahooSymbol)}&fields=beta,dividendYield,marketCap,priceToBook,trailingEps,forwardPE,trailingPE,fiftyTwoWeekHigh,fiftyTwoWeekLow,fiftyDayAverage,twoHundredDayAverage,regularMarketVolume,averageDailyVolume3Month,earningsTimestamp`;
+    const body = await httpsGet(url);
+    const data = JSON.parse(body);
+    const result = data?.quoteResponse?.result?.[0];
+    if (!result) return;
+
+    // Only enrich if the fundamentals from DB are missing
+    if (quote.pe == null && result.trailingPE != null) quote.pe = result.trailingPE;
+    if (quote.forwardPE == null && result.forwardPE != null) quote.forwardPE = result.forwardPE;
+    if (quote.pb == null && result.priceToBook != null) quote.pb = result.priceToBook;
+    if (quote.eps == null && result.trailingEps != null) quote.eps = result.trailingEps;
+    if (quote.beta == null && result.beta != null) quote.beta = result.beta;
+    if (quote.dividendYield == null && result.dividendYield != null) quote.dividendYield = result.dividendYield * 100; // Yahoo returns decimal (0.01 = 1%)
+    
+    // Financial data (revenue, EBITDA, margins, etc.) from Yahoo quote
+    // The quote endpoint includes financialData fields alongside defaultKeyStatistics
+    if (result.financialData) {
+      const fd = result.financialData;
+      if (quote.totalRevenue == null && fd.totalRevenue?.raw) quote.totalRevenue = fd.totalRevenue.raw;
+      if (quote.ebitda == null && fd.ebitda?.raw) quote.ebitda = fd.ebitda.raw;
+      if (quote.grossProfits == null && fd.grossProfits?.raw) quote.grossProfits = fd.grossProfits.raw;
+      if (quote.freeCashflow == null && fd.freeCashflow?.raw) quote.freeCashflow = fd.freeCashflow.raw;
+      if (quote.profitMargins == null && fd.profitMargins?.raw) quote.profitMargins = fd.profitMargins.raw * 100; // Yahoo returns decimal
+      if (quote.operatingMargins == null && fd.operatingMargins?.raw) quote.operatingMargins = fd.operatingMargins.raw * 100;
+      if (quote.revenueGrowth == null && fd.revenueGrowth?.raw) quote.revenueGrowth = fd.revenueGrowth.raw * 100;
+      if (quote.currentRatio == null && fd.currentRatio?.raw) quote.currentRatio = fd.currentRatio.raw;
+      if (quote.debtToEquity == null && fd.debtToEquity?.raw) quote.debtToEquity = fd.debtToEquity.raw;
+      if (quote.roe == null && fd.returnOnEquity?.raw) quote.roe = fd.returnOnEquity.raw * 100;
+      if (quote.roa == null && fd.returnOnAssets?.raw) quote.roa = fd.returnOnAssets.raw * 100;
+    }
+
+    // Market cap from Yahoo is more reliable for all stocks
+    if (result.marketCap != null && (quote.marketCap === 0 || !quote.marketCap)) {
+      quote.marketCap = result.marketCap;
+    }
+
+    // 52-week range from Yahoo
+    if (result.fiftyTwoWeekHigh != null && quote.high52w === 0) quote.high52w = result.fiftyTwoWeekHigh;
+    if (result.fiftyTwoWeekLow != null && quote.low52w === 0) quote.low52w = result.fiftyTwoWeekLow;
+
+    // Moving averages from Yahoo
+    if (result.fiftyDayAverage != null && quote.fiftyDMA === null) quote.fiftyDMA = Math.round(result.fiftyDayAverage * 100) / 100;
+    if (result.twoHundredDayAverage != null && quote.twoHundredDMA === null) quote.twoHundredDMA = Math.round(result.twoHundredDayAverage * 100) / 100;
+    if (quote.fiftyDMA && quote.price) quote.percentAbove50DMA = ((quote.price - quote.fiftyDMA) / quote.fiftyDMA) * 100;
+    if (quote.twoHundredDMA && quote.price) quote.percentAbove200DMA = ((quote.price - quote.twoHundredDMA) / quote.twoHundredDMA) * 100;
+
+    // Volume
+    if (result.regularMarketVolume != null && quote.volume === 0) quote.volume = result.regularMarketVolume;
+    if (result.averageDailyVolume3Month != null && quote.avgVolume === 0) quote.avgVolume = result.averageDailyVolume3Month;
+    if (quote.avgVolume > 0) quote.volumeRatio = Math.round((quote.volume / quote.avgVolume) * 100) / 100;
+  } catch {
+    // Silently fail — enrichment is best-effort
+  }
+}
+
 // ==================== LIVE QUOTE ====================
 export async function getLiveQuote(nseSymbol: string): Promise<LiveQuote> {
   const cacheKey = nseSymbol;
@@ -415,6 +476,10 @@ export async function getLiveQuote(nseSymbol: string): Promise<LiveQuote> {
     marketState: "REGULAR",
     lastUpdated: new Date().toISOString(),
   };
+
+  // Enrich with Yahoo v6 quote fundamentals (PE, PB, EPS, beta, etc.)
+  // This fills in missing fundamentals for stocks not in the hardcoded FUNDAMENTALS_DB
+  await enrichWithYahooQuote(quote, yahooSymbol);
 
   quoteCache.set(cacheKey, { data: quote, timestamp: Date.now() });
   return quote;
