@@ -60,3 +60,26 @@ Stage Summary:
 - 7 files modified: page.tsx, use-dashboard-data.ts, screener/route.ts, kpi-card.tsx
 - Build passes cleanly
 - Commit made locally (push needs GitHub auth)
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix all critical UI bugs in trading dashboard
+
+Work Log:
+- Read all API route files (quote, stocks, signals, stock-detail, news, screener, oi-data, historical, ai-strategy, export) - all properly return JSON with NextResponse.json()
+- Read use-dashboard-data.ts hook - found ALL fetch calls do res.json() without checking res.ok first
+- Read volume-profile.tsx - export name already correct (VolumeProfile)
+- Read charts.tsx, strategy-tab.tsx, overview-tab.tsx, page.tsx view functions
+- Found wrong field names in page.tsx line 1013-1014: regularMarketPrice → price, regularMarketChangePercent → changePct
+- Added res.ok checks to ALL 9 fetch calls in use-dashboard-data.ts
+- Fixed AI panel field names in page.tsx
+- Verified Next.js build succeeds (0 errors)
+- Committed changes locally
+
+Stage Summary:
+- ROOT CAUSE of SyntaxError: fetch calls in use-dashboard-data.ts called res.json() without res.ok check. When Next.js returns HTML error pages (compilation, routing issues), parsing <!DOCTYPE html> as JSON throws SyntaxError
+- Fix: Added `if (!res.ok) throw ...` before every `res.json()` call, with proper .catch() handlers
+- Fix: AI Strategy Panel was receiving 0 for price and changePct due to wrong field names
+- Blank sections (fundamentals, chart, strategy, volume profile) were all cascading failures from the SyntaxError
+- Build verified: `npx next build` succeeds with all routes compiled
+- Committed locally, push requires GitHub auth not available in this environment
