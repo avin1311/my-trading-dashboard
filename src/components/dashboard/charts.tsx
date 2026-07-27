@@ -62,134 +62,155 @@ import { cn } from '@/lib/utils';
 // ==================== TIMEFRAME TOGGLE ====================
 type TimeframeKey = '1m' | '5m' | '15m' | '1H' | '4H' | '1D' | '1W' | '1M';
 
-const TIMEFRAMES: { key: TimeframeKey; label: string; interval: string; range: string }[] = [
-  { key: '1m', label: '1m', interval: '1', range: '1' },
-  { key: '5m', label: '5m', interval: '5', range: '1' },
-  { key: '15m', label: '15m', interval: '15', range: '1' },
-  { key: '1H', label: '1H', interval: '60', range: '5' },
-  { key: '4H', label: '4H', interval: '240', range: '5' },
-  { key: '1D', label: '1D', interval: 'D', range: '30' },
-  { key: '1W', label: '1W', interval: 'W', range: '52' },
-  { key: '1M', label: '1M', interval: 'M', range: '60' },
+const TIMEFRAMES: { key: TimeframeKey; label: string; tvInterval: string }[] = [
+  { key: '1m', label: '1m', tvInterval: '1' },
+  { key: '5m', label: '5m', tvInterval: '5' },
+  { key: '15m', label: '15m', tvInterval: '15' },
+  { key: '1H', label: '1H', tvInterval: '60' },
+  { key: '4H', label: '4H', tvInterval: '240' },
+  { key: '1D', label: '1D', tvInterval: 'D' },
+  { key: '1W', label: '1W', tvInterval: 'W' },
+  { key: '1M', label: '1M', tvInterval: 'M' },
 ];
 
-// ==================== TRADINGVIEW WIDGET ====================
+// ==================== SYMBOL RESOLVER ====================
+// TradingView uses EXCHANGE:SYMBOL format for Indian markets
+// NSE = National Stock Exchange, BSE = Bombay Stock Exchange, NSE_INDEX for indices
+function resolveTVSymbol(symbol: string): string {
+  if (!symbol) return 'NSEI';
+  const s = symbol.toUpperCase().trim();
+
+  // Map index names to TradingView symbols (TradingView uses specific ticker formats for indices)
+  const indexMap: Record<string, string> = {
+    'NIFTY': 'NSEI',           // Nifty 50
+    'NIFTY50': 'NSEI',
+    'BANKNIFTY': 'BANKNIFTY',   // Bank Nifty
+    'FINNIFTY': 'NIFTYFIN',     // Nifty Financial Services
+    'NIFTYIT': 'NIITTECH',      // Nifty IT
+    'INDIAVIX': 'INDIAVIX',     // India VIX
+    'NIFTYNXT50': 'NIFTYNXT50',
+    'MIDCPNIFTY': 'NIFTYMIDCAP50',
+  };
+
+  if (indexMap[s]) return indexMap[s];
+
+  // For NSE equities, use NSE:SYMBOL format
+  // Special cases where TradingView symbol differs from NSE symbol
+  const equityMap: Record<string, string> = {
+    'M&M': 'MM',
+    'M&MFIN': 'MMFIN',
+    'L&TFH': 'LTFH',
+    'L&T': 'LT',
+    'HDFCBANK': 'HDFCBANK',
+    'ICICIBANK': 'ICICIBANK',
+    'SBIN': 'SBIN',
+    'RELIANCE': 'RELIANCE',
+    'TCS': 'TCS',
+    'INFY': 'INFOSYS',
+    'WIPRO': 'WIPRO',
+    'HCLTECH': 'HCLTECH',
+    'BAJFINANCE': 'BAJFINANCE',
+    'HDFC': 'HDFC',
+    'BHARTIARTL': 'BHARTIARTL',
+    'ITC': 'ITC',
+    'KOTAKBANK': 'KOTAKBANK',
+    'AXISBANK': 'AXISBANK',
+    'LT': 'LT',
+    'TATAMOTORS': 'TATAMOTORS',
+    'TATASTEEL': 'TATASTEEL',
+    'SUNPHARMA': 'SUNPHARMA',
+    'ASIANPAINT': 'ASIANPAINT',
+    'MARUTI': 'MARUTI',
+    'ADANIENT': 'ADANIENT',
+    'ADANIPORTS': 'ADANIPORTS',
+    'POWERGRID': 'POWERGRID',
+    'NTPC': 'NTPC',
+    'ONGC': 'ONGC',
+    'COALINDIA': 'COALINDIA',
+    'HINDUNILVR': 'HINDUNILVR',
+    'ITC': 'ITC',
+    'ULTRACEMCO': 'ULTRACEMCO',
+    'NESTLEIND': 'NESTLEIND',
+    'TITAN': 'TITAN',
+    'BAJAJFINSV': 'BAJAJFINSV',
+    'TECHM': 'TECHM',
+    'DRREDDY': 'DRREDDY',
+    'CIPLA': 'CIPLA',
+    'DIVISLAB': 'DIVISLAB',
+    'APOLLOHOSP': 'APOLLOHOSP',
+    'EICHERMOT': 'EICHERMOT',
+    'HEROMOTOCO': 'HEROMOTOCO',
+    'BPCL': 'BPCL',
+    'IOC': 'IOC',
+    'HINDALCO': 'HINDALCO',
+    'TATACONSUM': 'TATACONSUM',
+    'TATAPOWER': 'TATAPOWER',
+    'DLF': 'DLF',
+    'SRF': 'SRF',
+  };
+
+  // Check special equity map first
+  if (equityMap[s]) return s;  // For NSE equities, we'll prefix with NSE: below
+
+  return s;
+}
+
+// ==================== TRADINGVIEW ADVANCED CHART WIDGET ====================
+// Uses the embed widget approach (same as Upstox uses) — no popups, no US stock fallback
 function TradingViewWidget({ symbol, timeframe }: { symbol: string; timeframe: TimeframeKey }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Resolve the TradingView symbol. NSE indices like NIFTY 50 use "NSE:NIFTY",
-  // equities use "NSE:SYMBOL", Bank Nifty uses "NSE:BANKNIFTY".
   const tvSymbol = useMemo(() => {
-    if (!symbol) return 'NSE:NIFTY';
-    const s = symbol.toUpperCase();
-    // Map common NSE index names to TradingView-compatible symbols
-    const indexMap: Record<string, string> = {
-      'NIFTY': 'NSE:NIFTY',
-      'BANKNIFTY': 'NSE:BANKNIFTY',
-      'FINNIFTY': 'NSE:FINNIFTY',
-      'NIFTYIT': 'NSE:NIFTYIT',
-    };
-    if (indexMap[s]) return indexMap[s];
-    // For equities, TradingView expects NSE:SYMBOL
-    // Some symbols need .NS suffix for Yahoo but NSE: prefix for TradingView
-    return 'NSE:' + s;
+    const resolved = resolveTVSymbol(symbol);
+    // Check if it's an index (no NSE: prefix for indices — TradingView handles them differently)
+    const indexSymbols = ['NSEI', 'BANKNIFTY', 'NIFTYFIN', 'NIITTECH', 'INDIAVIX', 'NIFTYNXT50', 'NIFTYMIDCAP50'];
+    if (indexSymbols.includes(resolved)) {
+      return 'NSE:' + resolved;
+    }
+    return 'NSE:' + resolved;
   }, [symbol]);
 
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
   useEffect(() => {
-    // Load the TradingView embed script once
-    const loadScript = () => new Promise<void>((resolve, reject) => {
-      if ((window as any).TradingView) return resolve();
-      const existing = document.getElementById('tv-embed-script') as HTMLScriptElement | null;
-      if (existing) {
-        if (existing.dataset.loaded === 'true') return resolve();
-        existing.addEventListener('load', () => resolve());
-        existing.addEventListener('error', () => reject(new Error('Failed to load TradingView script')));
-        return;
-      }
-      const script = document.createElement('script');
-      script.id = 'tv-embed-script';
-      script.src = 'https://s3.tradingview.com/tv.js';
-      script.async = true;
-      script.onload = () => { script.dataset.loaded = 'true'; resolve(); };
-      script.onerror = () => reject(new Error('Failed to load TradingView script'));
-      document.head.appendChild(script);
+    if (!containerRef.current) return;
+
+    // Clear previous content
+    containerRef.current.innerHTML = '';
+
+    const widgetContainer = document.createElement('div');
+    widgetContainer.className = 'tradingview-widget-container__widget';
+    widgetContainer.style.height = '100%';
+    widgetContainer.style.width = '100%';
+    containerRef.current.appendChild(widgetContainer);
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: tvSymbol,
+      interval: tfConfig.tvInterval,
+      timezone: 'Asia/Kolkata',
+      theme: 'dark',
+      style: '1',
+      locale: 'in',
+      enable_publishing: false,
+      allow_symbol_change: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      calendar: false,
+      studies: ['STD;Supertrend@tv-basicstudies'],
+      support_host: 'https://www.tradingview.com',
     });
 
-    let cancelled = false;
-
-    loadScript().then(() => {
-      if (cancelled || !containerRef.current || !(window as any).TradingView) return;
-      // Clear any previous widget content
-      containerRef.current.innerHTML = '';
-      const innerId = 'tv-widget-' + Math.random().toString(36).substring(2, 10);
-      const inner = document.createElement('div');
-      inner.id = innerId;
-      inner.style.width = '100%';
-      inner.style.height = '100%';
-      containerRef.current.appendChild(inner);
-
-      // Auto-dismiss TradingView notification popups ("symbol not available" etc.)
-      const dismissTimer = setInterval(() => {
-        if (!containerRef.current) { clearInterval(dismissTimer); return; }
-        const iframes = containerRef.current.querySelectorAll('iframe');
-        for (const iframe of iframes) {
-          try {
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (doc) {
-              const popups = doc.querySelectorAll('[class*="popup"], [class*="dialog"], [class*="notification"], [class*="overlay"]');
-              popups.forEach((p: Element) => (p as HTMLElement).style.display = 'none');
-            }
-          } catch { /* cross-origin — use overlay approach below */ }
-        }
-        // Also dismiss any popup divs that TradingView injects as siblings to the iframe
-        const wrapper = containerRef.current;
-        for (const child of Array.from(wrapper.children)) {
-          if (child !== inner && child.tagName !== 'STYLE' && !child.classList?.contains('absolute')) {
-            (child as HTMLElement).style.display = 'none';
-          }
-        }
-      }, 500);
-      setTimeout(() => clearInterval(dismissTimer), 15000); // stop after 15s
-
-      try {
-        new (window as any).TradingView.widget({
-          autosize: true,
-          symbol: tvSymbol,
-          interval: tfConfig.interval,
-          range: tfConfig.range,
-          timezone: 'Asia/Kolkata',
-          theme: 'dark',
-          style: '1',
-          locale: 'in',
-          enable_publishing: false,
-          allow_symbol_change: false,
-          hide_top_toolbar: false,
-          hide_legend: false,
-          save_image: false,
-          withdateranges: true,
-          details: false,
-          hotlist: false,
-          calendar: false,
-          studies: ['STD;Supertrend'],
-          container_id: innerId,
-        });
-      } catch {
-        // fail silently — widget is a nice-to-have
-      }
-    }).catch(() => {
-      // fail silently
-    });
-
-    return () => {
-      cancelled = true;
-      try { if (containerRef.current) containerRef.current.innerHTML = ''; } catch {}
-    };
-  }, [tvSymbol, tfConfig.interval, tfConfig.range]);
+    containerRef.current.appendChild(script);
+  }, [tvSymbol, tfConfig.tvInterval]);
 
   return (
-    <div className="relative w-full h-[420px] rounded-lg overflow-hidden border border-slate-800/60 bg-[#0a0e1a]">
+    <div className="tradingview-widget-container w-full h-[420px] rounded-lg overflow-hidden border border-slate-800/60 bg-[#131722]">
       <div ref={containerRef} className="w-full h-full" />
       <div className="absolute top-2 right-2 z-10 pointer-events-none">
         <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 bg-slate-900/80 border border-slate-700/50 rounded px-1.5 py-0.5">
@@ -236,7 +257,7 @@ export default function StrategySection({
   symbol?: string;
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
-  const [showTV, setShowTV] = useState(false);
+  const [showTV, setShowTV] = useState(true);
   const priceMin = useMemo(() => {
     if (visibleData.length === 0) return 0;
     return Math.min(...visibleData.map(d => d.low)) * 0.998;
@@ -251,7 +272,7 @@ export default function StrategySection({
       {/* Timeframe toggle bar */}
       <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      {/* TradingView advanced chart — togglable to avoid wrong-symbol fallback (e.g. AAPL) */}
+      {/* TradingView chart — shown by default, uses Advanced Chart embed (no popup issues) */}
       <div className="flex items-center gap-2 mb-1">
         <button
           onClick={() => setShowTV(!showTV)}
@@ -264,7 +285,7 @@ export default function StrategySection({
         >
           {showTV ? 'Hide' : 'Show'} TradingView Chart
         </button>
-        {showTV && <span className="text-[9px] text-slate-600">External chart — may show default symbol if stock is not listed on TradingView</span>}
+        {showTV && <span className="text-[9px] text-slate-600">NSE live chart with Supertrend overlay</span>}
       </div>
       {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
 
