@@ -78,9 +78,9 @@ export function useDashboardData() {
   // Initial load — fetch stocks, indices, overview
   useEffect(() => {
     Promise.all([
-      fetch('/api/stocks?type=equity').then(r => r.json()),
-      fetch('/api/stocks?type=index').then(r => r.json()),
-      fetch('/api/quote?overview=true').then(r => r.json()).catch(() => null),
+      fetch('/api/stocks?type=equity').then(r => r.ok ? r.json() : Promise.reject(new Error(`Stocks API ${r.status}`))).catch(() => ({ instruments: [], sectors: [] })),
+      fetch('/api/stocks?type=index').then(r => r.ok ? r.json() : Promise.reject(new Error(`Indices API ${r.status}`))).catch(() => ({ instruments: [] })),
+      fetch('/api/quote?overview=true').then(r => r.ok ? r.json() : Promise.reject(new Error(`Overview API ${r.status}`))).catch(() => null),
     ]).then(([eq, idx, ov]: any[]) => {
       setEquities(eq.instruments || []);
       setIndices(idx.instruments || []);
@@ -94,18 +94,20 @@ export function useDashboardData() {
     setDetailLoading(true);
     try {
       const res = await fetch('/api/stock-detail?symbol=' + sym);
+      if (!res.ok) throw new Error(`stock-detail API ${res.status}`);
       const data = await res.json();
       if (data.quote) {
         setDetail(data);
         addSavePoint(`Loaded ${sym}`, `Price: ₹${data.quote.price.toLocaleString('en-IN')} | ${data.quote.changePct >= 0 ? '+' : ''}${data.quote.changePct.toFixed(2)}%`);
       }
-    } catch {} finally { setDetailLoading(false); }
+    } catch (err) { console.warn('[fetchDetail]', err); } finally { setDetailLoading(false); }
   }, [addSavePoint]);
 
   // Silent fetch — no save points, no loading spinner
   const silentFetchDetail = useCallback(async (sym: string) => {
     try {
       const res = await fetch('/api/stock-detail?symbol=' + sym);
+      if (!res.ok) return;
       const data = await res.json();
       if (data.quote) {
         setDetail(data);
@@ -119,6 +121,7 @@ export function useDashboardData() {
       const sp = new URLSearchParams({ symbol: sym, days: '200' });
       for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
       const res = await fetch('/api/signals?' + sp.toString());
+      if (!res.ok) throw new Error(`signals API ${res.status}`);
       const data = await res.json();
       setStockData(data.stockData || []);
       setSignals(data.signals || []);
@@ -129,16 +132,17 @@ export function useDashboardData() {
         const last = data.signals[data.signals.length - 1];
         addSavePoint('Signals Calculated', `${last.signal} | RSI: ${last.rsi?.toFixed(1)} | ST: ${last.supertrendDir === 1 ? 'Bullish' : 'Bearish'}`);
       }
-    } catch {} finally { setSignalsLoading(false); setRecalculating(false); }
+    } catch (err) { console.warn('[fetchSignals]', err); } finally { setSignalsLoading(false); setRecalculating(false); }
   }, [addSavePoint]);
 
   const fetchNews = useCallback(async (sym: string) => {
     setNewsLoading(true);
     try {
       const res = await fetch('/api/news?symbol=' + sym);
+      if (!res.ok) throw new Error(`news API ${res.status}`);
       const data = await res.json();
       if (data.news) setNews(data.news);
-    } catch {} finally { setNewsLoading(false); }
+    } catch (err) { console.warn('[fetchNews]', err); } finally { setNewsLoading(false); }
   }, []);
 
   const fetchScreener = useCallback(async () => {
@@ -148,23 +152,25 @@ export function useDashboardData() {
       if (screenerFilter !== 'ALL') sp.append('signal', screenerFilter);
       if (screenerSector !== 'all') sp.append('sector', screenerSector);
       const res = await fetch('/api/screener?' + sp.toString());
+      if (!res.ok) throw new Error(`screener API ${res.status}`);
       const data = await res.json();
       setScreenerData(data.results || []);
       setScreenerCounts(data.signalCounts || {});
       setScreenerTotal(data.totalScanned || 0);
       addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched`);
-    } catch {} finally { setScreenerLoading(false); }
+    } catch (err) { console.warn('[fetchScreener]', err); } finally { setScreenerLoading(false); }
   }, [screenerFilter, screenerSector, addSavePoint]);
 
   const fetchOptions = useCallback(async (underlying: string) => {
     setOptionsLoading(true);
     try {
       const res = await fetch(`/api/stocks?type=option&underlying=${underlying}`);
+      if (!res.ok) throw new Error(`options API ${res.status}`);
       const data = await res.json();
       setOptionsData(data.instruments || []);
       setOptionsExpiries(data.expiryDates || []);
       if (data.expiryDates?.length > 0) setOptionsExpiryFilter(data.expiryDates[0]);
-    } catch {} finally { setOptionsLoading(false); }
+    } catch (err) { console.warn('[fetchOptions]', err); } finally { setOptionsLoading(false); }
   }, []);
 
   // When symbol changes: fetch detail + signals + news
@@ -197,6 +203,7 @@ export function useDashboardData() {
       const sp = new URLSearchParams({ underlying, type: 'both' });
       if (expiry) sp.append('expiry', expiry);
       const res = await fetch('/api/oi-data?' + sp.toString());
+      if (!res.ok) throw new Error(`oi-data API ${res.status}`);
       const data = await res.json();
       if (data.option) {
         setOiOptionData(data.option);
@@ -208,7 +215,7 @@ export function useDashboardData() {
       if (data.underlyings) setOiUnderlyings(data.underlyings);
       if (data.lastUpdated) setOiLastUpdated(data.lastUpdated);
       addSavePoint('OI Data Loaded', `${underlying} | PCR: ${data.option?.pcr?.toFixed(2) || 'N/A'} | MaxPain: ${data.option?.maxPain?.toLocaleString('en-IN') || 'N/A'}`);
-    } catch {} finally { setOiLoading(false); }
+    } catch (err) { console.warn('[fetchOIData]', err); } finally { setOiLoading(false); }
   }, [addSavePoint, oiExpiryFilter]);
 
   // Fetch OI on underlying change
@@ -224,7 +231,7 @@ export function useDashboardData() {
       silentFetchDetail(selectedSymbol);
     }, refreshInterval * 1000);
     const overviewInterval = setInterval(() => {
-      fetch('/api/quote?overview=true').then(r => r.json()).then((ov: any) => {
+      fetch('/api/quote?overview=true').then(r => r.ok ? r.json() : null).then((ov: any) => {
         if (ov) setOverview(ov);
       }).catch(() => {});
     }, 60000);

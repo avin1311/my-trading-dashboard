@@ -1010,8 +1010,8 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
             symbol={d.selectedSymbol}
             name={d.equities.find(e => e.symbol === d.selectedSymbol)?.name || d.selectedSymbol}
             sector={d.q.sector || ''}
-            price={d.q.regularMarketPrice || 0}
-            changePct={d.q.regularMarketChangePercent || 0}
+            price={d.q.price || 0}
+            changePct={d.q.changePct || 0}
             rsi={d.latestSignal?.rsi ?? null}
             signal={d.latestSignal?.signal ?? ''}
             supertrendDir={d.latestSignal?.supertrendDir ?? 0}
