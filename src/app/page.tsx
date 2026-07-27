@@ -178,21 +178,26 @@ function Sidebar({ view, setView, collapsed, setCollapsed, d, watchlist }: {
 }
 
 // ==================== HEADER BAR ====================
-function HeaderBar({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
+function HeaderBar({ d, watchlist, liveTick, rtTicks }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; liveTick: LiveTick | null; rtTicks: Map<string, LiveTick> }) {
   const q = d.q;
+  // Use real-time price from Upstox when available
+  const price = liveTick?.ltp || q?.price || 0;
+  const changePct = liveTick ? liveTick.changePct : (q?.changePct || 0);
+  const change = liveTick ? liveTick.change : (q?.change || 0);
+  const isLive = !!liveTick;
   const topGainers = d.overview?.topGainers?.slice(0, 4) || [];
   return (
     <div className="border-b border-slate-800/60 bg-[#080b12]/95 backdrop-blur-md">
       {/* Market Ticker */}
       <div className="border-b border-slate-800/30 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-0.5 px-4 py-1 min-w-max">
-          <MktTicker label="NIFTY 50" q={d.overview?.nifty50 ?? null} />
+          <MktTicker label="NIFTY 50" q={rtTicks.get('NIFTY') ? { price: rtTicks.get('NIFTY')!.ltp, changePct: rtTicks.get('NIFTY')!.changePct, change: rtTicks.get('NIFTY')!.change } : d.overview?.nifty50 ?? null} />
           <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
-          <MktTicker label="BANK NIFTY" q={d.overview?.bankNifty ?? null} />
+          <MktTicker label="BANK NIFTY" q={rtTicks.get('BANKNIFTY') ? { price: rtTicks.get('BANKNIFTY')!.ltp, changePct: rtTicks.get('BANKNIFTY')!.changePct, change: rtTicks.get('BANKNIFTY')!.change } : d.overview?.bankNifty ?? null} />
           <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
-          <MktTicker label="NIFTY IT" q={d.overview?.niftyIT ?? null} />
+          <MktTicker label="NIFTY IT" q={rtTicks.get('NIFTYIT') ? { price: rtTicks.get('NIFTYIT')!.ltp, changePct: rtTicks.get('NIFTYIT')!.changePct, change: rtTicks.get('NIFTYIT')!.change } : d.overview?.niftyIT ?? null} />
           <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
-          <MktTicker label="INDIA VIX" q={d.overview?.indiaVix ?? null} />
+          <MktTicker label="INDIA VIX" q={rtTicks.get('INDIAVIX') ? { price: rtTicks.get('INDIAVIX')!.ltp, changePct: rtTicks.get('INDIAVIX')!.changePct, change: rtTicks.get('INDIAVIX')!.change } : d.overview?.indiaVix ?? null} />
           {topGainers.length > 0 && (
             <>
               <div className="w-px h-8 bg-slate-800/60 mx-1" />
@@ -234,13 +239,13 @@ function HeaderBar({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; w
               {q?.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/80 border-slate-700 text-slate-400">{q.sector}</Badge>}
             </div>
             <div className="flex items-center gap-3 mt-0.5">
-              <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{q.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', q.changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
-                {q.changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
-                {Math.abs(q.change).toFixed(2)} ({Math.abs(q.changePct).toFixed(2)}%)
+              <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
+                {changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                {Math.abs(change).toFixed(2)} ({Math.abs(changePct).toFixed(2)}%)
               </span>
-              <Badge variant="outline" className="text-[8px] px-1 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 gap-1">
-                <Radio className="w-2 h-2 animate-pulse" /> LIVE
+              <Badge variant="outline" className={cn('text-[8px] px-1 py-0 gap-1', isLive ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400')}>
+                {isLive ? <><Radio className="w-2 h-2 animate-pulse" /> UPSTOX LIVE</> : <><Clock className="w-2 h-2" /> DELAYED</>}
               </Badge>
               <span className="text-[10px] text-slate-500 hidden sm:inline">{q.exchange} &middot; {q.currency}</span>
               <span className="text-[9px] text-slate-600 hidden lg:inline">{d.lastUpdated && `Updated: ${d.lastUpdated}`}</span>
@@ -1558,7 +1563,7 @@ export default function Home() {
         <SavePoints points={d.savePoints} />
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
         <div className="flex-1 min-w-0 flex flex-col">
-          <HeaderBar d={d} watchlist={watchlist} />
+          <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} />
           <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
             {/* View breadcrumb */}
             <div className="flex items-center gap-2 mb-3">
@@ -1586,7 +1591,10 @@ export default function Home() {
             <span>NSE Analytics Dashboard — Power BI Style</span>
             <div className="flex items-center gap-3">
               {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
-              <span>Data: Yahoo Finance Real-time — For educational purposes only</span>
+              {rt.upstoxConnected
+                ? <span className="flex items-center gap-1 text-emerald-500"><Radio className="w-2 h-2 animate-pulse" /> Upstox Live{rt.lastTickTime ? ` · ${rt.lastTickTime}` : ''}</span>
+                : <a href="/api/upstox/connect" className="flex items-center gap-1 text-amber-500 hover:text-amber-400 cursor-pointer"><WifiOff className="w-2 h-2" /> Connect Upstox for Live Data</a>}
+              <span>Data: {rt.upstoxConnected ? 'Upstox Live' : 'Yahoo Finance (delayed)'} — For educational purposes only</span>
             </div>
           </div>
         </div>
