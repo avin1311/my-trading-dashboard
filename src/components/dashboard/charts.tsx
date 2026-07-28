@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
 } from 'recharts';
+import { cn } from '@/lib/utils';
 
 export interface OHLCV { date: string; open: number; high: number; low: number; close: number; volume: number; }
 type SignalType = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
@@ -57,8 +58,6 @@ function RSIGauge({ value }: { value: number | null }) {
   );
 }
 
-import { cn } from '@/lib/utils';
-
 // ==================== TIMEFRAME TOGGLE ====================
 type TimeframeKey = '1m' | '5m' | '15m' | '1H' | '4H' | '1D' | '1W' | '1M';
 
@@ -74,14 +73,10 @@ const TIMEFRAMES: { key: TimeframeKey; label: string; tvInterval: string }[] = [
 ];
 
 // ==================== TRADINGVIEW SYMBOL RESOLVER ====================
-// TradingView uses EXCHANGE:SYMBOL format.
-// For NSE India: equities are NSE:SYMBOL, indices are NSE:INDEXNAME
-// Reference: https://www.tradingview.com/symbols/NSE-RELIANCE/
 function resolveTVSymbol(symbol: string): string {
   if (!symbol) return 'NSE:NIFTY';
   const s = symbol.toUpperCase().trim();
 
-  // NSE indices — TradingView uses these exact ticker names
   const indexMap: Record<string, string> = {
     'NIFTY': 'NSE:NIFTY',
     'NIFTY50': 'NSE:NIFTY',
@@ -95,8 +90,6 @@ function resolveTVSymbol(symbol: string): string {
 
   if (indexMap[s]) return indexMap[s];
 
-  // Equities — TradingView uses NSE:SYMBOL directly
-  // A few symbols have special characters that differ
   const specialMap: Record<string, string> = {
     'M&M': 'NSE:MM',
     'M&MFIN': 'NSE:MMFIN',
@@ -106,64 +99,93 @@ function resolveTVSymbol(symbol: string): string {
 
   if (specialMap[s]) return specialMap[s];
 
-  // Default: NSE:SYMBOL
   return 'NSE:' + s;
 }
 
-// ==================== TRADINGVIEW WIDGET (direct iframe — no script loading) ====================
-// Uses TradingView's widget embed URL directly in an iframe.
-// This is the most reliable method — no external scripts to load, no React lifecycle issues,
-// works behind most firewalls. TradingView serves the full chart (candlesticks, drawing tools,
-// all indicators/studies) directly inside the iframe.
+// ==================== TRADINGVIEW WIDGET ====================
+// Uses the official TradingView Advanced Chart widget library.
+// The script reads its own textContent as JSON config and creates
+// the full interactive chart inside the sibling container div.
 function TradingViewWidget({ symbol, timeframe }: {
   symbol: string;
   timeframe: TimeframeKey;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
-  // Build the TradingView widget embed URL
-  // This is the same URL that TradingView's own embed scripts construct internally
-  const iframeSrc = useMemo(() => {
-    const params = new URLSearchParams({
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Clear previous widget entirely
+    container.innerHTML = '';
+
+    // Step 1: Create outer container (required by TradingView widget)
+    const outerDiv = document.createElement('div');
+    outerDiv.className = 'tradingview-widget-container';
+    outerDiv.style.height = '100%';
+    outerDiv.style.width = '100%';
+
+    // Step 2: Create inner widget div (the chart renders here)
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'tradingview-widget-container__widget';
+    widgetDiv.style.height = '550px';
+    widgetDiv.style.width = '100%';
+    widgetDiv.style.borderRadius = '8px';
+
+    outerDiv.appendChild(widgetDiv);
+
+    // Step 3: Create the config script
+    // TradingView's embed-widget-advanced-chart.js reads the previous
+    // sibling div and uses THIS script's textContent as its configuration.
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+
+    const config = {
+      autosize: false,
       symbol: tvSymbol,
       interval: tfConfig.tvInterval,
       timezone: 'Asia/Kolkata',
       theme: 'dark',
       style: '1',
       locale: 'in',
-      toolbar_bg: '%230a0e1a',
-      enable_publishing: 'false',
-      hide_top_toolbar: 'false',
-      hide_side_toolbar: 'false',
-      hide_legend: 'false',
-      withdateranges: 'true',
-      details: 'true',
-      allow_symbol_change: 'false',
-      save_image: 'true',
-      hotlist: 'false',
-      calendar: 'false',
-      studies: JSON.stringify([
-        { id: 'STD;RSI@tv-basicstudies' },
-        { id: 'STD;MACD@tv-basicstudies' },
-        { id: 'STD;Supertrend@tv-basicstudies' },
-        { id: 'STD;Volume@tv-basicstudies' },
-      ]),
-    });
-    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      hide_side_toolbar: false,
+      hide_legend: false,
+      allow_symbol_change: false,
+      save_image: true,
+      backgroundColor: 'rgba(10, 14, 26, 1)',
+      gridColor: 'rgba(30, 41, 59, 0.4)',
+      withdateranges: true,
+      details: true,
+      studies: [
+        'RSI@tv-basicstudies',
+        'MACD@tv-basicstudies',
+      ],
+    };
+
+    // The script reads its own textContent to get the config
+    script.textContent = JSON.stringify(config);
+
+    outerDiv.appendChild(script);
+    container.appendChild(outerDiv);
+
+    return () => {
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
   }, [tvSymbol, tfConfig.tvInterval]);
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden border border-slate-800/60 bg-[#0a0e1a]">
-      <iframe
-        key={iframeSrc}
-        src={iframeSrc}
-        style={{ width: '100%', height: '500px', border: 'none' }}
-        allowFullScreen
-        loading="lazy"
-        title={`TradingView Chart - ${symbol}`}
-      />
-    </div>
+    <div
+      ref={containerRef}
+      style={{ width: '100%', minHeight: '560px' }}
+    />
   );
 }
 
@@ -203,7 +225,6 @@ export default function StrategySection({
   symbol?: string;
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
-  const [showTV, setShowTV] = useState(true);
   const priceMin = useMemo(() => {
     if (visibleData.length === 0) return 0;
     return Math.min(...visibleData.map(d => d.low)) * 0.998;
@@ -215,33 +236,25 @@ export default function StrategySection({
 
   return (
     <div className="space-y-3">
-      {/* Timeframe toggle bar — controls TradingView AND local charts */}
+      {/* Timeframe toggle bar */}
       <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      {/* TradingView full-featured chart */}
-      <div className="flex items-center gap-2 mb-1">
-        <button
-          onClick={() => setShowTV(!showTV)}
-          className={cn(
-            'text-[10px] font-semibold px-2 py-0.5 rounded border transition-all',
-            showTV
-              ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-              : 'text-slate-500 border-slate-700 hover:text-slate-300 hover:border-slate-600'
-          )}
-        >
-          {showTV ? 'Hide' : 'Show'} TradingView Chart
-        </button>
-        {showTV && <span className="text-[9px] text-slate-600">Interactive chart — drawing tools, indicators, studies enabled</span>}
+      {/* TradingView full-featured chart — THE primary chart */}
+      <div className="rounded-lg border border-slate-800/60 bg-[#0a0e1a] overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-800/60">
+          <span className="text-[10px] font-semibold text-blue-400">TradingView Chart</span>
+          <span className="text-[9px] text-slate-600">Interactive — drawing tools, indicators & studies</span>
+        </div>
+        {symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
       </div>
-      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
 
-      {/* Price Chart with Supertrend (Recharts — shows signal markers) */}
+      {/* Signal markers (Recharts — supplementary, shows buy/sell dots on strategy signals) */}
       {signalsLoading ? (
-        <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div>
-      ) : (
+        <div className="h-[200px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading signals...</div>
+      ) : visibleData.length > 0 ? (
         <div className="space-y-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Signal Markers (Recharts)</span>
-          <div className="h-[340px]">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Strategy Signal Markers</span>
+          <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={visibleData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -259,7 +272,7 @@ export default function StrategySection({
             </ResponsiveContainer>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* RSI + MACD row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -273,7 +286,7 @@ export default function StrategySection({
           <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">MACD (12, 26, 9)</div>
           {signalsLoading ? (
             <div className="h-[100px] bg-slate-900/50 rounded-lg animate-pulse" />
-          ) : (
+          ) : chartData.length > 0 ? (
             <div className="h-[100px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData.slice(-30)} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
@@ -289,7 +302,7 @@ export default function StrategySection({
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
