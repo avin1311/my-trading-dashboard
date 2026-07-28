@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
@@ -110,140 +110,59 @@ function resolveTVSymbol(symbol: string): string {
   return 'NSE:' + s;
 }
 
-// ==================== TRADINGVIEW WIDGET (full-featured tv.js) ====================
-// This creates a REAL TradingView chart with drawing tools, all indicators, studies.
-// Uses the official tv.js library — same as Upstox embeds on their platform.
-function TradingViewWidget({ symbol, timeframe, onReady }: {
+// ==================== TRADINGVIEW WIDGET (direct iframe — no script loading) ====================
+// Uses TradingView's widget embed URL directly in an iframe.
+// This is the most reliable method — no external scripts to load, no React lifecycle issues,
+// works behind most firewalls. TradingView serves the full chart (candlesticks, drawing tools,
+// all indicators/studies) directly inside the iframe.
+function TradingViewWidget({ symbol, timeframe }: {
   symbol: string;
   timeframe: TimeframeKey;
-  onReady?: () => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<any>(null);
-
   const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
-  // Load tv.js script once globally
-  useEffect(() => {
-    const loadScript = (): Promise<void> => new Promise((resolve, reject) => {
-      if ((window as any).TradingView) { resolve(); return; }
-      const existing = document.getElementById('tv-js-loader') as HTMLScriptElement | null;
-      if (existing) {
-        if (existing.dataset.ready === 'true') { resolve(); return; }
-        const onReady = () => { existing.dataset.ready = 'true'; resolve(); };
-        existing.addEventListener('load', onReady);
-        existing.addEventListener('error', () => reject(new Error('tv.js load failed')));
-        return;
-      }
-      const script = document.createElement('script');
-      script.id = 'tv-js-loader';
-      script.src = 'https://s3.tradingview.com/tv.js';
-      script.async = true;
-      script.onload = () => { script.dataset.ready = 'true'; resolve(); };
-      script.onerror = () => reject(new Error('tv.js load failed'));
-      document.head.appendChild(script);
+  // Build the TradingView widget embed URL
+  // This is the same URL that TradingView's own embed scripts construct internally
+  const iframeSrc = useMemo(() => {
+    const params = new URLSearchParams({
+      symbol: tvSymbol,
+      interval: tfConfig.tvInterval,
+      timezone: 'Asia/Kolkata',
+      theme: 'dark',
+      style: '1',
+      locale: 'in',
+      toolbar_bg: '%230a0e1a',
+      enable_publishing: 'false',
+      hide_top_toolbar: 'false',
+      hide_side_toolbar: 'false',
+      hide_legend: 'false',
+      withdateranges: 'true',
+      details: 'true',
+      allow_symbol_change: 'false',
+      save_image: 'true',
+      hotlist: 'false',
+      calendar: 'false',
+      studies: JSON.stringify([
+        { id: 'STD;RSI@tv-basicstudies' },
+        { id: 'STD;MACD@tv-basicstudies' },
+        { id: 'STD;Supertrend@tv-basicstudies' },
+        { id: 'STD;Volume@tv-basicstudies' },
+      ]),
     });
-
-    let cancelled = false;
-
-    loadScript().then(() => {
-      if (cancelled || !containerRef.current) return;
-
-      // Clear previous widget completely
-      containerRef.current.innerHTML = '';
-
-      // Create unique container for this widget instance
-      const id = 'tv-chart-' + Date.now();
-      const inner = document.createElement('div');
-      inner.id = id;
-      inner.style.width = '100%';
-      inner.style.height = '100%';
-      containerRef.current.appendChild(inner);
-
-      // Create the full TradingView widget
-      const TV = (window as any).TradingView;
-      const widget = new TV.widget({
-        // Container
-        container_id: id,
-        autosize: true,
-
-        // Symbol & data
-        symbol: tvSymbol,
-        interval: tfConfig.tvInterval,
-
-        // Appearance
-        timezone: 'Asia/Kolkata',
-        theme: 'dark',
-        style: '1', // Candles
-        locale: 'in',
-
-        // Toolbars — ENABLE drawing tools & studies
-        hide_top_toolbar: false,
-        hide_side_toolbar: false, // Drawing tools visible
-        hide_legend: false,
-        withdateranges: true,
-        details: true,
-
-        // Features
-        enable_publishing: false,
-        allow_symbol_change: false, // Lock to NSE symbol — no US stocks
-        save_image: true,
-        hotlist: false,
-        calendar: false,
-        studies: [
-          // Pre-loaded studies for strategy analysis
-          'STD;RSI@tv-basicstudies',
-          'STD;MACD@tv-basicstudies',
-          'STD;Supertrend@tv-basicstudies',
-          'STD;Volume@tv-basicstudies',
-        ],
-        // Chart settings
-        backgroundColor: '#0a0e1a',
-        gridColor: '#1e293b',
-
-        // Width/height (autosize handles this, but set as fallback)
-        width: '100%',
-        height: '100%',
-
-        // Disable popup notifications
-        popup: false,
-
-        // Pre-market / post-market data for NSE
-        extended_hours: false,
-
-        // No symbol search — prevents navigating to US stocks
-        toolbar_bg: '#0a0e1a',
-        enable_events: false,
-        disable_resolution: false,
-      });
-
-      widgetRef.current = widget;
-      onReady?.();
-    }).catch((err) => {
-      console.warn('[TradingView] Widget load error:', err);
-      // Show fallback message in container
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#64748b;font-size:13px;">TradingView chart loading...</div>';
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      // Cleanup: destroy widget and clear container
-      if (widgetRef.current) {
-        try { widgetRef.current.remove(); } catch {}
-        widgetRef.current = null;
-      }
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, [tvSymbol, tfConfig.tvInterval, onReady]);
+    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+  }, [tvSymbol, tfConfig.tvInterval]);
 
   return (
-    <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-slate-800/60 bg-[#0a0e1a]">
-      <div ref={containerRef} className="w-full h-full" />
+    <div className="relative w-full rounded-lg overflow-hidden border border-slate-800/60 bg-[#0a0e1a]">
+      <iframe
+        key={iframeSrc}
+        src={iframeSrc}
+        style={{ width: '100%', height: '500px', border: 'none' }}
+        allowFullScreen
+        loading="lazy"
+        title={`TradingView Chart - ${symbol}`}
+      />
     </div>
   );
 }
@@ -294,10 +213,6 @@ export default function StrategySection({
     return Math.max(...visibleData.map(d => d.high)) * 1.002;
   }, [visibleData]);
 
-  const handleTVReady = useCallback(() => {
-    // Widget is ready — no action needed
-  }, []);
-
   return (
     <div className="space-y-3">
       {/* Timeframe toggle bar — controls TradingView AND local charts */}
@@ -318,7 +233,7 @@ export default function StrategySection({
         </button>
         {showTV && <span className="text-[9px] text-slate-600">Interactive chart — drawing tools, indicators, studies enabled</span>}
       </div>
-      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} onReady={handleTVReady} />}
+      {showTV && symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
 
       {/* Price Chart with Supertrend (Recharts — shows signal markers) */}
       {signalsLoading ? (
