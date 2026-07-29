@@ -272,7 +272,9 @@ export function useDashboardData() {
     setSelectedType(type);
     setSheetOpen(false);
     setNews([]);
-    setScreenerData([]);
+    // Don't clear screenerData — it's independent of selected stock
+    // Re-fetch screener in background to keep it fresh
+    fetchScreener();
   };
 
   const chartData = useMemo(() => {

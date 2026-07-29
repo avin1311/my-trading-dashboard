@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLiveQuote, getHistoricalData, getSectorPeers } from "@/lib/market-data";
 import { generateSignals } from "@/lib/trading-strategy";
 import { DEFAULT_PARAMS } from "@/lib/trading-strategy";
+import { stockList } from "@/lib/stock-list";
 
 // GET /api/stock-detail?symbol=RELIANCE
 // Returns comprehensive stock data: quote, fundamentals, technicals, ownership, financials, peers, analyst targets
@@ -61,6 +62,55 @@ export async function GET(request: NextRequest) {
         peers = await getSectorPeers(symbol, quote.sector);
       } catch {
         // peers are optional
+      }
+    }
+    // Fallback: if getSectorPeers returned empty, build peers from local stockList
+    if ((!peers || peers.length < 2) && quote.sector) {
+      try {
+        const sectorUpper = quote.sector.toUpperCase();
+        const localPeers = stockList.equities
+          .filter((e: any) => e.s !== symbol && (e.sec?.toUpperCase() === sectorUpper || e.sec?.toUpperCase().includes(sectorUpper) || sectorUpper.includes(e.sec?.toUpperCase())))
+          .slice(0, 8);
+        if (localPeers.length >= 2) {
+          // Fetch live quotes for local peers in parallel
+          const peerQuotes = await Promise.allSettled(
+            localPeers.map((e: any) => getLiveQuote(e.s).catch(() => null))
+          );
+          peers = peerQuotes
+            .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value)
+            .map(r => ({
+              symbol: r.value.symbol,
+              name: r.value.name,
+              price: r.value.price,
+              changePct: r.value.changePct,
+              marketCap: r.value.marketCap,
+              pe: r.value.pe,
+              pb: r.value.pb,
+              roe: r.value.roe,
+              revenueGrowth: r.value.revenueGrowth,
+            }));
+        }
+      } catch {
+        // final fallback — use local data without live quotes
+        if (!peers || peers.length < 2) {
+          const sectorUpper = quote.sector.toUpperCase();
+          const localPeers = stockList.equities
+            .filter((e: any) => e.s !== symbol && (e.sec?.toUpperCase() === sectorUpper || e.sec?.toUpperCase().includes(sectorUpper) || sectorUpper.includes(e.sec?.toUpperCase())))
+            .slice(0, 8);
+          if (localPeers.length >= 2) {
+            peers = localPeers.map((e: any) => ({
+              symbol: e.s,
+              name: e.n,
+              price: 0,
+              changePct: 0,
+              marketCap: 0,
+              pe: null,
+              pb: null,
+              roe: null,
+              revenueGrowth: null,
+            }));
+          }
+        }
       }
     }
 
