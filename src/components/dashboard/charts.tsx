@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useMemo, useState } from 'react';
+import Script from 'next/script';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
@@ -58,7 +59,7 @@ function RSIGauge({ value }: { value: number | null }) {
   );
 }
 
-// ==================== TIMEFRAME TOGGLE ====================
+// ==================== TIMEFRAME ====================
 type TimeframeKey = '1m' | '5m' | '15m' | '1H' | '4H' | '1D' | '1W' | '1M';
 
 const TIMEFRAMES: { key: TimeframeKey; label: string; tvInterval: string }[] = [
@@ -72,124 +73,169 @@ const TIMEFRAMES: { key: TimeframeKey; label: string; tvInterval: string }[] = [
   { key: '1M', label: '1M', tvInterval: 'M' },
 ];
 
-// ==================== TRADINGVIEW SYMBOL RESOLVER ====================
+// ==================== SYMBOL RESOLVER ====================
 function resolveTVSymbol(symbol: string): string {
   if (!symbol) return 'NSE:NIFTY';
   const s = symbol.toUpperCase().trim();
-
   const indexMap: Record<string, string> = {
-    'NIFTY': 'NSE:NIFTY',
-    'NIFTY50': 'NSE:NIFTY',
-    'BANKNIFTY': 'NSE:BANKNIFTY',
-    'FINNIFTY': 'NSE:FINNIFTY',
-    'NIFTYIT': 'NSE:NIFTYIT',
-    'INDIAVIX': 'NSE:INDIAVIX',
-    'NIFTYNXT50': 'NSE:NIFTYNXT50',
-    'MIDCPNIFTY': 'NSE:MIDCPNIFTY',
+    'NIFTY': 'NSE:NIFTY', 'NIFTY50': 'NSE:NIFTY', 'BANKNIFTY': 'NSE:BANKNIFTY',
+    'FINNIFTY': 'NSE:FINNIFTY', 'NIFTYIT': 'NSE:NIFTYIT', 'INDIAVIX': 'NSE:INDIAVIX',
+    'NIFTYNXT50': 'NSE:NIFTYNXT50', 'MIDCPNIFTY': 'NSE:MIDCPNIFTY',
   };
-
   if (indexMap[s]) return indexMap[s];
-
   const specialMap: Record<string, string> = {
-    'M&M': 'NSE:MM',
-    'M&MFIN': 'NSE:MMFIN',
-    'L&TFH': 'NSE:LTFH',
-    'L&T': 'NSE:LT',
+    'M&M': 'NSE:MM', 'M&MFIN': 'NSE:MMFIN', 'L&TFH': 'NSE:LTFH', 'L&T': 'NSE:LT',
   };
-
   if (specialMap[s]) return specialMap[s];
-
   return 'NSE:' + s;
 }
 
-// ==================== TRADINGVIEW WIDGET ====================
-// Uses the official TradingView Advanced Chart widget library.
-// The script reads its own textContent as JSON config and creates
-// the full interactive chart inside the sibling container div.
+// ==================== TRADINGVIEW WIDGET (tv.js approach) ====================
+// Loads TradingView's tv.js library via next/script, then creates the widget
+// programmatically using new TradingView.widget(). This is the most reliable
+// method for React/Next.js because:
+// 1. next/script handles script loading, caching, and deduplication
+// 2. new TradingView.widget() gives us full programmatic control
+// 3. The library creates its own iframe internally with proper auth
+
+declare global {
+  interface Window {
+    TradingView: {
+      widget: new (config: Record<string, unknown>) => { remove: () => void };
+    };
+  }
+}
+
 function TradingViewWidget({ symbol, timeframe }: {
   symbol: string;
   timeframe: TimeframeKey;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<ReturnType<typeof window.TradingView.widget> | null>(null);
+  const [scriptReady, setScriptReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
   const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
+  // Create/destroy the widget whenever symbol, timeframe, or script readiness changes
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (!scriptReady || !containerRef.current) return;
 
-    // Clear previous widget entirely
+    // Make sure the TradingView global is available
+    const TVLib = window.TradingView;
+    if (!TVLib) {
+      console.warn('[TV] Script loaded but window.TradingView not found, retrying...');
+      const timer = setTimeout(() => setScriptReady(true), 500);
+      return () => clearTimeout(timer);
+    }
+
+    // Destroy previous widget instance
+    if (widgetRef.current) {
+      try { widgetRef.current.remove(); } catch (_) { /* ignore */ }
+      widgetRef.current = null;
+    }
+
+    // Clear container
+    const container = containerRef.current;
     container.innerHTML = '';
 
-    // Step 1: Create outer container (required by TradingView widget)
-    const outerDiv = document.createElement('div');
-    outerDiv.className = 'tradingview-widget-container';
-    outerDiv.style.height = '100%';
-    outerDiv.style.width = '100%';
+    // Create a fresh inner div with a unique ID for TradingView to use
+    const id = 'tv_chart_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    const innerDiv = document.createElement('div');
+    innerDiv.id = id;
+    innerDiv.style.width = '100%';
+    innerDiv.style.height = '550px';
+    container.appendChild(innerDiv);
 
-    // Step 2: Create inner widget div (the chart renders here)
-    const widgetDiv = document.createElement('div');
-    widgetDiv.className = 'tradingview-widget-container__widget';
-    widgetDiv.style.height = '550px';
-    widgetDiv.style.width = '100%';
-    widgetDiv.style.borderRadius = '8px';
-
-    outerDiv.appendChild(widgetDiv);
-
-    // Step 3: Create the config script
-    // TradingView's embed-widget-advanced-chart.js reads the previous
-    // sibling div and uses THIS script's textContent as its configuration.
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-
-    const config = {
-      autosize: false,
-      symbol: tvSymbol,
-      interval: tfConfig.tvInterval,
-      timezone: 'Asia/Kolkata',
-      theme: 'dark',
-      style: '1',
-      locale: 'in',
-      enable_publishing: false,
-      hide_top_toolbar: false,
-      hide_side_toolbar: false,
-      hide_legend: false,
-      allow_symbol_change: false,
-      save_image: true,
-      backgroundColor: 'rgba(10, 14, 26, 1)',
-      gridColor: 'rgba(30, 41, 59, 0.4)',
-      withdateranges: true,
-      details: true,
-      studies: [
-        'RSI@tv-basicstudies',
-        'MACD@tv-basicstudies',
-      ],
-    };
-
-    // The script reads its own textContent to get the config
-    script.textContent = JSON.stringify(config);
-
-    outerDiv.appendChild(script);
-    container.appendChild(outerDiv);
+    try {
+      widgetRef.current = new TVLib.widget({
+        container_id: id,
+        symbol: tvSymbol,
+        interval: tfConfig.tvInterval,
+        timezone: 'Asia/Kolkata',
+        theme: 'dark',
+        style: '1',
+        locale: 'in',
+        hide_top_toolbar: false,
+        hide_side_toolbar: false,
+        hide_legend: false,
+        allow_symbol_change: false,
+        save_image: true,
+        backgroundColor: '#0a0e1a',
+        gridColor: '#1e293b',
+        withdateranges: true,
+        details: true,
+        studies: [
+          'RSI@tv-basicstudies',
+          'MACD@tv-basicstudies',
+        ],
+        width: '100%',
+        height: 550,
+        autosize: false,
+        toolbar_bg: '#0a0e1a',
+        enable_publishing: false,
+      });
+      console.log('[TV] Widget created successfully for', tvSymbol, tfConfig.tvInterval);
+    } catch (err) {
+      console.error('[TV] Widget creation failed:', err);
+    }
 
     return () => {
-      if (container) {
-        container.innerHTML = '';
+      if (widgetRef.current) {
+        try { widgetRef.current.remove(); } catch (_) { /* ignore */ }
+        widgetRef.current = null;
       }
     };
-  }, [tvSymbol, tfConfig.tvInterval]);
+  }, [scriptReady, tvSymbol, tfConfig.tvInterval]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: '100%', minHeight: '560px' }}
-    />
+    <>
+      {/* Load tv.js once — next/script handles caching and dedup */}
+      <Script
+        src="https://s3.tradingview.com/tv.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          console.log('[TV] tv.js loaded successfully');
+          setScriptReady(true);
+        }}
+        onError={() => {
+          console.error('[TV] Failed to load tv.js from s3.tradingview.com');
+          setLoadError(true);
+        }}
+      />
+
+      <div ref={containerRef} style={{ width: '100%', minHeight: '560px', position: 'relative' }}>
+        {!scriptReady && !loadError && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#64748b', fontSize: '13px',
+          }}>
+            Loading TradingView Chart...
+          </div>
+        )}
+        {loadError && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            color: '#ef4444', fontSize: '13px', gap: '8px',
+          }}>
+            <span>Failed to load TradingView. Check your network or ad blocker.</span>
+            <button
+              onClick={() => { setLoadError(false); setScriptReady(false); }}
+              style={{ color: '#3b82f6', fontSize: '12px', cursor: 'pointer' }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
-// ==================== TIMEFRAME TOGGLE BAR ====================
+// ==================== TIMEFRAME TOGGLE ====================
 function TimeframeToggle({ timeframe, setTimeframe }: { timeframe: TimeframeKey; setTimeframe: (t: TimeframeKey) => void }) {
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -214,7 +260,7 @@ function TimeframeToggle({ timeframe, setTimeframe }: { timeframe: TimeframeKey;
   );
 }
 
-// Main export: full strategy section
+// ==================== MAIN EXPORT ====================
 export default function StrategySection({
   chartData, visibleData, latestSignal, signalsLoading, symbol,
 }: {
@@ -236,10 +282,10 @@ export default function StrategySection({
 
   return (
     <div className="space-y-3">
-      {/* Timeframe toggle bar */}
+      {/* Timeframe toggle */}
       <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      {/* TradingView full-featured chart — THE primary chart */}
+      {/* TradingView interactive chart — primary chart */}
       <div className="rounded-lg border border-slate-800/60 bg-[#0a0e1a] overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-800/60">
           <span className="text-[10px] font-semibold text-blue-400">TradingView Chart</span>
@@ -248,7 +294,7 @@ export default function StrategySection({
         {symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
       </div>
 
-      {/* Signal markers (Recharts — supplementary, shows buy/sell dots on strategy signals) */}
+      {/* Signal markers (Recharts — supplementary) */}
       {signalsLoading ? (
         <div className="h-[200px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading signals...</div>
       ) : visibleData.length > 0 ? (
