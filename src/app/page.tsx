@@ -695,6 +695,10 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
 function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   const [sortBy, setSortBy] = useState<string>('changePct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [saveName, setSaveName] = useState('');
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [savedScreeners, setSavedScreeners] = useState<any[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const sorted = useMemo(() => {
     const arr = [...d.filteredScreener];
     arr.sort((a, b) => {
@@ -705,8 +709,91 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     return arr;
   }, [d.filteredScreener, sortBy, sortDir]);
   const handleSort = (col: string) => { if (sortBy === col) setSortDir(p => p === 'asc' ? 'desc' : 'asc'); else { setSortBy(col); setSortDir('desc'); } };
+
+  // Load saved screeners list
+  const loadSaved = async () => {
+    setLoadingSaved(true);
+    try {
+      const res = await fetch('/api/screener?action=list_saved');
+      const data = await res.json();
+      setSavedScreeners(data.saved || []);
+    } catch {}
+    setLoadingSaved(false);
+  };
+
+  // Save current filter
+  const handleSave = async () => {
+    if (!saveName.trim()) return;
+    await fetch('/api/screener', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: saveName.trim(), filters: { signal: d.screenerFilter, sector: d.screenerSector } }),
+    });
+    setSaveName('');
+    setShowSaveInput(false);
+    loadSaved();
+  };
+
+  // Export CSV
+  const handleExport = () => {
+    const url = '/api/screener?export=csv' + (d.screenerFilter !== 'ALL' ? '&signal=' + d.screenerFilter : '') + (d.screenerSector !== 'all' ? '&sector=' + d.screenerSector : '');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `screener-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  // Load a saved filter
+  const handleLoadFilter = (filters: any) => {
+    if (filters.signal) d.setScreenerFilter(filters.signal);
+    if (filters.sector) d.setScreenerSector(filters.sector);
+    d.fetchScreener();
+  };
+
+  // Delete a saved screener
+  const handleDeleteSaved = async (id: string) => {
+    await fetch(`/api/screener?id=${id}`, { method: 'DELETE' });
+    loadSaved();
+  };
+
   return (
-    <P title="Full Stock Screener" icon={Search} source="Screener.in" className="h-full">
+    <P title="Full Stock Screener" icon={Search} source="Screener.in" className="h-full"
+      badge={
+        <div className="flex items-center gap-1">
+          <Button size="sm" variant="outline" className="h-7 text-[10px] border-amber-500/30 text-amber-400 hover:bg-amber-500/10" onClick={() => { loadSaved(); setShowSaveInput(false); }}>
+            <BookmarkPlus className="w-3 h-3 mr-1" />{showSaveInput ? 'Saved' : 'Load'}
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-[10px] border-blue-500/30 text-blue-400 hover:bg-blue-500/10" onClick={() => setShowSaveInput(!showSaveInput)}>
+            <Save className="w-3 h-3 mr-1" />Save
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 text-[10px] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={handleExport} disabled={d.screenerData.length === 0}>
+            <Download className="w-3 h-3 mr-1" />CSV
+          </Button>
+        </div>
+      }
+    >
+      {/* Save Input */}
+      {showSaveInput && (
+        <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-slate-800/30 border border-amber-500/20">
+          <Input placeholder="Screener name..." value={saveName} onChange={e => setSaveName(e.target.value)} className="h-7 text-xs flex-1" onKeyDown={e => e.key === 'Enter' && handleSave()} />
+          <Button size="sm" className="h-7 text-[10px] bg-amber-600 hover:bg-amber-500" onClick={handleSave} disabled={!saveName.trim()}>Save</Button>
+          <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setShowSaveInput(false)}>Cancel</Button>
+        </div>
+      )}
+      {/* Saved Screeners List */}
+      {loadingSaved ? <div className="text-[10px] text-slate-500 mb-2">Loading saved screeners...</div> : savedScreeners.length > 0 && !showSaveInput ? (
+        <div className="mb-3 p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
+          <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1.5">Saved Presets</div>
+          <div className="flex flex-wrap gap-1.5">
+            {savedScreeners.map((s: any) => (
+              <div key={s.id} className="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800/40 border border-slate-700/30 hover:border-emerald-500/30 transition-colors">
+                <button onClick={() => handleLoadFilter(s.filters)} className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium">{s.name}</button>
+                <button onClick={() => handleDeleteSaved(s.id)} className="text-slate-600 hover:text-red-400"><X className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener} disabled={d.screenerLoading}>
           {d.screenerLoading ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1.5" />}

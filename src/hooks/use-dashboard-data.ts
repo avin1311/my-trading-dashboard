@@ -13,8 +13,8 @@ export function useDashboardData() {
   const [equities, setEquities] = useState<StockInfo[]>([]);
   const [indices, setIndices] = useState<StockInfo[]>([]);
   const [sectors, setSectors] = useState<string[]>([]);
-  const [selectedSymbol, setSelectedSymbol] = useState('');
-  const [selectedType, setSelectedType] = useState('equity');
+  const [selectedSymbol, setSelectedSymbol] = useState('NIFTY');
+  const [selectedType, setSelectedType] = useState('index');
   const [signalsLoading, setSignalsLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(true);
 
