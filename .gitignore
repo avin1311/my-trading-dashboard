@@ -68,4 +68,4 @@ scripts/*.json
 
 # keepalive/start scripts (env-specific)
 keepalive.sh
-start.sh
+start.sh.env
