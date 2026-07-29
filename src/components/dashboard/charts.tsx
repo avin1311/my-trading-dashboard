@@ -1,11 +1,25 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+
+// Dynamic import — lightweight-charts only works in browser
+const CandlestickChart = dynamic(() => import('./candlestick-chart'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[520px] bg-[#0a0e1a] flex items-center justify-center">
+      <div className="flex items-center gap-2">
+        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-slate-400">Loading chart engine...</span>
+      </div>
+    </div>
+  ),
+});
 
 export interface OHLCV { date: string; open: number; high: number; low: number; close: number; volume: number; }
 type SignalType = 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
@@ -61,82 +75,16 @@ function RSIGauge({ value }: { value: number | null }) {
 // ==================== TIMEFRAME ====================
 type TimeframeKey = '1m' | '5m' | '15m' | '1H' | '4H' | '1D' | '1W' | '1M';
 
-const TIMEFRAMES: { key: TimeframeKey; label: string; tvInterval: string }[] = [
-  { key: '1m', label: '1m', tvInterval: '1' },
-  { key: '5m', label: '5m', tvInterval: '5' },
-  { key: '15m', label: '15m', tvInterval: '15' },
-  { key: '1H', label: '1H', tvInterval: '60' },
-  { key: '4H', label: '4H', tvInterval: '240' },
-  { key: '1D', label: '1D', tvInterval: 'D' },
-  { key: '1W', label: '1W', tvInterval: 'W' },
-  { key: '1M', label: '1M', tvInterval: 'M' },
+const TIMEFRAMES: { key: TimeframeKey; label: string; apiInterval: string }[] = [
+  { key: '1m', label: '1m', apiInterval: '1' },
+  { key: '5m', label: '5m', apiInterval: '5' },
+  { key: '15m', label: '15m', apiInterval: '15' },
+  { key: '1H', label: '1H', apiInterval: '60' },
+  { key: '4H', label: '4H', apiInterval: '240' },
+  { key: '1D', label: '1D', apiInterval: 'D' },
+  { key: '1W', label: '1W', apiInterval: 'W' },
+  { key: '1M', label: '1M', apiInterval: 'M' },
 ];
-
-// ==================== SYMBOL RESOLVER ====================
-function resolveTVSymbol(symbol: string): string {
-  if (!symbol) return 'NSE:NIFTY';
-  const s = symbol.toUpperCase().trim();
-  const indexMap: Record<string, string> = {
-    'NIFTY': 'NSE:NIFTY', 'NIFTY50': 'NSE:NIFTY', 'BANKNIFTY': 'NSE:BANKNIFTY',
-    'FINNIFTY': 'NSE:FINNIFTY', 'NIFTYIT': 'NSE:NIFTYIT', 'INDIAVIX': 'NSE:INDIAVIX',
-    'NIFTYNXT50': 'NSE:NIFTYNXT50', 'MIDCPNIFTY': 'NSE:MIDCPNIFTY',
-  };
-  if (indexMap[s]) return indexMap[s];
-  const specialMap: Record<string, string> = {
-    'M&M': 'NSE:MM', 'M&MFIN': 'NSE:MMFIN', 'L&TFH': 'NSE:LTFH', 'L&T': 'NSE:LT',
-  };
-  if (specialMap[s]) return specialMap[s];
-  return 'NSE:' + s;
-}
-
-// ==================== TRADINGVIEW WIDGET ====================
-// Uses TradingView's official widgetembed iframe endpoint (s.tradingview.com/widgetembed/).
-// This is the same embedding method used by Zerodha, Groww, and other Indian platforms.
-// No JS libraries, no document.currentScript, no NSE popup — direct iframe to TV's servers.
-
-function TradingViewWidget({ symbol, timeframe }: {
-  symbol: string;
-  timeframe: TimeframeKey;
-}) {
-  const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
-  const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
-
-  // Direct TradingView widgetembed iframe — the same method Zerodha/Groww use.
-  // s.tradingview.com/widgetembed/ is TradingView's official embed endpoint.
-  // No JS libraries needed, no document.currentScript issues, no NSE popup.
-  const iframeSrc = useMemo(() => {
-    const p = new URLSearchParams({
-      frameElementId: 'tradingview_frame',
-      symbol: tvSymbol,
-      interval: tfConfig.tvInterval,
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      timezone: 'Asia/Kolkata',
-      withdateranges: 'true',
-      details: 'true',
-      hide_top_toolbar: 'false',
-      hide_side_toolbar: 'false',
-      hide_legend: 'false',
-      save_image: 'true',
-      enable_publishing: 'false',
-      allow_symbol_change: 'true',
-      backgroundColor: 'rgba(10, 14, 26, 1)',
-      gridColor: 'rgba(30, 41, 59, 0.4)',
-    });
-    return 'https://s.tradingview.com/widgetembed/?' + p.toString();
-  }, [tvSymbol, tfConfig.tvInterval]);
-
-  return (
-    <iframe
-      key={iframeSrc}
-      src={iframeSrc}
-      style={{ width: '100%', height: '560px', border: 'none', display: 'block' }}
-      title={`TradingView Chart - ${symbol}`}
-      allowFullScreen
-    />
-  );
-}
 
 // ==================== TIMEFRAME TOGGLE ====================
 function TimeframeToggle({ timeframe, setTimeframe }: { timeframe: TimeframeKey; setTimeframe: (t: TimeframeKey) => void }) {
@@ -174,6 +122,8 @@ export default function StrategySection({
   symbol?: string;
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
+  const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
+
   const priceMin = useMemo(() => {
     if (visibleData.length === 0) return 0;
     return Math.min(...visibleData.map(d => d.low)) * 0.998;
@@ -183,18 +133,36 @@ export default function StrategySection({
     return Math.max(...visibleData.map(d => d.high)) * 1.002;
   }, [visibleData]);
 
+  // Build supertrend overlay data for the candlestick chart (daily only)
+  const stOverlay = useMemo(() => {
+    if (timeframe !== '1D') return undefined;
+    return chartData.map(d => ({
+      date: d.date,
+      supertrend: d.supertrend,
+      supertrendDir: d.supertrendDir,
+    }));
+  }, [chartData, timeframe]);
+
   return (
     <div className="space-y-3">
       {/* Timeframe toggle */}
       <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      {/* TradingView interactive chart — primary chart */}
+      {/* Real candlestick chart — powered by TradingView's Lightweight Charts */}
       <div className="rounded-lg border border-slate-800/60 bg-[#0a0e1a] overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-800/60">
-          <span className="text-[10px] font-semibold text-blue-400">TradingView Chart</span>
-          <span className="text-[9px] text-slate-600">Interactive — drawing tools, indicators & studies</span>
+          <span className="text-[10px] font-semibold text-blue-400">NSE Chart</span>
+          <span className="text-[9px] text-slate-600">{symbol || ''} — Candlestick + Volume + Supertrend</span>
+          <span className="text-[9px] text-slate-700 ml-auto">Powered by Lightweight Charts</span>
         </div>
-        {symbol && <TradingViewWidget symbol={symbol} timeframe={timeframe} />}
+        {symbol && (
+          <CandlestickChart
+            symbol={symbol}
+            interval={tfConfig.apiInterval}
+            height={520}
+            supertrendData={stOverlay}
+          />
+        )}
       </div>
 
       {/* Signal markers (Recharts — supplementary) */}
