@@ -1486,25 +1486,22 @@ function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   const [form, setForm] = useState({ symbol: '', name: '', qty: '', avgPrice: '', sector: '' });
   const [tradeForm, setTradeForm] = useState({ symbol: '', name: '', type: 'BUY', qty: '', price: '', pnl: '', note: '' });
 
-  const fetchPortfolio = async () => {
-    try {
-      const res = await fetch('/api/portfolio');
-      const data = await res.json();
-      setHoldings(data.holdings || []);
-      setTotals(data.totals || {});
-      setTrades(data.trades || []);
-    } catch {}
-    setLoading(false);
-  };
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => { if (cancelled) return; try { const res = await fetch('/api/portfolio'); const data = await res.json(); if (!cancelled) { setHoldings(data.holdings || []); setTotals(data.totals || {}); setTrades(data.trades || []); } } catch {} if (!cancelled) setLoading(false); };
+    load(); const iv = setInterval(load, 15000); return () => { cancelled = true; clearInterval(iv); };
+  }, []);
 
-  useEffect(() => { fetchPortfolio(); const iv = setInterval(fetchPortfolio, 15000); return () => clearInterval(iv); }, []);
+  const reloadPortfolio = async () => {
+    try { const res = await fetch('/api/portfolio'); const data = await res.json(); setHoldings(data.holdings || []); setTotals(data.totals || {}); setTrades(data.trades || []); } catch {}
+  };
 
   const handleAddHolding = async () => {
     if (!form.symbol || !form.qty || !form.avgPrice) return;
     await fetch('/api/portfolio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     setForm({ symbol: '', name: '', qty: '', avgPrice: '', sector: '' });
     setShowAddHolding(false);
-    fetchPortfolio();
+    reloadPortfolio();
   };
 
   const handleAddTrade = async () => {
@@ -1512,17 +1509,17 @@ function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     await fetch('/api/portfolio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...tradeForm, _type: 'trade' }) });
     setTradeForm({ symbol: '', name: '', type: 'BUY', qty: '', price: '', pnl: '', note: '' });
     setShowAddTrade(false);
-    fetchPortfolio();
+    reloadPortfolio();
   };
 
   const handleDeleteHolding = async (id: string) => {
     await fetch(`/api/portfolio?id=${id}`, { method: 'DELETE' });
-    fetchPortfolio();
+    reloadPortfolio();
   };
 
   const handleDeleteTrade = async (id: string) => {
     await fetch(`/api/portfolio?id=${id}&type=trade`, { method: 'DELETE' });
-    fetchPortfolio();
+    reloadPortfolio();
   };
 
   return (
@@ -1675,41 +1672,37 @@ function AlertsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
 
-  const fetchAlerts = async () => {
-    try {
-      const res = await fetch('/api/alerts');
-      const data = await res.json();
-      setAlerts(data.alerts || []);
-      if (data.justTriggered?.length > 0) {
-        setJustTriggered(data.justTriggered);
-      }
-    } catch {}
-    setLoading(false);
-  };
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => { if (cancelled) return; try { const res = await fetch('/api/alerts'); const data = await res.json(); if (!cancelled) { setAlerts(data.alerts || []); if (data.justTriggered?.length > 0) setJustTriggered(data.justTriggered); } } catch {} if (!cancelled) setLoading(false); };
+    load(); const iv = setInterval(load, 15000); return () => { cancelled = true; clearInterval(iv); };
+  }, []);
 
-  useEffect(() => { fetchAlerts(); const iv = setInterval(fetchAlerts, 15000); return () => clearInterval(iv); }, []);
+  const reloadAlerts = async () => {
+    try { const res = await fetch('/api/alerts'); const data = await res.json(); setAlerts(data.alerts || []); if (data.justTriggered?.length > 0) setJustTriggered(data.justTriggered); } catch {}
+  };
 
   const handleAdd = async () => {
     if (!form.symbol || !form.targetPrice) return;
     await fetch('/api/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     setForm({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
     setShowAdd(false);
-    fetchAlerts();
+    reloadAlerts();
   };
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/alerts?id=${id}`, { method: 'DELETE' });
-    fetchAlerts();
+    reloadAlerts();
   };
 
   const handleToggle = async (id: string, active: boolean) => {
     await fetch('/api/alerts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: !active }) });
-    fetchAlerts();
+    reloadAlerts();
   };
 
   const handleReset = async (id: string) => {
     await fetch('/api/alerts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, triggered: false }) });
-    fetchAlerts();
+    reloadAlerts();
   };
 
   const activeAlerts = alerts.filter(a => a.active && !a.triggered);
