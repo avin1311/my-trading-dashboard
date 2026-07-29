@@ -176,12 +176,22 @@ export function useDashboardData() {
     } catch (err) { console.warn('[fetchOptions]', err); } finally { setOptionsLoading(false); }
   }, []);
 
-  // When symbol changes: fetch detail + news + auto-generate signals/backtest
+  // When symbol changes (or on first mount): fetch detail + news + signals
+  const initialFetchDone = useRef(false);
   useEffect(() => {
     if (!selectedSymbol) return;
+    // On first mount with default symbol, always fetch
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchDetail(selectedSymbol);
+      fetchNews(selectedSymbol);
+      fetchSignals(selectedSymbol, params, backtestDays);
+      return;
+    }
     fetchDetail(selectedSymbol);
     fetchNews(selectedSymbol);
     fetchSignals(selectedSymbol, params, backtestDays);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSymbol]);
 
   // Auto-switch OI underlying when selected symbol is a known index

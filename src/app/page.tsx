@@ -294,8 +294,8 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks }: { d: ReturnType<typeof u
 
 // ==================== OVERVIEW VIEW ====================
 function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
-  // Market landing page when no stock is selected
-  if (!d.selectedSymbol || !d.q) {
+  // Market landing page when no stock is selected at all
+  if (!d.selectedSymbol) {
     const topGainers = d.overview?.topGainers || [];
     const topLosers = d.overview?.topLosers || [];
     return (
@@ -397,6 +397,16 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
             </P>
           </div>
         </div>
+      </div>
+    );
+  }
+  // Stock is selected but data not yet loaded — show loading
+  if (!d.q) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <RefreshCw className="w-6 h-6 animate-spin text-emerald-400 mb-3" />
+        <p className="text-sm text-slate-300">Loading {d.selectedSymbol} data...</p>
+        <p className="text-xs text-slate-500 mt-1">Fetching quote, signals & fundamentals</p>
       </div>
     );
   }
@@ -846,7 +856,8 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== CHART VIEW (TradingView Style) ====================
 function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('price charts & indicators');
+  if (!d.selectedSymbol) return EMPTY_STOCK('price charts & indicators');
+  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   return (
     <div className="space-y-3">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
@@ -877,7 +888,8 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== FUNDAMENTALS VIEW (Tickertape Style) ====================
 function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('fundamentals & financials');
+  if (!d.selectedSymbol) return EMPTY_STOCK('fundamentals & financials');
+  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   const fundSections = [
     { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
       { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
@@ -934,7 +946,8 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== TECHNICALS VIEW (TradingView Style) ====================
 function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('technical indicators');
+  if (!d.selectedSymbol) return EMPTY_STOCK('technical indicators');
+  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
@@ -1044,7 +1057,8 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
 // ==================== STRATEGY VIEW ====================
 function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
-  if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('trading strategies & signals');
+  if (!d.selectedSymbol) return EMPTY_STOCK('trading strategies & signals');
+  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
@@ -1139,6 +1153,7 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 // ==================== NEWS VIEW (Moneycontrol Style) ====================
 function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('news & headlines');
+  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   return (
     <P title={`${d.selectedSymbol} — News & Headlines`} icon={Newspaper} badge={d.news.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-700 text-slate-400">{d.news.length} articles</Badge>} source="Moneycontrol / Google News">
       <Button size="sm" variant="ghost" className="h-7 text-[10px] mb-3 text-slate-400 hover:text-white" onClick={() => d.fetchNews(d.selectedSymbol)} disabled={d.newsLoading}>
