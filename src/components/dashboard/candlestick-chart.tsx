@@ -4,13 +4,16 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import {
   createChart,
   type IChartApi,
-  type ISeriesApi,
   ColorType,
   CrosshairMode,
   type CandlestickData,
   type HistogramData,
+  type LineData,
   type Time,
   LineStyle,
+  CandlestickSeries,
+  HistogramSeries,
+  LineSeries,
 } from 'lightweight-charts';
 
 interface ChartData {
@@ -24,7 +27,7 @@ interface ChartData {
 
 interface CandlestickChartProps {
   symbol: string;
-  interval: string; // TV interval key: '1', '5', '15', '60', '240', 'D', 'W', 'M'
+  interval: string;
   height?: number;
   supertrendData?: Array<{ date: string; supertrend: number | null; supertrendDir: number | null }>;
 }
@@ -32,19 +35,16 @@ interface CandlestickChartProps {
 export default function CandlestickChart({ symbol, interval, height = 520, supertrendData }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const stLineRef = useRef<ISeriesApi<'Line'> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const fetchIdRef = useRef(0);
 
-  const fetchData = useCallback(async (symbol: string, interval: string, id: number) => {
+  const fetchData = useCallback(async (sym: string, intv: string, id: number) => {
     try {
-      const res = await fetch(`/api/chart-data?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}`);
+      const res = await fetch(`/api/chart-data?symbol=${encodeURIComponent(sym)}&interval=${encodeURIComponent(intv)}`);
       if (!res.ok) throw new Error(`API ${res.status}`);
       const json = await res.json();
-      if (fetchIdRef.current !== id) return; // stale
+      if (fetchIdRef.current !== id) return;
       return json.data as ChartData[];
     } catch (e: any) {
       if (fetchIdRef.current !== id) return;
@@ -61,7 +61,6 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
     setLoading(true);
     setError('');
 
-    // Create chart
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
@@ -99,8 +98,8 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
 
     chartRef.current = chart;
 
-    // Candlestick series
-    const candleSeries = chart.addCandlestickSeries({
+    // v5 API: chart.addSeries(SeriesDefinition, options)
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#10b981',
       downColor: '#ef4444',
       borderUpColor: '#10b981',
@@ -108,20 +107,16 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
       wickUpColor: '#10b981',
       wickDownColor: '#ef4444',
     });
-    candleSeriesRef.current = candleSeries;
 
-    // Volume series
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
     });
     chart.priceScale('volume').applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
     });
-    volumeSeriesRef.current = volumeSeries;
 
-    // Supertrend line
-    const stLine = chart.addLineSeries({
+    const stLine = chart.addSeries(LineSeries, {
       color: '#f59e0b',
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
@@ -129,9 +124,7 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    stLineRef.current = stLine;
 
-    // Fetch data
     fetchData(symbol, interval, id).then((data) => {
       if (!data || fetchIdRef.current !== id) return;
 
@@ -157,13 +150,11 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
       }));
       volumeSeries.setData(volumeData);
 
-      // Supertrend overlay from signal data
+      // Supertrend overlay
       if (supertrendData && supertrendData.length > 0) {
-        const stPoints: Array<{ time: Time; value: number; color: string }> = [];
+        const stPoints: LineData[] = [];
         for (const st of supertrendData) {
           if (st.supertrend == null) continue;
-          const ts = Math.floor(new Date(st.date).getTime() / 1000);
-          // Find the matching candle time
           const match = data.find((d) => {
             const dt = new Date(d.time * 1000);
             return dt.toISOString().split('T')[0] === st.date;
@@ -185,7 +176,6 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
       setLoading(false);
     });
 
-    // Resize observer
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width } = entry.contentRect;
@@ -202,7 +192,7 @@ export default function CandlestickChart({ symbol, interval, height = 520, super
         chartRef.current = null;
       }
     };
-  }, [symbol, interval, fetchData, supertrendData]);
+  }, [symbol, interval, fetchData, supertrendData, height]);
 
   return (
     <div className="relative w-full">
