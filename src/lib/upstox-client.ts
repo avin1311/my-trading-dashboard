@@ -518,3 +518,195 @@ export async function refreshInstrumentCache(): Promise<UpstoxInstrument[]> {
   instrumentCacheTime = 0;
   return loadInstruments();
 }
+
+// ==================== LIVE QUOTE API ====================
+
+export interface UpstoxLiveQuote {
+  symbol: string;
+  ltp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  change: number;
+  changePct: number;
+  oi?: number;
+  bestBuyPrice?: number;
+  bestSellPrice?: number;
+  timestamp: number;
+}
+
+/**
+ * Fetch live OHLC quote from Upstox REST API for a single NSE symbol.
+ * Falls back gracefully if not connected.
+ */
+export async function fetchUpstoxLiveQuote(symbol: string): Promise<UpstoxLiveQuote | null> {
+  const { toInstrumentKey } = await import('./instrument-keys');
+  const instrumentKey = toInstrumentKey(symbol);
+  if (!instrumentKey) return null;
+
+  const data = await upstoxFetch<Record<string, any>>(`/market-quote/ohlc?instrument_key=${encodeURIComponent(instrumentKey)}`);
+  if (!data) return null;
+
+  // Response can be array or object keyed by instrument_key
+  let quote: any = null;
+  if (Array.isArray(data)) {
+    quote = data[0];
+  } else if (typeof data === 'object') {
+    quote = data[instrumentKey] || Object.values(data)[0];
+  }
+  if (!quote) return null;
+
+  const ltp = parseFloat(quote.last_price) || 0;
+  const close = parseFloat(quote.ohlc?.close) || 0;
+  const change = ltp - close;
+  const changePct = close > 0 ? (change / close) * 100 : 0;
+
+  return {
+    symbol: symbol.toUpperCase(),
+    ltp,
+    open: parseFloat(quote.ohlc?.open) || 0,
+    high: parseFloat(quote.ohlc?.high) || parseFloat(quote.high_price) || 0,
+    low: parseFloat(quote.ohlc?.low) || parseFloat(quote.low_price) || 0,
+    close,
+    volume: parseInt(quote.volume_traded || quote.volume, 10) || 0,
+    change: Math.round(change * 100) / 100,
+    changePct: Math.round(changePct * 100) / 100,
+    oi: quote.oi ? parseInt(quote.oi, 10) : undefined,
+    bestBuyPrice: quote.buy_quantity_1 ? parseFloat(quote.buy_price_1) : undefined,
+    bestSellPrice: quote.sell_quantity_1 ? parseFloat(quote.sell_price_1) : undefined,
+    timestamp: Date.now(),
+  };
+}
+
+/**
+ * Batch fetch live quotes for multiple symbols.
+ */
+export async function fetchUpstoxLiveQuotes(symbols: string[]): Promise<Map<string, UpstoxLiveQuote>> {
+  const { toInstrumentKeys } = await import('./instrument-keys');
+  const keys = toInstrumentKeys(symbols);
+  if (keys.length === 0) return new Map();
+
+  const result = new Map<string, UpstoxLiveQuote>();
+  const BATCH = 50;
+  for (let i = 0; i < keys.length; i += BATCH) {
+    const batch = keys.slice(i, i + BATCH);
+    const data = await upstoxFetch<Record<string, any>>(`/market-quote/ohlc?instrument_key=${encodeURIComponent(batch.join(','))}`);
+    if (!data) continue;
+
+    if (Array.isArray(data)) {
+      for (const q of data) {
+        const sym = extractSymbolFromQuote(q);
+        if (sym) result.set(sym, buildQuote(sym, q));
+      }
+    } else if (typeof data === 'object') {
+      for (const [key, q] of Object.entries(data)) {
+        const sym = extractSymbolFromInstrumentKey(key);
+        if (sym && q && typeof q === 'object') result.set(sym, buildQuote(sym, q as any));
+      }
+    }
+  }
+  return result;
+}
+
+function extractSymbolFromQuote(q: any): string | null {
+  const instKey = q.instrument_key || '';
+  return extractSymbolFromInstrumentKey(instKey);
+}
+
+function extractSymbolFromInstrumentKey(instKey: string): string | null {
+  const INDEX_MAP: Record<string, string> = {
+    'Nifty 50': 'NIFTY', 'Nifty Bank': 'BANKNIFTY', 'Nifty IT': 'NIFTYIT',
+    'Nifty Fin Service': 'FINNIFTY', 'Nifty Next 50': 'NIFTYNXT50',
+    'Nifty Midcap 50': 'MIDCPNIFTY', 'India VIX': 'INDIAVIX',
+  };
+  for (const [name, sym] of Object.entries(INDEX_MAP)) {
+    if (instKey.includes(name)) return sym;
+  }
+  const parts = instKey.split('|');
+  return parts.length === 2 ? parts[1].trim().toUpperCase() : null;
+}
+
+function buildQuote(symbol: string, q: any): UpstoxLiveQuote {
+  const ltp = parseFloat(q.last_price) || 0;
+  const close = parseFloat(q.ohlc?.close) || 0;
+  const change = ltp - close;
+  const changePct = close > 0 ? (change / close) * 100 : 0;
+  return {
+    symbol,
+    ltp,
+    open: parseFloat(q.ohlc?.open) || 0,
+    high: parseFloat(q.ohlc?.high) || parseFloat(q.high_price) || 0,
+    low: parseFloat(q.ohlc?.low) || parseFloat(q.low_price) || 0,
+    close,
+    volume: parseInt(q.volume_traded || q.volume, 10) || 0,
+    change: Math.round(change * 100) / 100,
+    changePct: Math.round(changePct * 100) / 100,
+    oi: q.oi ? parseInt(q.oi, 10) : undefined,
+    timestamp: Date.now(),
+  };
+}
+
+// ==================== HISTORICAL CANDLE DATA API ====================
+
+export interface UpstoxCandle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+// Map our interval keys to Upstox historical API intervals
+const UPSTOX_INTERVAL_MAP: Record<string, string> = {
+  '1m': '1minute',
+  '5m': '5minute',
+  '15m': '15minute',
+  '60': '30minute', // Upstox has 30min, not 1h — use 30min as closest
+  '240': 'day',
+  'D': 'day',
+  'W': 'week',
+  'M': 'month',
+};
+
+/**
+ * Fetch historical OHLCV candles from Upstox REST API.
+ * Returns data in the same format as Yahoo Finance chart-data API.
+ */
+export async function fetchUpstoxHistorical(
+  symbol: string,
+  interval: string = 'D',
+  days: number = 365
+): Promise<UpstoxCandle[]> {
+  const { toInstrumentKey } = await import('./instrument-keys');
+  const instrumentKey = toInstrumentKey(symbol);
+  if (!instrumentKey) return [];
+
+  const upstoxInterval = UPSTOX_INTERVAL_MAP[interval] || 'day';
+  const fromDate = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+  const toDate = new Date().toISOString().split('T')[0];
+
+  const data = await upstoxFetch<any>(
+    `/historical-candle/instrument_key/${encodeURIComponent(instrumentKey)}/interval/${upstoxInterval}/to/${toDate}/from/${fromDate}`
+  );
+
+  if (!data || !Array.isArray(data)) return [];
+
+  return data
+    .map((c: any) => {
+      const close = parseFloat(c.close);
+      if (close <= 0) return null;
+      return {
+        time: parseInt(c.timestamp || c.epoch, 10) || Math.floor(new Date(c.date || Date.now()).getTime() / 1000),
+        open: Math.round((parseFloat(c.open) || close) * 100) / 100,
+        high: Math.round((parseFloat(c.high) || close) * 100) / 100,
+        low: Math.round((parseFloat(c.low) || close) * 100) / 100,
+        close: Math.round(close * 100) / 100,
+        volume: parseInt(c.volume || c.volume_traded, 10) || 0,
+      };
+    })
+    .filter((c: UpstoxCandle | null): c is UpstoxCandle => c !== null)
+    .sort((a: UpstoxCandle, b: UpstoxCandle) => a.time - b.time);
+}

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff } from 'lucide-react';
+import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff, Wallet, Bell, BellRing, Plus, Trash2, ToggleLeft, ToggleRight, History, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,7 @@ import { VolumeProfile } from '@/components/dashboard/volume-profile';
 import type { LiveQuote, StrategySignal, ScreenerResult, PeerData, StrategyParams } from '@/lib/types';
 
 // ==================== TYPES ====================
-type ViewType = 'overview' | 'screener' | 'chart' | 'fundamentals' | 'technicals' | 'strategy' | 'news' | 'watchlist' | 'oi';
+type ViewType = 'overview' | 'screener' | 'chart' | 'fundamentals' | 'technicals' | 'strategy' | 'news' | 'watchlist' | 'portfolio' | 'alerts' | 'oi';
 
 interface NavItem {
   id: ViewType;
@@ -42,11 +42,13 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, source: 'Aggregated', color: 'from-emerald-500/20 to-cyan-500/10' },
   { id: 'screener', label: 'Screener', icon: ScanSearch, source: 'Screener.in', color: 'from-blue-500/20 to-indigo-500/10' },
-  { id: 'chart', label: 'Chart', icon: LineChart, source: 'TradingView', color: 'from-amber-500/20 to-orange-500/10' },
+  { id: 'chart', label: 'Chart', icon: LineChart, source: 'Yahoo/Upstox', color: 'from-amber-500/20 to-orange-500/10' },
   { id: 'fundamentals', label: 'Fundamentals', icon: BookOpen, source: 'Tickertape', color: 'from-purple-500/20 to-pink-500/10' },
   { id: 'technicals', label: 'Technicals', icon: Cpu, source: 'TradingView', color: 'from-cyan-500/20 to-blue-500/10' },
   { id: 'strategy', label: 'Strategy', icon: Target, source: 'Signal Engine', color: 'from-rose-500/20 to-red-500/10' },
   { id: 'news', label: 'News', icon: Newspaper, source: 'Moneycontrol', color: 'from-teal-500/20 to-emerald-500/10' },
+  { id: 'portfolio', label: 'Portfolio', icon: Wallet, source: 'Live P&L', color: 'from-emerald-500/20 to-green-500/10' },
+  { id: 'alerts', label: 'Alerts', icon: Bell, source: 'Price Monitor', color: 'from-amber-500/20 to-red-500/10' },
   { id: 'watchlist', label: 'Watchlist', icon: Star, source: 'Custom', color: 'from-amber-500/20 to-yellow-500/10' },
   { id: 'oi', label: 'Open Interest', icon: GitBranch, source: 'NSE OI Data', color: 'from-violet-500/20 to-purple-500/10' },
 ];
@@ -1472,6 +1474,373 @@ function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   );
 }
 
+// ==================== PORTFOLIO VIEW ====================
+function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+  const [holdings, setHoldings] = useState<any[]>([]);
+  const [totals, setTotals] = useState<any>({});
+  const [trades, setTrades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddHolding, setShowAddHolding] = useState(false);
+  const [showAddTrade, setShowAddTrade] = useState(false);
+  const [activeTab, setActiveTab] = useState<'holdings' | 'trades'>('holdings');
+  const [form, setForm] = useState({ symbol: '', name: '', qty: '', avgPrice: '', sector: '' });
+  const [tradeForm, setTradeForm] = useState({ symbol: '', name: '', type: 'BUY', qty: '', price: '', pnl: '', note: '' });
+
+  const fetchPortfolio = async () => {
+    try {
+      const res = await fetch('/api/portfolio');
+      const data = await res.json();
+      setHoldings(data.holdings || []);
+      setTotals(data.totals || {});
+      setTrades(data.trades || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPortfolio(); const iv = setInterval(fetchPortfolio, 15000); return () => clearInterval(iv); }, []);
+
+  const handleAddHolding = async () => {
+    if (!form.symbol || !form.qty || !form.avgPrice) return;
+    await fetch('/api/portfolio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    setForm({ symbol: '', name: '', qty: '', avgPrice: '', sector: '' });
+    setShowAddHolding(false);
+    fetchPortfolio();
+  };
+
+  const handleAddTrade = async () => {
+    if (!tradeForm.symbol || !tradeForm.qty || !tradeForm.price) return;
+    await fetch('/api/portfolio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...tradeForm, _type: 'trade' }) });
+    setTradeForm({ symbol: '', name: '', type: 'BUY', qty: '', price: '', pnl: '', note: '' });
+    setShowAddTrade(false);
+    fetchPortfolio();
+  };
+
+  const handleDeleteHolding = async (id: string) => {
+    await fetch(`/api/portfolio?id=${id}`, { method: 'DELETE' });
+    fetchPortfolio();
+  };
+
+  const handleDeleteTrade = async (id: string) => {
+    await fetch(`/api/portfolio?id=${id}&type=trade`, { method: 'DELETE' });
+    fetchPortfolio();
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Portfolio Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <MBox label="Total Invested" value={fINR(totals.totalInvested || 0)} sub="Cost basis" color="text-slate-200" />
+        <MBox label="Current Value" value={fINR(totals.totalCurrent || 0)} sub="Mark-to-market" color="text-slate-200" />
+        <MBox label="Total P&L" value={fINR(totals.totalPnl || 0)} sub={fINR(0) + "invested"} color={(totals.totalPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+        <MBox label="P&L %" value={(totals.totalPnlPct || 0).toFixed(2) + '%'} sub="Overall return" color={(totals.totalPnlPct || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+        <MBox label="Day P&L" value={fINR(totals.totalDayPnl || 0)} sub="Today's change" color={(totals.totalDayPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+      </div>
+
+      {/* Holdings & Trades Tabs */}
+      <P title="Portfolio Manager" icon={Wallet} source="Live P&L"
+        badge={
+          <div className="flex items-center gap-1">
+            <Button size="sm" className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={() => setShowAddHolding(!showAddHolding)}><Plus className="w-3 h-3 mr-1" />Holding</Button>
+            <Button size="sm" variant="outline" className="h-7 text-[10px] border-amber-500/30 text-amber-400 hover:bg-amber-500/10" onClick={() => setShowAddTrade(!showAddTrade)}><Plus className="w-3 h-3 mr-1" />Trade</Button>
+          </div>
+        }>
+        {/* Tab Switcher */}
+        <div className="flex gap-1 mb-3">
+          <button className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors', activeTab === 'holdings' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800/20 text-slate-500 hover:text-slate-300')} onClick={() => setActiveTab('holdings')}>
+            Holdings ({holdings.length})
+          </button>
+          <button className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors', activeTab === 'trades' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800/20 text-slate-500 hover:text-slate-300')} onClick={() => setActiveTab('trades')}>
+            Trade Journal ({trades.length})
+          </button>
+        </div>
+
+        {/* Add Holding Form */}
+        {showAddHolding && (
+          <div className="p-3 rounded-lg bg-slate-800/30 border border-emerald-500/20 mb-3">
+            <div className="text-[11px] font-bold text-emerald-400 mb-2">Add New Holding</div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <Input placeholder="Symbol" value={form.symbol} onChange={e => setForm(f => ({ ...f, symbol: e.target.value.toUpperCase() }))} className="h-8 text-xs" />
+              <Input placeholder="Name (optional)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-8 text-xs" />
+              <Input placeholder="Quantity" type="number" value={form.qty} onChange={e => setForm(f => ({ ...f, qty: e.target.value }))} className="h-8 text-xs" />
+              <Input placeholder="Avg Price" type="number" value={form.avgPrice} onChange={e => setForm(f => ({ ...f, avgPrice: e.target.value }))} className="h-8 text-xs" />
+              <Button className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={handleAddHolding}>Add</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Add Trade Form */}
+        {showAddTrade && (
+          <div className="p-3 rounded-lg bg-slate-800/30 border border-amber-500/20 mb-3">
+            <div className="text-[11px] font-bold text-amber-400 mb-2">Add Trade Entry</div>
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
+              <Input placeholder="Symbol" value={tradeForm.symbol} onChange={e => setTradeForm(f => ({ ...f, symbol: e.target.value.toUpperCase() }))} className="h-8 text-xs" />
+              <Select value={tradeForm.type} onValueChange={v => setTradeForm(f => ({ ...f, type: v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="BUY">BUY</SelectItem><SelectItem value="SELL">SELL</SelectItem></SelectContent>
+              </Select>
+              <Input placeholder="Qty" type="number" value={tradeForm.qty} onChange={e => setTradeForm(f => ({ ...f, qty: e.target.value }))} className="h-8 text-xs" />
+              <Input placeholder="Price" type="number" value={tradeForm.price} onChange={e => setTradeForm(f => ({ ...f, price: e.target.value }))} className="h-8 text-xs" />
+              <Input placeholder="P&L (optional)" type="number" value={tradeForm.pnl} onChange={e => setTradeForm(f => ({ ...f, pnl: e.target.value }))} className="h-8 text-xs" />
+              <Input placeholder="Note" value={tradeForm.note} onChange={e => setTradeForm(f => ({ ...f, note: e.target.value }))} className="h-8 text-xs" />
+              <Button className="h-8 text-xs bg-amber-600 hover:bg-amber-500" onClick={handleAddTrade}>Add</Button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'holdings' && (
+          loading ? <div className="flex items-center justify-center py-12"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading portfolio...</span></div> :
+          holdings.length === 0 ? (
+            <div className="text-center py-16">
+              <Wallet className="w-12 h-12 mx-auto mb-3 text-slate-700" />
+              <p className="text-sm text-slate-400">No holdings yet</p>
+              <p className="text-xs text-slate-600 mt-1">Add your stock holdings to track live P&L</p>
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-[calc(100vh-380px)]">
+              <Table>
+                <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+                  {['Stock', 'Qty', 'Avg Price', 'LTP', 'Invested', 'Current', 'P&L', 'Day P&L', ''].map(h => (
+                    <TableHead key={h} className="text-[10px] text-slate-400 h-8">{h}</TableHead>
+                  ))}
+                </TableRow></TableHeader>
+                <TableBody>
+                  {holdings.map((h: any) => (
+                    <TableRow key={h.id} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(h.symbol, 'equity')}>
+                      <TableCell className="text-xs py-2"><div className="font-bold text-slate-200">{h.symbol}</div><div className="text-[9px] text-slate-500">{h.name || h.sector}</div></TableCell>
+                      <TableCell className="text-xs font-mono text-slate-300">{h.qty}</TableCell>
+                      <TableCell className="text-xs font-mono text-slate-300">{h.avgPrice.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-xs font-mono text-slate-200 font-semibold">{h.currentPrice ? h.currentPrice.toLocaleString('en-IN') : '--'}</TableCell>
+                      <TableCell className="text-xs font-mono text-slate-400">{fINR(h.invested)}</TableCell>
+                      <TableCell className="text-xs font-mono text-slate-300">{fINR(h.currentValue)}</TableCell>
+                      <TableCell className="text-xs font-mono">
+                        <div className={h.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          {fINR(h.pnl)} <span className="text-[9px]">({h.pnlPct}%)</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className={cn('text-xs font-mono', h.dayPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                        {fINR(h.dayPnl)}
+                      </TableCell>
+                      <TableCell><button onClick={(e) => { e.stopPropagation(); handleDeleteHolding(h.id); }} className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )
+        )}
+
+        {activeTab === 'trades' && (
+          trades.length === 0 ? (
+            <div className="text-center py-12">
+              <History className="w-10 h-10 mx-auto mb-3 text-slate-700" />
+              <p className="text-sm text-slate-400">No trades logged yet</p>
+              <p className="text-xs text-slate-600 mt-1">Record your buy/sell trades to track performance</p>
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-[calc(100vh-380px)]">
+              <Table>
+                <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+                  {['Date', 'Symbol', 'Type', 'Qty', 'Price', 'P&L', 'Note', ''].map(h => (
+                    <TableHead key={h} className="text-[10px] text-slate-400 h-8">{h}</TableHead>
+                  ))}
+                </TableRow></TableHeader>
+                <TableBody>
+                  {trades.map((t: any) => (
+                    <TableRow key={t.id} className="border-slate-800/50 hover:bg-slate-800/30">
+                      <TableCell className="text-[10px] text-slate-400 py-2">{new Date(t.tradedAt).toLocaleDateString('en-IN')}</TableCell>
+                      <TableCell className="text-xs font-bold text-slate-200 cursor-pointer" onClick={() => d.handleSelect(t.symbol, 'equity')}>{t.symbol}</TableCell>
+                      <TableCell><Badge className={cn('text-[9px] font-bold border', t.type === 'BUY' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400')}>{t.type}</Badge></TableCell>
+                      <TableCell className="text-xs font-mono text-slate-300">{t.qty}</TableCell>
+                      <TableCell className="text-xs font-mono text-slate-300">{Number(t.price).toLocaleString('en-IN')}</TableCell>
+                      <TableCell className={cn('text-xs font-mono', (t.pnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{t.pnl != null ? fINR(t.pnl) : '--'}</TableCell>
+                      <TableCell className="text-[10px] text-slate-500 max-w-[120px] truncate">{t.note}</TableCell>
+                      <TableCell><button onClick={() => handleDeleteTrade(t.id)} className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )
+        )}
+      </P>
+    </div>
+  );
+}
+
+// ==================== ALERTS VIEW ====================
+function AlertsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [justTriggered, setJustTriggered] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
+
+  const fetchAlerts = async () => {
+    try {
+      const res = await fetch('/api/alerts');
+      const data = await res.json();
+      setAlerts(data.alerts || []);
+      if (data.justTriggered?.length > 0) {
+        setJustTriggered(data.justTriggered);
+      }
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAlerts(); const iv = setInterval(fetchAlerts, 15000); return () => clearInterval(iv); }, []);
+
+  const handleAdd = async () => {
+    if (!form.symbol || !form.targetPrice) return;
+    await fetch('/api/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    setForm({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
+    setShowAdd(false);
+    fetchAlerts();
+  };
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/alerts?id=${id}`, { method: 'DELETE' });
+    fetchAlerts();
+  };
+
+  const handleToggle = async (id: string, active: boolean) => {
+    await fetch('/api/alerts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: !active }) });
+    fetchAlerts();
+  };
+
+  const handleReset = async (id: string) => {
+    await fetch('/api/alerts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, triggered: false }) });
+    fetchAlerts();
+  };
+
+  const activeAlerts = alerts.filter(a => a.active && !a.triggered);
+  const triggeredAlerts = alerts.filter(a => a.triggered);
+
+  return (
+    <div className="space-y-3">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <MBox label="Active Alerts" value={String(activeAlerts.length)} sub="Monitoring" color="text-amber-400" />
+        <MBox label="Triggered" value={String(triggeredAlerts.length)} sub="Fired alerts" color="text-emerald-400" />
+        <MBox label="Total" value={String(alerts.length)} sub="All time" color="text-slate-300" />
+      </div>
+
+      {/* Triggered Alert Notifications */}
+      {justTriggered.length > 0 && (
+        <div className="space-y-2">
+          {justTriggered.map((a: any) => (
+            <div key={a.id} className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 animate-pulse">
+              <div className="flex items-center gap-2">
+                <BellRing className="w-4 h-4 text-emerald-400" />
+                <div>
+                  <div className="text-xs font-bold text-emerald-300">{a.symbol} {a.condition === 'above' ? 'crossed above' : 'dropped below'} {Number(a.targetPrice).toLocaleString('en-IN')}</div>
+                  <div className="text-[10px] text-emerald-400/70">Triggered at {a.triggeredPrice?.toLocaleString('en-IN')} — {new Date(a.triggeredAt).toLocaleString('en-IN')}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <P title="Price Alerts" icon={Bell} source="Price Monitor"
+        badge={
+          <Button size="sm" className="h-7 text-[10px] bg-amber-600 hover:bg-amber-500" onClick={() => setShowAdd(!showAdd)}><Plus className="w-3 h-3 mr-1" />New Alert</Button>
+        }>
+        {/* Add Alert Form */}
+        {showAdd && (
+          <div className="p-3 rounded-lg bg-slate-800/30 border border-amber-500/20 mb-3">
+            <div className="text-[11px] font-bold text-amber-400 mb-2">Create Price Alert</div>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+              <Input placeholder="Symbol (e.g. RELIANCE)" value={form.symbol} onChange={e => setForm(f => ({ ...f, symbol: e.target.value.toUpperCase() }))} className="h-8 text-xs" />
+              <Input placeholder="Name (optional)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-8 text-xs" />
+              <Select value={form.condition} onValueChange={v => setForm(f => ({ ...f, condition: v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="above">Goes Above</SelectItem><SelectItem value="below">Goes Below</SelectItem></SelectContent>
+              </Select>
+              <Input placeholder="Target Price" type="number" value={form.targetPrice} onChange={e => setForm(f => ({ ...f, targetPrice: e.target.value }))} className="h-8 text-xs" />
+              <Input placeholder="Note (optional)" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} className="h-8 text-xs" />
+              <Button className="h-8 text-xs bg-amber-600 hover:bg-amber-500" onClick={handleAdd}>Create</Button>
+            </div>
+          </div>
+        )}
+
+        {loading ? <div className="flex items-center justify-center py-12"><RefreshCw className="w-4 h-4 animate-spin text-amber-400 mr-2" /><span className="text-xs text-slate-400">Loading alerts...</span></div> :
+          alerts.length === 0 ? (
+            <div className="text-center py-16">
+              <Bell className="w-12 h-12 mx-auto mb-3 text-slate-700" />
+              <p className="text-sm text-slate-400">No price alerts set</p>
+              <p className="text-xs text-slate-600 mt-1">Get notified when a stock hits your target price</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[calc(100vh-380px)] overflow-y-auto">
+              {/* Active Alerts */}
+              {activeAlerts.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Active Alerts ({activeAlerts.length})</div>
+                  <div className="space-y-1.5">
+                    {activeAlerts.map((a: any) => (
+                      <div key={a.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/15 border border-slate-800/30 hover:bg-slate-800/30">
+                        <div className="flex items-center gap-3 min-w-0 cursor-pointer" onClick={() => d.handleSelect(a.symbol, 'equity')}>
+                          <div className={cn('w-2 h-2 rounded-full shrink-0', a.condition === 'above' ? 'bg-emerald-400' : 'bg-red-400')} />
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-200">{a.symbol} <span className="text-[9px] text-slate-500 font-normal">{a.condition === 'above' ? '>= ABOVE' : '<= BELOW'}</span></div>
+                            <div className="text-[10px] text-slate-500">Target: {Number(a.targetPrice).toLocaleString('en-IN')} {a.note && <span className="text-slate-600 ml-1">· {a.note}</span>}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {a.currentPrice && (
+                            <div className="text-right mr-1">
+                              <div className="text-[10px] font-mono text-slate-400">LTP: {a.currentPrice.toLocaleString('en-IN')}</div>
+                              <div className="text-[9px] text-slate-600">Gap: {a.condition === 'above' ? '+' : '-'}{Math.abs(a.currentPrice - a.targetPrice).toFixed(1)}</div>
+                            </div>
+                          )}
+                          <button onClick={() => handleToggle(a.id, true)} className="p-1 rounded hover:bg-slate-700/50 text-amber-400" title="Pause alert">
+                            <ToggleRight className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDelete(a.id)} className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Triggered Alerts */}
+              {triggeredAlerts.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Triggered ({triggeredAlerts.length})</div>
+                  <div className="space-y-1.5">
+                    {triggeredAlerts.map((a: any) => (
+                      <div key={a.id} className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                        <div className="flex items-center gap-3 min-w-0 cursor-pointer" onClick={() => d.handleSelect(a.symbol, 'equity')}>
+                          <BellRing className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-200">{a.symbol} <span className="text-[9px] text-emerald-400 font-normal">triggered!</span></div>
+                            <div className="text-[10px] text-slate-500">Target: {Number(a.targetPrice).toLocaleString('en-IN')} · Hit at: {a.triggeredPrice?.toLocaleString('en-IN')}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[9px] text-slate-600">{a.triggeredAt ? new Date(a.triggeredAt).toLocaleString('en-IN') : ''}</span>
+                          <button onClick={() => handleReset(a.id)} className="p-1 rounded hover:bg-amber-500/20 text-amber-400" title="Re-activate">
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDelete(a.id)} className="p-1 rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        }
+      </P>
+    </div>
+  );
+}
+
 // ==================== WATCHLIST VIEW ====================
 function WatchlistView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
   const [watchlistQuotes, setWatchlistQuotes] = useState<Record<string, { price: number; changePct: number; name: string; loading: boolean }>>({});
@@ -1583,6 +1952,8 @@ export default function Home() {
             {view === 'technicals' && <TechnicalsView d={d} />}
             {view === 'strategy' && <StrategyView d={d} />}
             {view === 'news' && <NewsView d={d} />}
+            {view === 'portfolio' && <PortfolioView d={d} />}
+            {view === 'alerts' && <AlertsView d={d} />}
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
             {view === 'oi' && <OpenInterestView d={d} />}
           </main>

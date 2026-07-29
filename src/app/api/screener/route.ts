@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLiveQuote, getHistoricalData } from "@/lib/market-data";
 import { generateSignals, DEFAULT_PARAMS, type StrategyParams } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
+import { db } from "@/lib/db";
 
 // Cache screener results for 5 minutes
 let screenerCache: { data: any[]; timestamp: number; params: string } | null = null;
@@ -10,10 +11,22 @@ const SCREENER_TTL = 5 * 60_000;
 // GET /api/screener?signal=BUY&sector=Banking&limit=20
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+
+  // Saved screeners sub-endpoint
+  if (searchParams.get('action') === 'list_saved') {
+    try {
+      const saved = await db.savedScreener.findMany({ orderBy: { createdAt: 'desc' } });
+      return NextResponse.json({ saved: saved.map(s => ({ id: s.id, name: s.name, filters: JSON.parse(s.filters), createdAt: s.createdAt })) });
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+  }
+
   const signalFilter = searchParams.get("signal") || "";
   const sectorFilter = searchParams.get("sector") || "";
   const rawLimit = Number(searchParams.get("limit"));
   const limit = rawLimit === 0 ? 99999 : Math.min(rawLimit || 50, 100);
+  const exportFormat = searchParams.get('export') || ''; // 'csv'
 
   const params: StrategyParams = {
     supertrendPeriod: Number(searchParams.get("supertrendPeriod")) || DEFAULT_PARAMS.supertrendPeriod,
@@ -30,7 +43,9 @@ export async function GET(request: NextRequest) {
 
   // Return cached if fresh
   if (screenerCache && screenerCache.params === cacheKey && Date.now() - screenerCache.timestamp < SCREENER_TTL) {
-    return NextResponse.json({ ...screenerCache.data, cached: true }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    const resp = { ...screenerCache.data, cached: true };
+    if (exportFormat === 'csv') return csvResponse(resp.results);
+    return NextResponse.json(resp, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
   // Get equities to scan
@@ -122,5 +137,50 @@ export async function GET(request: NextRequest) {
   };
 
   screenerCache = { data: response, timestamp: Date.now(), params: cacheKey };
+
+  if (exportFormat === 'csv') return csvResponse(final);
   return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+}
+
+// POST /api/screener — save a screener preset
+export async function POST(request: NextRequest) {
+  try {
+    const { name, filters } = await request.json();
+    if (!name || !filters) {
+      return NextResponse.json({ error: 'name and filters required' }, { status: 400 });
+    }
+    const saved = await db.savedScreener.create({
+      data: { name, filters: JSON.stringify(filters) },
+    });
+    return NextResponse.json({ saved: { id: saved.id, name: saved.name, filters: JSON.parse(saved.filters), createdAt: saved.createdAt } });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// DELETE /api/screener?id=xxx — delete a saved screener
+export async function DELETE(request: NextRequest) {
+  try {
+    const id = new URL(request.url).searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    await db.savedScreener.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+function csvResponse(results: any[]): NextResponse {
+  const headers = ['Symbol', 'Name', 'Sector', 'Price', 'Change%', 'RSI', 'Signal', 'Volume', 'Market Cap', 'P/E', 'Reason'];
+  const rows = results.map(r => [
+    r.symbol, r.name, r.sector, r.price, r.changePct?.toFixed(2),
+    r.rsi?.toFixed(1) || '', r.signal, r.volume, r.marketCap, r.pe?.toFixed(1) || '', r.signalReason
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+  return new NextResponse(csv, {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="screener-${new Date().toISOString().split('T')[0]}.csv"`,
+    },
+  });
 }

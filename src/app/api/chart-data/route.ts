@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isUpstoxConnected, fetchUpstoxHistorical } from '@/lib/upstox-client';
 
 // Yahoo Finance symbol mapping (same as market-data.ts)
 const YAHOO_SYMBOL_MAP: Record<string, string> = {
@@ -17,13 +18,13 @@ const INTERVAL_MAP: Record<string, { yahoo: string; days: number }> = {
   '15m': { yahoo: '15m', days: 30 },
   '60':  { yahoo: '1h',  days: 30 },
   '240': { yahoo: '1h',  days: 60 },
-  'D':   { yahoo: '1d',  days: 365 },
+  'D':   { yahoo: '1d', days: 365 },
   'W':   { yahoo: '1wk', days: 730 },
   'M':   { yahoo: '1mo', days: 1825 },
 };
 
 // Simple cache
-const cache = new Map<string, { data: any[]; ts: number }>();
+const cache = new Map<string, { data: any[]; ts: number; source: string }>();
 const CACHE_TTL = 30_000; // 30s for intraday, 5min for daily+
 
 async function httpsGet(url: string): Promise<string> {
@@ -62,9 +63,31 @@ export async function GET(request: NextRequest) {
   const ttl = ['1m', '5m', '15m', '60', '240'].includes(interval) ? CACHE_TTL : 300_000;
 
   if (cached && Date.now() - cached.ts < ttl) {
-    return NextResponse.json({ data: cached.data, interval, symbol });
+    return NextResponse.json({ data: cached.data, interval, symbol, source: cached.source });
   }
 
+  // ===== Try Upstox first when connected =====
+  if (isUpstoxConnected()) {
+    try {
+      const upstoxData = await fetchUpstoxHistorical(symbol, interval, cfg.days);
+      if (upstoxData && upstoxData.length > 0) {
+        cache.set(cacheKey, { data: upstoxData, ts: Date.now(), source: 'upstox_live' });
+        return NextResponse.json({
+          data: upstoxData,
+          interval,
+          symbol,
+          exchange: 'NSE',
+          currency: 'INR',
+          dataPoints: upstoxData.length,
+          source: 'upstox_live',
+        });
+      }
+    } catch (err: any) {
+      console.warn('[chart-data] Upstox historical failed, falling back to Yahoo:', err.message);
+    }
+  }
+
+  // ===== Fallback to Yahoo Finance =====
   try {
     const yahooSym = getYahooSymbol(symbol);
     const period1 = Math.floor(Date.now() / 1000 - cfg.days * 86400);
@@ -103,7 +126,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    cache.set(cacheKey, { data, ts: Date.now() });
+    cache.set(cacheKey, { data, ts: Date.now(), source: 'yahoo_finance' });
 
     return NextResponse.json({
       data,
@@ -112,6 +135,7 @@ export async function GET(request: NextRequest) {
       exchange: 'NSE',
       currency: 'INR',
       dataPoints: data.length,
+      source: 'yahoo_finance',
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
