@@ -958,10 +958,6 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('trading strategies & signals');
   return (
     <div className="space-y-3">
-      {/* TradingView Chart */}
-      <P title={`${d.selectedSymbol} — Interactive Chart`} icon={Activity} source="TradingView" className="col-span-full">
-        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
-      </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-5">
           <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
