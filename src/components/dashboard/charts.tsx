@@ -90,13 +90,9 @@ function resolveTVSymbol(symbol: string): string {
 }
 
 // ==================== TRADINGVIEW WIDGET ====================
-// Uses a same-origin iframe to load /tradingview-widget.html which contains
-// the TradingView embed in static HTML. This is the ONLY reliable approach
-// for NSE symbols because:
-// 1. The embed script runs in normal HTML context (not dynamically created)
-// 2. document.currentScript works perfectly in static HTML
-// 3. TradingView can read its config without any React/Next.js interference
-// 4. Same-origin iframe = no X-Frame-Options blocking
+// Uses TradingView's official widgetembed iframe endpoint (s.tradingview.com/widgetembed/).
+// This is the same embedding method used by Zerodha, Groww, and other Indian platforms.
+// No JS libraries, no document.currentScript, no NSE popup — direct iframe to TV's servers.
 
 function TradingViewWidget({ symbol, timeframe }: {
   symbol: string;
@@ -105,13 +101,30 @@ function TradingViewWidget({ symbol, timeframe }: {
   const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
-  // Build the iframe src with symbol and interval as URL params
+  // Direct TradingView widgetembed iframe — the same method Zerodha/Groww use.
+  // s.tradingview.com/widgetembed/ is TradingView's official embed endpoint.
+  // No JS libraries needed, no document.currentScript issues, no NSE popup.
   const iframeSrc = useMemo(() => {
-    const params = new URLSearchParams({
+    const p = new URLSearchParams({
+      frameElementId: 'tradingview_frame',
       symbol: tvSymbol,
       interval: tfConfig.tvInterval,
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      timezone: 'Asia/Kolkata',
+      withdateranges: 'true',
+      details: 'true',
+      hide_top_toolbar: 'false',
+      hide_side_toolbar: 'false',
+      hide_legend: 'false',
+      save_image: 'true',
+      enable_publishing: 'false',
+      allow_symbol_change: 'true',
+      backgroundColor: 'rgba(10, 14, 26, 1)',
+      gridColor: 'rgba(30, 41, 59, 0.4)',
     });
-    return '/tradingview-widget.html?' + params.toString();
+    return 'https://s.tradingview.com/widgetembed/?' + p.toString();
   }, [tvSymbol, tfConfig.tvInterval]);
 
   return (
@@ -120,6 +133,7 @@ function TradingViewWidget({ symbol, timeframe }: {
       src={iframeSrc}
       style={{ width: '100%', height: '560px', border: 'none', display: 'block' }}
       title={`TradingView Chart - ${symbol}`}
+      allowFullScreen
     />
   );
 }
