@@ -404,7 +404,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 xl:col-span-8">
           <P title="Price Chart with Signals" icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="Yahoo Finance">
-            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} />
+            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
           </P>
         </div>
         <div className="col-span-12 xl:col-span-4 space-y-3">
@@ -761,7 +761,7 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   return (
     <div className="space-y-3">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
-        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} />
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
       </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
@@ -958,6 +958,10 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol || !d.q) return EMPTY_STOCK('trading strategies & signals');
   return (
     <div className="space-y-3">
+      {/* TradingView Chart */}
+      <P title={`${d.selectedSymbol} — Interactive Chart`} icon={Activity} source="TradingView" className="col-span-full">
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
+      </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-5">
           <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
