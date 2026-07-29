@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
@@ -90,106 +90,37 @@ function resolveTVSymbol(symbol: string): string {
 }
 
 // ==================== TRADINGVIEW WIDGET ====================
-// Uses embed-widget-advanced-chart.js which renders from TradingView's OWN servers.
-// This gives full access to ALL symbols including NSE India — no restrictions.
-// The tv.js free library restricts NSE symbols; this embed approach does NOT.
+// Uses a same-origin iframe to load /tradingview-widget.html which contains
+// the TradingView embed in static HTML. This is the ONLY reliable approach
+// for NSE symbols because:
+// 1. The embed script runs in normal HTML context (not dynamically created)
+// 2. document.currentScript works perfectly in static HTML
+// 3. TradingView can read its config without any React/Next.js interference
+// 4. Same-origin iframe = no X-Frame-Options blocking
 
 function TradingViewWidget({ symbol, timeframe }: {
   symbol: string;
   timeframe: TimeframeKey;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loadError, setLoadError] = useState(false);
-
   const tvSymbol = useMemo(() => resolveTVSymbol(symbol), [symbol]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    setLoadError(false);
-    container.innerHTML = '';
-
-    // Build the exact DOM structure TradingView's embed script expects:
-    // <div class="tradingview-widget-container">
-    //   <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-    //   <script src="embed-widget-advanced-chart.js">{"symbol":"NSE:RELIANCE",...}</script>
-    // </div>
-
-    const outerDiv = document.createElement('div');
-    outerDiv.className = 'tradingview-widget-container';
-    outerDiv.style.height = '550px';
-    outerDiv.style.width = '100%';
-
-    const widgetDiv = document.createElement('div');
-    widgetDiv.className = 'tradingview-widget-container__widget';
-    widgetDiv.style.height = '100%';
-    widgetDiv.style.width = '100%';
-    outerDiv.appendChild(widgetDiv);
-
-    // Create the config script — TradingView reads this script's textContent
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    // Do NOT set async — document.currentScript must work for config reading
-
-    const config = {
-      autosize: true,
+  // Build the iframe src with symbol and interval as URL params
+  const iframeSrc = useMemo(() => {
+    const params = new URLSearchParams({
       symbol: tvSymbol,
       interval: tfConfig.tvInterval,
-      timezone: 'Asia/Kolkata',
-      theme: 'dark',
-      style: '1',
-      locale: 'in',
-      enable_publishing: false,
-      hide_top_toolbar: false,
-      hide_side_toolbar: false,
-      hide_legend: false,
-      allow_symbol_change: false,
-      save_image: true,
-      backgroundColor: 'rgba(10, 14, 26, 1)',
-      gridColor: 'rgba(30, 41, 59, 0.4)',
-      withdateranges: true,
-      details: true,
-      studies: [
-        'RSI@tv-basicstudies',
-        'MACD@tv-basicstudies',
-      ],
-    };
-
-    script.textContent = JSON.stringify(config);
-
-    // Error handling
-    script.onerror = () => {
-      console.error('[TV] embed-widget-advanced-chart.js failed to load');
-      setLoadError(true);
-    };
-
-    outerDiv.appendChild(script);
-    container.appendChild(outerDiv);
-
-    console.log('[TV] Embed widget injected for', tvSymbol, tfConfig.tvInterval);
-
-    return () => {
-      if (container) {
-        container.innerHTML = '';
-      }
-    };
+    });
+    return '/tradingview-widget.html?' + params.toString();
   }, [tvSymbol, tfConfig.tvInterval]);
 
   return (
-    <div ref={containerRef} style={{ width: '100%', minHeight: '560px', position: 'relative' }}>
-      {loadError && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          color: '#ef4444', fontSize: '13px', gap: '8px',
-        }}>
-          <span>Failed to load TradingView chart. Check network/ad blocker.</span>
-        </div>
-      )}
-    </div>
+    <iframe
+      key={iframeSrc}
+      src={iframeSrc}
+      style={{ width: '100%', height: '560px', border: 'none', display: 'block' }}
+      title={`TradingView Chart - ${symbol}`}
+    />
   );
 }
 

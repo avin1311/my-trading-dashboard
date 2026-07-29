@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingView Chart</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0e1a; }
+    .tradingview-widget-container { height: 100%; width: 100%; }
+    .tradingview-widget-container__widget { height: 100%; width: 100%; }
+  </style>
+</head>
+<body>
+  <!-- TradingView Advanced Chart Widget -->
+  <!-- This is embedded in a same-origin iframe so it works with NSE symbols -->
+  <div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js">
+      {
+        "autosize": true,
+        "symbol": "NSE:NIFTY",
+        "interval": "D",
+        "timezone": "Asia/Kolkata",
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "enable_publishing": false,
+        "allow_symbol_change": true,
+        "hide_top_toolbar": false,
+        "hide_side_toolbar": false,
+        "hide_legend": false,
+        "save_image": true,
+        "backgroundColor": "rgba(10, 14, 26, 1)",
+        "gridColor": "rgba(30, 41, 59, 0.4)",
+        "withdateranges": true,
+        "details": true
+      }
+    </script>
+  </div>
+  <script>
+    // Listen for messages from parent to change symbol/interval
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'tv-symbol-change') {
+        // Reload the page with new params
+        var params = new URLSearchParams(window.location.search);
+        if (e.data.symbol) params.set('symbol', e.data.symbol);
+        if (e.data.interval) params.set('interval', e.data.interval);
+        window.location.search = params.toString();
+      }
+    });
+
+    // Apply URL params on load
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var symbol = params.get('symbol') || 'NSE:NIFTY';
+      var interval = params.get('interval') || 'D';
+
+      // Update the widget config by reloading the script
+      // The embed-widget-advanced-chart.js reads config from the script element
+      // We need to update the config before the script loads
+      var container = document.querySelector('.tradingview-widget-container');
+      if (container) {
+        var widgetDiv = container.querySelector('.tradingview-widget-container__widget');
+        var scriptEl = container.querySelector('script[src*="embed-widget-advanced-chart"]');
+
+        if (scriptEl && widgetDiv) {
+          var config = {
+            "autosize": true,
+            "symbol": symbol,
+            "interval": interval,
+            "timezone": "Asia/Kolkata",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "enable_publishing": false,
+            "allow_symbol_change": true,
+            "hide_top_toolbar": false,
+            "hide_side_toolbar": false,
+            "hide_legend": false,
+            "save_image": true,
+            "backgroundColor": "rgba(10, 14, 26, 1)",
+            "gridColor": "rgba(30, 41, 59, 0.4)",
+            "withdateranges": true,
+            "details": true
+          };
+
+          // Remove old widget content
+          var iframes = container.querySelectorAll('iframe');
+          iframes.forEach(function(f) { f.remove(); });
+
+          // Remove old script and re-add with new config
+          var newScript = document.createElement('script');
+          newScript.type = 'text/javascript';
+          newScript.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+          newScript.textContent = JSON.stringify(config);
+
+          if (scriptEl.parentNode) {
+            scriptEl.parentNode.removeChild(scriptEl);
+          }
+          container.appendChild(newScript);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
