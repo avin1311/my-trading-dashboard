@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stockList } from "@/lib/stock-list";
+import { getLiveQuote } from "@/lib/market-data";
 import type { OIStrikeData, OptionChainData, FuturesOIData, FuturesContract } from "@/lib/types";
 import {
   fetchIndexOptionChain,
@@ -36,10 +37,11 @@ function getExpiryDates(): string[] {
   return expiries;
 }
 
-function generateOptionChain(underlying: string, expiry?: string): OptionChainData {
+function generateOptionChain(underlying: string, expiry?: string, liveSpotPrice?: number): OptionChainData {
   const allInstruments = [...stockList.equities, ...stockList.indices];
   const base = allInstruments.find((s: any) => s.s === underlying);
-  const spotPrice = base?.bp || 24580;
+  // Use live spot price if available, otherwise fall back to stale bp
+  const spotPrice = liveSpotPrice || base?.bp || 24580;
   
   const expiryDates = getExpiryDates();
   const currentExpiry = expiry || expiryDates[0] || '';
