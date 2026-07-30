@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getWSManager, ensureWSConnected } from '@/lib/upstox-ws-manager';
+import { isUpstoxConnected } from '@/lib/upstox-client';
 import type { LiveTick } from '@/lib/upstox-ws-manager';
 
 /**
@@ -18,12 +19,18 @@ export async function GET(request: NextRequest) {
 
   const manager = getWSManager();
 
+  // If Upstox token exists but WS isn't connected, connect now
+  if (isUpstoxConnected() && !manager.connected) {
+    ensureWSConnected();
+  }
+
   // Create SSE stream
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      // Send initial status
-      controller.enqueue(encoder.encode(`event: status\ndata: ${JSON.stringify({ connected: manager.connected, authorized: !!manager.authorized })}\n\n`));
+      // Send initial status — use isUpstoxConnected() for accurate token check
+      const tokenExists = isUpstoxConnected();
+      controller.enqueue(encoder.encode(`event: status\ndata: ${JSON.stringify({ connected: manager.connected || tokenExists, authorized: tokenExists })}\n\n`));
 
       // Send any cached ticks immediately
       if (symbols.length > 0) {

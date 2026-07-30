@@ -20,13 +20,6 @@ export interface LiveTick {
   timestamp: number;
 }
 
-interface RealtimeState {
-  connected: boolean;
-  upstoxConnected: boolean;
-  liveTicks: Map<string, LiveTick>;
-  lastTickTime: string;
-}
-
 export function useRealtimeData(symbols: string[]) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const [connected, setConnected] = useState(false);
@@ -34,7 +27,6 @@ export function useRealtimeData(symbols: string[]) {
   const [liveTicks, setLiveTicks] = useState<Map<string, LiveTick>>(new Map());
   const [lastTickTime, setLastTickTime] = useState('');
   const symbolsRef = useRef<string[]>(symbols);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
   // Keep symbols ref in sync
@@ -42,115 +34,134 @@ export function useRealtimeData(symbols: string[]) {
     symbolsRef.current = symbols;
   }, [symbols]);
 
-  // Main SSE connection effect
+  // Reconnect SSE when symbols change (so server subscribes to new ones)
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    // Don't reconnect on very first mount — the main effect handles that
+    // Only reconnect if we already have an SSE connection
+    if (!eventSourceRef.current) return;
+
+    // Close old and open new with updated symbols
+    eventSourceRef.current.close();
+    eventSourceRef.current = null;
+
+    const syms = symbolsRef.current.join(',');
+    const url = `/api/realtime?symbols=${encodeURIComponent(syms)}`;
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
+    attachSSEHandlers(es);
+  }, [symbols]);
+
+  // Attach event handlers to an EventSource
+  const attachSSEHandlers = useCallback((es: EventSource) => {
+    es.onopen = () => {
+      if (!mountedRef.current) return;
+      setConnected(true);
+    };
+
+    es.onerror = () => {
+      if (!mountedRef.current) return;
+      setConnected(false);
+    };
+
+    es.addEventListener('tick', (event) => {
+      if (!mountedRef.current) return;
+      try {
+        const tick: LiveTick = JSON.parse(event.data);
+        setLiveTicks(prev => {
+          const next = new Map(prev);
+          next.set(tick.symbol, tick);
+          if (next.size > 200) {
+            const oldest = next.keys().next().value;
+            if (oldest) next.delete(oldest);
+          }
+          return next;
+        });
+        setLastTickTime(tick.lt || new Date().toLocaleTimeString('en-IN'));
+      } catch { /* ignore parse errors */ }
+    });
+
+    es.addEventListener('status', (event) => {
+      if (!mountedRef.current) return;
+      try {
+        const status = JSON.parse(event.data);
+        setUpstoxConnected(status.connected);
+      } catch { /* ignore */ }
+    });
+  }, []);
+
+  // Main SSE connection — connect on mount, poll /api/upstox/status for token check
   useEffect(() => {
     mountedRef.current = true;
 
     function connect() {
-      // Close existing connection
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
-
       const syms = symbolsRef.current.join(',');
       const url = `/api/realtime?symbols=${encodeURIComponent(syms)}`;
       const es = new EventSource(url);
       eventSourceRef.current = es;
-
-      es.onopen = () => {
-        if (!mountedRef.current) return;
-        setConnected(true);
-      };
-
-      es.onerror = () => {
-        if (!mountedRef.current) return;
-        setConnected(false);
-        // EventSource auto-reconnects, but we also clean up state
-      };
-
-      // Listen for tick events
-      es.addEventListener('tick', (event) => {
-        if (!mountedRef.current) return;
-        try {
-          const tick: LiveTick = JSON.parse(event.data);
-          setLiveTicks(prev => {
-            const next = new Map(prev);
-            next.set(tick.symbol, tick);
-            // Keep map bounded (max 200 symbols)
-            if (next.size > 200) {
-              const oldest = next.keys().next().value;
-              if (oldest) next.delete(oldest);
-            }
-            return next;
-          });
-          setLastTickTime(tick.lt || new Date().toLocaleTimeString('en-IN'));
-        } catch { /* ignore parse errors */ }
-      });
-
-      // Listen for status events
-      es.addEventListener('status', (event) => {
-        if (!mountedRef.current) return;
-        try {
-          const status = JSON.parse(event.data);
-          setUpstoxConnected(status.connected);
-        } catch { /* ignore */ }
-      });
+      attachSSEHandlers(es);
     }
 
     connect();
 
+    // Poll Upstox token status every 10s as a fallback
+    // (SSE status event may miss if WS connected before SSE opened)
+    const statusPoll = setInterval(async () => {
+      if (!mountedRef.current) return;
+      try {
+        const res = await fetch('/api/upstox/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.connected) {
+            setUpstoxConnected(prev => {
+              if (!prev) {
+                // First time detecting connection — reconnect SSE
+                if (eventSourceRef.current) {
+                  eventSourceRef.current.close();
+                }
+                const syms = symbolsRef.current.join(',');
+                const url = `/api/realtime?symbols=${encodeURIComponent(syms)}`;
+                const es = new EventSource(url);
+                eventSourceRef.current = es;
+                attachSSEHandlers(es);
+              }
+              return true;
+            });
+          }
+        }
+      } catch { /* ignore */ }
+    }, 10000);
+
     return () => {
       mountedRef.current = false;
+      clearInterval(statusPoll);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-      }
     };
-  }, []); // Connect once on mount
+  }, []);
 
-  // Manual connect trigger (called after OAuth callback)
+  // Handle OAuth callback — reconnect SSE after Upstox token is stored
   const connectUpstox = useCallback(() => {
-    // Reconnect the SSE with fresh state
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
     setConnected(false);
-    // Small delay to let the callback set the token
+    setUpstoxConnected(false);
+    // Delay to let the server-side token be stored
     setTimeout(() => {
       if (!mountedRef.current) return;
       const syms = symbolsRef.current.join(',');
       const url = `/api/realtime?symbols=${encodeURIComponent(syms)}`;
       const es = new EventSource(url);
       eventSourceRef.current = es;
-
-      es.onopen = () => { if (mountedRef.current) setConnected(true); };
-      es.onerror = () => { if (mountedRef.current) setConnected(false); };
-
-      es.addEventListener('tick', (event) => {
-        if (!mountedRef.current) return;
-        try {
-          const tick: LiveTick = JSON.parse(event.data);
-          setLiveTicks(prev => {
-            const next = new Map(prev);
-            next.set(tick.symbol, tick);
-            return next;
-          });
-          setLastTickTime(tick.lt || new Date().toLocaleTimeString('en-IN'));
-        } catch { /* ignore */ }
-      });
-
-      es.addEventListener('status', (event) => {
-        if (!mountedRef.current) return;
-        try {
-          const status = JSON.parse(event.data);
-          setUpstoxConnected(status.connected);
-        } catch { /* ignore */ }
-      });
-    }, 1000);
-  }, []);
+      attachSSEHandlers(es);
+    }, 2000);
+  }, [attachSSEHandlers]);
 
   // Get live price for a symbol
   const getLivePrice = useCallback((symbol: string): LiveTick | null => {

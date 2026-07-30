@@ -60,9 +60,12 @@ class UpstoxWSManager {
 
     const token = getUpstoxToken();
     if (!token) {
+      console.log('[UpstoxWS] No token available — cannot connect');
       this.emitStatus({ connected: false, authorized: false, error: 'No Upstox token. Connect via OAuth first.' });
       return;
     }
+
+    console.log('[UpstoxWS] Connecting with token...');
 
     this.emitStatus({ connected: false, authorized: true });
 
@@ -105,7 +108,7 @@ class UpstoxWSManager {
     };
 
     this.ws.onerror = (event) => {
-      console.error('[UpstoxWS] Error');
+      console.error('[UpstoxWS] WebSocket error — may indicate auth failure or network issue');
     };
 
     this.ws.onclose = (event) => {

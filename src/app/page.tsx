@@ -2057,6 +2057,20 @@ export default function Home() {
   const [view, setView] = useState<ViewType>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
+  // Handle Upstox OAuth callback URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const upstoxStatus = params.get('upstox');
+    if (upstoxStatus === 'connected') {
+      // Clean the URL (remove query params)
+      window.history.replaceState({}, '', window.location.pathname);
+      // The status poll in useRealtimeData will detect the token and reconnect
+    } else if (upstoxStatus?.startsWith('error')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      console.error('[Upstox] OAuth error:', upstoxStatus);
+    }
+  }, []);
+
   // Real-time WebSocket data via Upstox
   const realtimeSymbols = [
     ...(d.selectedSymbol ? [d.selectedSymbol] : []),
