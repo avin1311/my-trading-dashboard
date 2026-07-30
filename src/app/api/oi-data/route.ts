@@ -575,7 +575,10 @@ async function fetchUpstoxOptionChainDirect(
   liveSpotPrice?: number,
 ): Promise<OptionChainData | null> {
   const token = getUpstoxToken();
-  if (!token) return null;
+  if (!token) {
+    console.log('[OI] fetchUpstoxOC: no token available');
+    return null;
+  }
 
   try {
     const { toInstrumentKey } = await import('@/lib/instrument-keys');
@@ -585,10 +588,14 @@ async function fetchUpstoxOptionChainDirect(
       return null;
     }
 
+    console.log(`[OI] Upstox OC: fetching for ${symbol} with key=${instrumentKey}${expiry ? ` expiry=${expiry}` : ''}${liveSpotPrice ? ` spot=${liveSpotPrice}` : ''}`);
+
     let url = `https://api.upstox.com/v2/option/chain?instrument_key=${encodeURIComponent(instrumentKey)}`;
     if (expiry) {
       url += `&expiry_date=${encodeURIComponent(expiry)}`;
     }
+
+    console.log(`[OI] Upstox OC URL: ${url.replace(/Bearer [^&]+/, 'Bearer ***')}`);
 
     const res = await fetch(url, {
       headers: {
@@ -598,6 +605,8 @@ async function fetchUpstoxOptionChainDirect(
       },
       signal: AbortSignal.timeout(15000),
     });
+
+    console.log(`[OI] Upstox OC response: status=${res.status} ok=${res.ok}`);
 
     if (res.status === 401) {
       console.warn('[OI] Upstox token expired for option chain');
@@ -610,14 +619,20 @@ async function fetchUpstoxOptionChainDirect(
     }
 
     const json = await res.json();
+    console.log(`[OI] Upstox OC response keys:`, Object.keys(json));
+    console.log(`[OI] Upstox OC json.status:`, json.status);
+
     const rawData = json?.data;
+    console.log(`[OI] Upstox OC rawData type:`, rawData ? (Array.isArray(rawData) ? `array[${rawData.length}]` : typeof rawData) : 'null');
+
     // Handle both array and nested object responses
     let contracts: any[] | null = null;
     if (Array.isArray(rawData)) {
       contracts = rawData;
     } else if (rawData && typeof rawData === 'object') {
+      console.log(`[OI] Upstox OC rawData keys:`, Object.keys(rawData));
       // Might be { options: [...], underlying_price: ... } or similar
-      contracts = rawData.options || rawData.contracts || rawData.chain || null;
+      contracts = rawData.options || rawData.contracts || rawData.chain || rawData.call_options || rawData.put_options || null;
       // Try to use underlying_price from the response
       if (rawData.underlying_price && !liveSpotPrice) {
         liveSpotPrice = parseFloat(rawData.underlying_price) || undefined;
@@ -630,6 +645,8 @@ async function fetchUpstoxOptionChainDirect(
         const sample = Array.isArray(rawData) ? rawData[0] : Object.values(rawData)[0];
         if (sample && typeof sample === 'object') {
           console.log(`[OI] Upstox OC sample keys:`, Object.keys(sample));
+        } else {
+          console.log(`[OI] Upstox OC rawData sample:`, JSON.stringify(rawData).slice(0, 500));
         }
       }
       console.warn(`[OI] Upstox option chain: empty or invalid data for ${symbol}`);
@@ -667,6 +684,7 @@ export async function GET(request: NextRequest) {
   // 3. If NSE fails -> mock with live spot price
 
   const upstoxConnected = isUpstoxConnected();
+  console.log(`[OI] GET request: underlying=${underlying} type=${type} source=${source} upstoxConnected=${upstoxConnected} spot=${validClientSpot || 'none'}`);
   let upstoxOptionResult: OptionChainData | null = null;
 
   // --- TRY UPSTOX FIRST (when connected) ---

@@ -107,6 +107,28 @@ export function useRealtimeData(symbols: string[]) {
 
     connect();
 
+    // Immediately check Upstox status on mount (don't wait 10s)
+    (async () => {
+      try {
+        const res = await fetch('/api/upstox/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.connected) {
+            setUpstoxConnected(true);
+            // Reconnect SSE to subscribe with Upstox data
+            if (eventSourceRef.current) {
+              eventSourceRef.current.close();
+            }
+            const syms = symbolsRef.current.join(',');
+            const url = `/api/realtime?symbols=${encodeURIComponent(syms)}`;
+            const es = new EventSource(url);
+            eventSourceRef.current = es;
+            attachSSEHandlers(es);
+          }
+        }
+      } catch { /* ignore */ }
+    })();
+
     // Poll Upstox token status every 10s as a fallback
     // (SSE status event may miss if WS connected before SSE opened)
     const statusPoll = setInterval(async () => {

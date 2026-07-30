@@ -189,10 +189,11 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
   const isLive = !!liveTick;
   const topGainers = d.overview?.topGainers?.slice(0, 4) || [];
   return (
-    <div className={cn('border-b border-slate-800/60 bg-[#080b12]/95 backdrop-blur-md', upstoxConnected && 'border-l-2 border-l-emerald-500')}>
-      {/* Market Ticker */}
-      <div className="border-b border-slate-800/30 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-0.5 px-4 py-1 min-w-max">
+    <div className={cn('border-b border-slate-800/60 backdrop-blur-md transition-colors duration-500', upstoxConnected ? 'bg-[#070d0b]/95 border-l-2 border-l-emerald-500' : 'bg-[#080b12]/95')}>
+      {/* Market Ticker — scrollable area for index prices */}
+      <div className="border-b border-slate-800/30 flex items-center">
+        <div className="flex-1 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-0.5 px-4 py-1 min-w-max">
           <MktTicker label="NIFTY 50" q={rtTicks.get('NIFTY') ? { price: rtTicks.get('NIFTY')!.ltp, changePct: rtTicks.get('NIFTY')!.changePct, change: rtTicks.get('NIFTY')!.change } : d.overview?.nifty50 ?? null} />
           <div className="w-px h-8 bg-slate-800/60 mx-0.5" />
           <MktTicker label="BANK NIFTY" q={rtTicks.get('BANKNIFTY') ? { price: rtTicks.get('BANKNIFTY')!.ltp, changePct: rtTicks.get('BANKNIFTY')!.changePct, change: rtTicks.get('BANKNIFTY')!.change } : d.overview?.bankNifty ?? null} />
@@ -214,8 +215,9 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
             </>
           )}
         </div>
-        {/* Upstox Connection Pill - always visible in ticker bar */}
-        <div className="ml-auto shrink-0 pl-4 flex items-center">
+        </div>
+        {/* Upstox Connection Pill - always visible, outside scrollable area */}
+        <div className="shrink-0 px-3 flex items-center border-l border-slate-800/30 h-9">
           {upstoxConnected ? (
             <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer" title="Connected to Upstox (real-time) · Click to disconnect">
               <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
@@ -2127,8 +2129,27 @@ export default function Home() {
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-[#080a12] text-slate-100 flex" suppressHydrationWarning>
         <SavePoints points={d.savePoints} />
+        {/* === FLOATING UPSTOX CONNECTION INDICATOR — always visible, top-right === */}
+        {rt.upstoxConnected ? (
+          <div className="fixed top-2 right-2 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 backdrop-blur-sm shadow-lg shadow-emerald-500/10">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[10px] font-bold tracking-wider text-emerald-300">UPSTOX LIVE</span>
+            {rt.lastTickTime && <span className="text-[9px] text-emerald-500/70 font-mono">{rt.lastTickTime}</span>}
+            <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="ml-0.5 text-emerald-600 hover:text-red-400 transition-colors" title="Disconnect Upstox">
+              <X className="w-3 h-3" />
+            </a>
+          </div>
+        ) : (
+          <a href="/api/upstox/connect" className="fixed top-2 right-2 z-[100] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/50 backdrop-blur-sm shadow-lg hover:border-amber-500/40 hover:bg-amber-950/50 transition-all group" title="Connect to Upstox for real-time data">
+            <WifiOff className="w-3 h-3 text-slate-500 group-hover:text-amber-400 transition-colors" />
+            <span className="text-[10px] font-semibold text-slate-500 group-hover:text-amber-400 transition-colors">CONNECT UPSTOX</span>
+          </a>
+        )}
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
-        <div className="flex-1 min-w-0 flex flex-col">
+        <div className={cn('flex-1 min-w-0 flex flex-col', rt.upstoxConnected && 'bg-[#060d0a]')}>
           <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} upstoxConnected={rt.upstoxConnected} />
           <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
             {/* View breadcrumb */}
