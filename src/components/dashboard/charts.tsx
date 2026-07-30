@@ -1,15 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer, ReferenceDot, Bar, Cell,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import {
+  type ChartType, type IndicatorId, type DrawingTool,
+  CHART_TYPES, INDICATOR_LIST,
+} from './candlestick-chart';
+import type { DetectedPattern } from '@/lib/technical-indicators';
+import { Target, TrendingUp, TrendingDown, Minus, PenTool, Crosshair, ArrowUpRight, ArrowDownRight, Ruler, Square, MinusIcon, Trash2, ChevronDown, Zap, Activity, BarChart3, Waves, GitBranch, Layers } from 'lucide-react';
 
-// Dynamic import — lightweight-charts only works in browser
-const CandlestickChart = dynamic(() => import('./candlestick-chart'), {
+const CandlestickChartDynamic = dynamic(() => import('./candlestick-chart'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[520px] bg-[#0a0e1a] flex items-center justify-center">
@@ -86,6 +91,201 @@ const TIMEFRAMES: { key: TimeframeKey; label: string; apiInterval: string }[] = 
   { key: '1M', label: '1M', apiInterval: 'M' },
 ];
 
+// ==================== CHART TYPE SELECTOR ====================
+function ChartTypeSelector({ value, onChange }: { value: ChartType; onChange: (t: ChartType) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold mr-1">Chart</span>
+      <div className="flex items-center gap-0.5 rounded-lg bg-slate-800/40 border border-slate-700/50 p-0.5">
+        {CHART_TYPES.map(ct => (
+          <button
+            key={ct.id}
+            onClick={() => onChange(ct.id)}
+            title={ct.label}
+            className={cn(
+              'px-2 py-1 rounded text-[10px] font-medium transition-all',
+              value === ct.id
+                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
+                : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-slate-700/30'
+            )}
+          >
+            <span className="mr-1">{ct.icon}</span>
+            <span className="hidden xl:inline">{ct.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ==================== DRAWING TOOLS ====================
+const DRAW_TOOLS: { id: DrawingTool; label: string; icon: React.ElementType }[] = [
+  { id: 'crosshair', label: 'Crosshair', icon: Crosshair },
+  { id: 'trendline', label: 'Trendline', icon: Ruler },
+  { id: 'hline', label: 'Horiz. Line', icon: MinusIcon },
+  { id: 'rectangle', label: 'Rectangle', icon: Square },
+];
+
+function DrawingToolbar({ activeTool, setActiveTool }: { activeTool: DrawingTool; setActiveTool: (t: DrawingTool) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold mr-1">Draw</span>
+      <div className="flex items-center gap-0.5 rounded-lg bg-slate-800/40 border border-slate-700/50 p-0.5">
+        {DRAW_TOOLS.map(tool => (
+          <button
+            key={tool.id}
+            onClick={() => setActiveTool(tool.id)}
+            title={tool.label}
+            className={cn(
+              'p-1.5 rounded transition-all',
+              activeTool === tool.id
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-slate-700/30'
+            )}
+          >
+            <tool.icon className="w-3 h-3" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ==================== INDICATOR PICKER ====================
+function IndicatorPicker({
+  active, onToggle, showPanel, onTogglePanel
+}: {
+  active: IndicatorId[];
+  onToggle: (id: IndicatorId) => void;
+  showPanel: boolean;
+  onTogglePanel: () => void;
+}) {
+  const priceIndicators = INDICATOR_LIST.filter(i => i.panel === undefined || i.panel === 'price');
+  const subIndicators = INDICATOR_LIST.filter(i => i.panel === 'rsi' || i.panel === 'macd');
+
+  return (
+    <div className="relative">
+      <button
+        onClick={onTogglePanel}
+        className={cn(
+          'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all border',
+          showPanel
+            ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+            : 'bg-slate-800/40 text-slate-400 border-slate-700/50 hover:text-slate-300 hover:bg-slate-700/30'
+        )}
+      >
+        <Layers className="w-3 h-3" />
+        Indicators
+        {active.length > 0 && (
+          <span className="w-4 h-4 rounded-full bg-purple-500/30 text-purple-300 text-[8px] flex items-center justify-center font-bold">{active.length}</span>
+        )}
+        <ChevronDown className={cn('w-3 h-3 transition-transform', showPanel && 'rotate-180')} />
+      </button>
+
+      {showPanel && (
+        <div className="absolute top-full left-0 mt-1 w-64 rounded-lg border border-slate-700/60 bg-[#0d1117] shadow-2xl z-50 p-3 space-y-3">
+          {/* Quick presets */}
+          <div>
+            <span className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Quick Presets</span>
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              <button onClick={() => { onToggle('sma_20'); onToggle('sma_50'); onToggle('bb'); }} className="text-[9px] px-2 py-1 rounded bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600/60 transition-all">MA + BB</button>
+              <button onClick={() => { onToggle('ema_9'); onToggle('ema_21'); onToggle('rsi'); onToggle('macd'); }} className="text-[9px] px-2 py-1 rounded bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600/60 transition-all">EMA + RSI + MACD</button>
+              <button onClick={() => { onToggle('vwap'); onToggle('supertrend'); onToggle('fib'); onToggle('bb'); }} className="text-[9px] px-2 py-1 rounded bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600/60 transition-all">VWAP + ST + Fib</button>
+              <button onClick={() => { onToggle('stoch'); onToggle('rsi'); onToggle('macd'); onToggle('sma_200'); }} className="text-[9px] px-2 py-1 rounded bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600/60 transition-all">Full Technical</button>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700/40" />
+
+          {/* Price Overlay Indicators */}
+          <div>
+            <span className="text-[9px] text-slate-500 uppercase tracking-wider font-bold flex items-center gap-1"><Activity className="w-2.5 h-2.5" /> Price Overlay</span>
+            <div className="space-y-0.5 mt-1.5 max-h-48 overflow-y-auto">
+              {priceIndicators.map(ind => (
+                <button
+                  key={ind.id}
+                  onClick={() => onToggle(ind.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-1.5 rounded text-[10px] transition-all text-left',
+                    active.includes(ind.id)
+                      ? 'bg-slate-700/30 text-slate-200'
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  )}
+                >
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ind.color }} />
+                  <span className="font-medium flex-1">{ind.label}</span>
+                  <div className={cn(
+                    'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all',
+                    active.includes(ind.id) ? 'bg-emerald-500/20 border-emerald-500/50' : 'border-slate-600/50'
+                  )}>
+                    {active.includes(ind.id) && <span className="text-emerald-400 text-[8px]">\u2713</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-slate-700/40" />
+
+          {/* Sub-chart Indicators */}
+          <div>
+            <span className="text-[9px] text-slate-500 uppercase tracking-wider font-bold flex items-center gap-1"><BarChart3 className="w-2.5 h-2.5" /> Sub-Charts</span>
+            <div className="space-y-0.5 mt-1.5">
+              {subIndicators.map(ind => (
+                <button
+                  key={ind.id}
+                  onClick={() => onToggle(ind.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-2 py-1.5 rounded text-[10px] transition-all text-left',
+                    active.includes(ind.id)
+                    ? 'bg-slate-700/30 text-slate-200'
+                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  )}
+                >
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ind.color }} />
+                  <span className="font-medium flex-1">{ind.label}</span>
+                  <span className="text-[8px] text-slate-600 px-1.5 py-0.5 rounded bg-slate-800/50">{ind.panel?.toUpperCase()}</span>
+                  <div className={cn(
+                    'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all',
+                    active.includes(ind.id) ? 'bg-emerald-500/20 border-emerald-500/50' : 'border-slate-600/50'
+                  )}>
+                    {active.includes(ind.id) && <span className="text-emerald-400 text-[8px]">\u2713</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== PATTERN BADGES ====================
+function PatternBadges({ patterns }: { patterns: DetectedPattern[] }) {
+  if (patterns.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {patterns.map((p, i) => (
+        <div
+          key={i}
+          className={cn(
+            'flex items-center gap-1 px-2 py-1 rounded-md border text-[9px] font-semibold',
+            p.direction === 'bullish' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
+            p.direction === 'bearish' ? 'bg-red-500/10 border-red-500/30 text-red-300' :
+            'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          )}
+          title={p.description}
+        >
+          {p.direction === 'bullish' ? <ArrowUpRight className="w-2.5 h-2.5" /> : p.direction === 'bearish' ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+          {p.name}
+          <span className="text-[8px] opacity-60">{p.confidence}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ==================== TIMEFRAME TOGGLE ====================
 function TimeframeToggle({ timeframe, setTimeframe }: { timeframe: TimeframeKey; setTimeframe: (t: TimeframeKey) => void }) {
   return (
@@ -111,6 +311,42 @@ function TimeframeToggle({ timeframe, setTimeframe }: { timeframe: TimeframeKey;
   );
 }
 
+// ==================== ACTIVE INDICATOR CHIPS ====================
+function ActiveIndicatorChips({ active, onRemove }: { active: IndicatorId[]; onRemove: (id: IndicatorId) => void }) {
+  if (active.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {active.map(id => {
+        const cfg = INDICATOR_LIST.find(i => i.id === id);
+        if (!cfg) return null;
+        return (
+          <button
+            key={id}
+            onClick={() => onRemove(id)}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold border transition-all hover:opacity-70"
+            style={{
+              backgroundColor: cfg.color + '15',
+              borderColor: cfg.color + '40',
+              color: cfg.color,
+            }}
+          >
+            {cfg.shortLabel}
+            <XIcon className="w-2 h-2 opacity-60" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
 // ==================== MAIN EXPORT ====================
 export default function StrategySection({
   chartData, visibleData, latestSignal, signalsLoading, symbol,
@@ -122,7 +358,20 @@ export default function StrategySection({
   symbol?: string;
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
+  const [chartType, setChartType] = useState<ChartType>('candle');
+  const [activeIndicators, setActiveIndicators] = useState<IndicatorId[]>(['sma_20', 'sma_50']);
+  const [activeTool, setActiveTool] = useState<DrawingTool>('crosshair');
+  const [showIndicatorPanel, setShowIndicatorPanel] = useState(false);
+  const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
+
+  const handleIndicatorToggle = useCallback((id: IndicatorId) => {
+    setActiveIndicators(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+
+  const handlePatternsDetected = useCallback((p: DetectedPattern[]) => {
+    setPatterns(p);
+  }, []);
 
   const priceMin = useMemo(() => {
     if (visibleData.length === 0) return 0;
@@ -133,34 +382,46 @@ export default function StrategySection({
     return Math.max(...visibleData.map(d => d.high)) * 1.002;
   }, [visibleData]);
 
-  // Build supertrend overlay data for the candlestick chart (daily only)
-  const stOverlay = useMemo(() => {
-    if (timeframe !== '1D') return undefined;
-    return chartData.map(d => ({
-      date: d.date,
-      supertrend: d.supertrend,
-      supertrendDir: d.supertrendDir,
-    }));
-  }, [chartData, timeframe]);
+  const activeLabels = activeIndicators.map(id => INDICATOR_LIST.find(i => i.id === id)?.shortLabel || id).join(', ');
 
   return (
     <div className="space-y-3">
-      {/* Timeframe toggle */}
-      <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
+      {/* Toolbar Row 1: Timeframe + Chart Type + Drawing Tools */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <TimeframeToggle timeframe={timeframe} setTimeframe={setTimeframe} />
+        <ChartTypeSelector value={chartType} onChange={setChartType} />
+        <DrawingToolbar activeTool={activeTool} setActiveTool={setActiveTool} />
+        <IndicatorPicker
+          active={activeIndicators}
+          onToggle={handleIndicatorToggle}
+          showPanel={showIndicatorPanel}
+          onTogglePanel={() => setShowIndicatorPanel(p => !p)}
+        />
+      </div>
 
-      {/* Real candlestick chart — powered by TradingView's Lightweight Charts */}
+      {/* Active indicator chips */}
+      <ActiveIndicatorChips active={activeIndicators} onRemove={handleIndicatorToggle} />
+
+      {/* Pattern badges */}
+      <PatternBadges patterns={patterns} />
+
+      {/* Main chart */}
       <div className="rounded-lg border border-slate-800/60 bg-[#0a0e1a] overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-800/60">
           <span className="text-[10px] font-semibold text-blue-400">NSE Chart</span>
-          <span className="text-[9px] text-slate-600">{symbol || ''} — Candlestick + Volume + Supertrend</span>
-          <span className="text-[9px] text-slate-700 ml-auto">Powered by Lightweight Charts</span>
+          <span className="text-[9px] text-slate-600">{symbol || ''} — {CHART_TYPES.find(c => c.id === chartType)?.label || 'Candlestick'}{activeLabels ? ' + ' + activeLabels : ''}</span>
+          {activeTool !== 'crosshair' && <span className="text-[9px] text-amber-500">Drawing: {DRAW_TOOLS.find(t => t.id === activeTool)?.label}</span>}
+          <span className="text-[9px] text-slate-700 ml-auto">Lightweight Charts v5</span>
         </div>
         {symbol && (
-          <CandlestickChart
+          <CandlestickChartDynamic
             symbol={symbol}
             interval={tfConfig.apiInterval}
             height={520}
-            supertrendData={stOverlay}
+            chartType={chartType}
+            activeIndicators={activeIndicators}
+            activeTool={activeTool}
+            onPatternsDetected={handlePatternsDetected}
           />
         )}
       </div>
@@ -183,7 +444,7 @@ export default function StrategySection({
                 {visibleData.map((d, i) => {
                   if (!d.signal || d.signal === 'HOLD') return null;
                   const isBuy = d.signal === 'STRONG_BUY' || d.signal === 'BUY';
-                  return <ReferenceDot key={i} x={d.date} y={d.close} r={d.signal.startsWith('STRONG') ? 5 : 3.5} fill={isBuy ? '#10b981' : '#ef4444'} stroke={isBuy ? '#065f46' : '#7f1d1d'} strokeWidth={1} isAnimationActive={false} />;
+                  return <ReferenceDot key={i} x={d.date} y={d.close} r={d.signal.startsWith('STRONG') ? 5 : 3.5} fill={isBuy ? '#10b981' : '#ef4444'} stroke={isBuy ? '#065f46' : '#7f1d1d'} strokeWidth={1} />;
                 })}
               </ComposedChart>
             </ResponsiveContainer>

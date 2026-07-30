@@ -72,3 +72,22 @@ Stage Summary:
 - Visual polish applied across 4 files: globals.css, page.tsx, kpi-card.tsx, kpi-strip.tsx
 - No functional changes — purely CSS/className updates
 - Consistent design tokens: bg-[#070a10] (main), bg-[#0c1018] (panels), border-slate-800/20-50 (borders)
+---
+Task ID: 1
+Agent: Main Agent
+Task: Advanced Chart Features — Technical Indicators, Chart Types, Drawing Tools, Pattern Detection
+
+Work Log:
+- Fixed Upstox redirect on startup: added isUpstoxConnected() guard in /api/upstox/connect/route.ts to prevent re-auth when already connected
+- Created src/lib/technical-indicators.ts (~550 lines): Pure computation library with SMA, EMA, WMA, Bollinger Bands, RSI, MACD, Stochastic, Supertrend, VWAP, Fibonacci Retracement, Heikin-Ashi conversion, Renko conversion, volume profile, and pattern detection (Double Top/Bottom, Head & Shoulders, Inv Head & Shoulders, Bullish/Bearish Flags, Ascending/Descending/Symmetrical Triangles)
+- Rewrote src/components/dashboard/candlestick-chart.tsx (~600 lines): Full-featured chart engine supporting 5 chart types (Candlestick, Hollow Candle, Heikin-Ashi, Renko, Line), 15 toggleable indicators (SMA 9/20/50/200, EMA 9/21/50/200, Bollinger Bands, VWAP, Supertrend, RSI, MACD, Stochastic, Fibonacci), sub-chart panels for RSI/MACD/Stochastic, canvas-based drawing tools (Trendline, Horizontal Line, Rectangle), auto-pattern detection with price line annotations, and Fibonacci level overlays
+- Rewrote src/components/dashboard/charts.tsx (~488 lines): Complete toolbar with chart type selector, timeframe toggle, drawing tool selector, indicator picker dropdown with quick presets (MA+BB, EMA+RSI+MACD, VWAP+ST+Fib, Full Technical), active indicator chips with color coding, pattern badges with confidence scores
+
+Stage Summary:
+- All features compile clean, build passes successfully
+- Indicators computed client-side from raw OHLCV data (no extra API calls needed)
+- Sub-charts (RSI, MACD, Stochastic) auto-adjust main chart height
+- Drawing tools use canvas overlay with color cycling
+- Pattern detection runs automatically on data load, results shown as badges
+- Files created: src/lib/technical-indicators.ts
+- Files modified: src/components/dashboard/candlestick-chart.tsx, src/components/dashboard/charts.tsx, src/app/api/upstox/connect/route.ts

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUrl } from '@/lib/upstox-client';
+import { getAuthUrl, isUpstoxConnected } from '@/lib/upstox-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
  * GET /api/upstox/connect
  *
  * Redirects the user to Upstox OAuth login page.
- * Validates that API key is configured before redirecting.
+ * If already connected, redirect back to dashboard instead of re-authenticating.
+ * This prevents the redirect loop when browser replays a stale /connect request
+ * after a server restart (in-memory token is lost but browser caches the URL).
  */
 export async function GET(request: NextRequest) {
   // Build base URL from request headers (supports reverse proxy / non-localhost)
@@ -15,6 +17,11 @@ export async function GET(request: NextRequest) {
   const proto = request.headers.get('x-forwarded-proto') || 'http';
   const host = forwarded || request.headers.get('host') || 'localhost:3000';
   const baseUrl = `${proto}://${host}`;
+
+  // If we somehow already have a token, skip re-auth
+  if (isUpstoxConnected()) {
+    return NextResponse.redirect(new URL('/?upstox=connected', baseUrl));
+  }
 
   const apiKey = process.env.UPSTOX_API_KEY;
   if (!apiKey) {
