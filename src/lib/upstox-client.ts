@@ -84,7 +84,9 @@ function getApiSecret(): string {
 }
 
 function getRedirectUri(): string {
-  return process.env.UPSTOX_REDIRECT_URI || 'http://localhost:3000/api/upstox/callback';
+  // Allow override via env var (needed for non-localhost deployments)
+  if (process.env.UPSTOX_REDIRECT_URI) return process.env.UPSTOX_REDIRECT_URI;
+  return 'http://localhost:3000/api/upstox/callback';
 }
 
 // Build the authorization URL for redirecting the user to Upstox login

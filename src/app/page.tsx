@@ -2070,10 +2070,12 @@ export default function Home() {
     if (upstoxStatus === 'connected') {
       // Clean the URL (remove query params)
       window.history.replaceState({}, '', window.location.pathname);
-      // The status poll in useRealtimeData will detect the token and reconnect
+      // Immediately reconnect SSE to start receiving live ticks
+      rt.connectUpstox();
     } else if (upstoxStatus?.startsWith('error')) {
       window.history.replaceState({}, '', window.location.pathname);
       console.error('[Upstox] OAuth error:', upstoxStatus);
+      alert(`Upstox connection failed: ${upstoxStatus.replace('error_', '')}. Check that UPSTOX_API_KEY and UPSTOX_API_SECRET are set in .env`);
     }
   }, []);
 
@@ -2127,8 +2129,8 @@ export default function Home() {
               {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
               {rt.upstoxConnected
                 ? <span className="flex items-center gap-1 text-emerald-500"><Radio className="w-2 h-2 animate-pulse" /> Upstox Live{rt.lastTickTime ? ` · ${rt.lastTickTime}` : ''}</span>
-                : <a href="/api/upstox/connect" className="flex items-center gap-1 text-amber-500 hover:text-amber-400 cursor-pointer"><WifiOff className="w-2 h-2" /> Connect Upstox for Live Data</a>}
-              <span>Data: {rt.upstoxConnected ? 'Upstox Live' : 'Yahoo Finance (delayed)'} — For educational purposes only</span>
+                : <a href="/api/upstox/connect" className="flex items-center gap-1 text-amber-500 hover:text-amber-400 transition-colors"><WifiOff className="w-2 h-2" /> Connect Upstox for Live Data</a>}
+              <span>Data: {rt.upstoxConnected ? 'Upstox WebSocket (real-time)' : 'Yahoo Finance (15min delayed)'} — Educational use only</span>
             </div>
           </div>
         </div>

@@ -295,15 +295,25 @@ class UpstoxWSManager {
    * e.g. "NSE_EQ|RELIANCE" -> "RELIANCE", "NSE_INDEX|Nifty 50" -> "NIFTY"
    */
   private extractSymbol(instrumentKey: string): string | null {
-    // Check known index name mappings
+    // Must match INDEX_NAMES in instrument-keys.ts exactly
     const INDEX_MAP: Record<string, string> = {
       'Nifty 50': 'NIFTY',
       'Nifty Bank': 'BANKNIFTY',
-      'Nifty IT': 'NIFTYIT',
       'Nifty Fin Service': 'FINNIFTY',
+      'Nifty IT': 'NIFTYIT',
       'Nifty Next 50': 'NIFTYNXT50',
       'Nifty Midcap 50': 'MIDCPNIFTY',
       'India VIX': 'INDIAVIX',
+      // Aliases that resolve to same Upstox name
+      'Nifty Smallcap 50': 'NIFTYSMLCAP',
+      'Nifty Pharma': 'NIFTYPHARMA',
+      'Nifty Auto': 'NIFTYAUTO',
+      'Nifty Metal': 'NIFTYMETAL',
+      'Nifty Energy': 'NIFTYENERGY',
+      'Nifty FMCG': 'NIFTYFMCG',
+      'Nifty Realty': 'NIFTYREALTY',
+      'Nifty Infrastructure': 'NIFTYINFRA',
+      'Nifty PSU Bank': 'NIFTYPSUBANK',
     };
 
     for (const [upstoxName, ourSymbol] of Object.entries(INDEX_MAP)) {
