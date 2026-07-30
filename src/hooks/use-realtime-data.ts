@@ -86,8 +86,12 @@ export function useRealtimeData(symbols: string[]) {
       if (!mountedRef.current) return;
       try {
         const status = JSON.parse(event.data);
-        setUpstoxConnected(status.connected);
+        // Only upgrade to connected, never downgrade — the poll handles downgrade
+        if (status.connected || status.authorized) {
+          setUpstoxConnected(true);
+        }
         if (status.authorized) setWsConnected(true);
+        else setWsConnected(false);
       } catch { /* ignore */ }
     });
   }, []);
@@ -131,30 +135,16 @@ export function useRealtimeData(symbols: string[]) {
       } catch { /* ignore */ }
     })();
 
-    // Poll Upstox token status every 10s as a fallback
-    // (SSE status event may miss if WS connected before SSE opened)
+    // Poll Upstox token status every 10s
+    // This is the ONLY source that can set upstoxConnected back to false
     const statusPoll = setInterval(async () => {
       if (!mountedRef.current) return;
       try {
         const res = await fetch('/api/upstox/status');
         if (res.ok) {
           const data = await res.json();
-          if (data.connected) {
-            setUpstoxConnected(prev => {
-              if (!prev) {
-                // First time detecting connection — reconnect SSE
-                if (eventSourceRef.current) {
-                  eventSourceRef.current.close();
-                }
-                const syms = symbolsRef.current.join(',');
-                const url = `/api/realtime?symbols=${encodeURIComponent(syms)}`;
-                const es = new EventSource(url);
-                eventSourceRef.current = es;
-                attachSSEHandlers(es);
-              }
-              return true;
-            });
-          }
+          setUpstoxConnected(!!data.connected);
+          setWsConnected(!!data.wsConnected);
         }
       } catch { /* ignore */ }
     }, 10000);

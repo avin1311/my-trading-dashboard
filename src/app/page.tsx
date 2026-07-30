@@ -50,7 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'portfolio', label: 'Portfolio', icon: Wallet, source: 'Live P&L', color: 'from-emerald-500/20 to-green-500/10' },
   { id: 'alerts', label: 'Alerts', icon: Bell, source: 'Price Monitor', color: 'from-amber-500/20 to-red-500/10' },
   { id: 'watchlist', label: 'Watchlist', icon: Star, source: 'Custom', color: 'from-amber-500/20 to-yellow-500/10' },
-  { id: 'oi', label: 'Open Interest', icon: GitBranch, source: 'NSE OI Data', color: 'from-violet-500/20 to-purple-500/10' },
+  { id: 'oi', label: 'Open Interest', icon: GitBranch, source: 'OI Analysis', color: 'from-violet-500/20 to-purple-500/10' },
 ];
 
 const ChartSection = dynamic(() => import('@/components/dashboard/charts'), { ssr: false, loading: () => <div className="h-[340px] bg-slate-900/50 rounded-lg animate-pulse flex items-center justify-center text-slate-600 text-sm">Loading chart...</div> });
@@ -1450,7 +1450,7 @@ function OpenInterestView({ d, upstoxConnected }: { d: ReturnType<typeof useDash
 
         {/* Main Option Chain Table */}
         <div className="xl:col-span-3">
-          <P title={`${d.oiUnderlying} Option Chain`} icon={Layers} source="NSE OI" badge={
+          <P title={`${d.oiUnderlying} Option Chain`} icon={Layers} source={d.oiOptionData?.dataSource === 'upstox_live' ? 'Upstox OI' : d.oiOptionData?.dataSource === 'nse_live' ? 'NSE OI' : 'Simulated OI'} badge={
             <div className="flex gap-1">
               <button onClick={() => setOiTab('options')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'options' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' : 'text-slate-500 hover:text-slate-300')}>Options</button>
               <button onClick={() => setOiTab('futures')} className={cn('px-2 py-0.5 rounded text-[9px] font-semibold transition-colors', oiTab === 'futures' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-500 hover:text-slate-300')}>Futures</button>
