@@ -29,7 +29,7 @@ export function KPICard({ label, value, sub, icon: Icon, trend, accent, indicato
         : 'from-slate-500/5 to-slate-500/10 border-slate-700/50'
   );
   return (
-    <div className={cn('rounded-xl border bg-gradient-to-br p-3.5 transition-all relative overflow-hidden', ac)}>
+    <div className={cn('rounded-xl border bg-gradient-to-br p-3.5 transition-all duration-200 relative overflow-hidden hover-lift', ac)}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{label}</span>
         {Icon && <Icon className={cn('w-3.5 h-3.5', trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-500' : 'text-slate-600')} />}
@@ -55,13 +55,13 @@ export function MetricRow({ label, value, highlight, badge, bar }: {
   bar?: { value: number; max: number; color: string };
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-slate-800/40 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-slate-800/25 last:border-0 hover:bg-slate-800/10 -mx-3.5 px-3.5 transition-colors duration-150">
       <span className="text-xs text-slate-400">{label}</span>
       <div className="flex items-center gap-2">
         {bar && (
-          <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-16 h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all', bar.color)}
+              className={cn('h-full rounded-full transition-all duration-500', bar.color)}
               style={{ width: Math.min(100, (bar.value / bar.max) * 100) + '%' }}
             />
           </div>
@@ -106,13 +106,14 @@ export function MktTicker({ label, q }: { label: string; q: LiveQuote | null }) 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="flex flex-col items-center px-3 py-1.5 cursor-default">
-          <span className="text-[10px] text-slate-500 font-medium">{label}</span>
+        <div className="flex flex-col items-center px-3 py-1.5 cursor-default rounded-lg hover:bg-slate-800/20 transition-colors duration-200">
+          <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">{label}</span>
           <span className="text-xs font-bold text-slate-200 font-mono">
             {price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </span>
-          <span className={cn('text-[10px] font-semibold font-mono', up ? 'text-emerald-400' : 'text-red-400')}>
-            {up ? '+' : ''}{changePct.toFixed(2)}%
+          <span className={cn('text-[10px] font-semibold font-mono flex items-center gap-0.5', up ? 'text-emerald-400' : 'text-red-400')}>
+            {up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+            {Math.abs(changePct).toFixed(2)}%
           </span>
         </div>
       </TooltipTrigger>
@@ -204,7 +205,7 @@ export function SavePoints({ points }: { points: SavePoint[] }) {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 max-w-xs">
       {points.slice(-1).map(sp => (
-        <div key={sp.id} className="animate-in slide-in-from-right-4 fade-in duration-500 bg-slate-900/95 backdrop-blur-md border border-emerald-500/30 rounded-xl px-4 py-3 shadow-xl shadow-emerald-500/5 max-w-xs">
+        <div key={sp.id} className="animate-in slide-in-from-right-4 fade-in duration-500 bg-[#0c1018]/95 backdrop-blur-md border border-emerald-500/20 rounded-xl px-4 py-3 shadow-xl shadow-emerald-500/5 max-w-xs">
           <div className="flex items-center gap-2 mb-1">
             <Save className="w-3 h-3 text-emerald-400" />
             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Save Point #{sp.id}</span>

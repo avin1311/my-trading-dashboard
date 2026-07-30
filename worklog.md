@@ -37,3 +37,38 @@ Stage Summary:
 - Data source priority: Upstox -> NSE -> Mock (graceful fallback chain)
 - Price inconsistency fixed: Upstox LTP from WS ticks passed as spot price to both Upstox OC and mock fallback
 - Files modified: oi-providers.ts, oi-data/route.ts, connect/route.ts, options-tab.tsx
+---
+Task ID: 1
+Agent: Main Agent
+Task: UI Polish Pass for NSE Analytics Dashboard
+
+Work Log:
+- Added custom thin scrollbar styling (webkit + Firefox) to globals.css
+- Created view-enter CSS animation (fade + slide up, 0.25s cubic-bezier) for smooth view transitions
+- Created hover-lift CSS utility (translateY -1px + shadow on hover)
+- Created panel-glow CSS utility (subtle emerald glow + shadow on panel hover)
+- Created shimmer loading animation CSS utility
+- Created tick-flash CSS animations for price tick indicators
+- Created text-gradient-emerald utility for gradient text
+- Added focus-visible outline styling for accessibility
+- Polished Panel (P) component: unified bg-[#0c1018]/95, gradient header, refined source badge, added panel-glow + hover-lift
+- Polished MBox component: added hover states, increased padding
+- Polished Sidebar: added emerald left-bar indicator for active nav, eased cubic-bezier transitions, shadow on logo, refined borders
+- Polished HeaderBar: reduced border opacity, refined icon/price/badge styling, DELAYED badge now subtle gray instead of amber, better hover transitions
+- Polished Overview landing: rank numbers on gainers/losers, shimmer loading states, refined card borders, tighter spacing
+- Polished Stocks in Focus: hover-lift on all cards, refined border opacity
+- Polished Quick Browse index cards: hover-lift + refined borders
+- Polished MktTicker: uppercase tracking on labels, hover bg, directional arrows (ArrowUpRight/DownRight)
+- Polished MetricRow: hover bg highlight, reduced border opacity, smooth bar transitions (500ms)
+- Polished KPICard: added hover-lift, refined SavePoints bg
+- Polished Footer: dot-separated layout, refined opacity levels, pulse dots instead of Radio icons
+- Polished Upstox floating indicator: unified bg-[#0c1018]/90, refined shadow, consistent backdrop-blur
+- Polished main background: unified to bg-[#070a10], subtle green tint when connected
+- Added view-enter animation to all 11 views (Overview landing, Overview stock, Chart, Fundamentals, Technicals, Strategy, OI, Portfolio, Alerts, Watchlist, breadcrumb)
+- Reduced gap consistency from space-y-4 to space-y-3 across all views
+
+Stage Summary:
+- Build passes cleanly (all 23 routes compile)
+- Visual polish applied across 4 files: globals.css, page.tsx, kpi-card.tsx, kpi-strip.tsx
+- No functional changes — purely CSS/className updates
+- Consistent design tokens: bg-[#070a10] (main), bg-[#0c1018] (panels), border-slate-800/20-50 (borders)

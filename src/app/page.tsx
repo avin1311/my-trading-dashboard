@@ -80,15 +80,15 @@ function P({ title, icon: Icon, badge, children, className, source, accent }: {
 }) {
   return (
     <div className={cn(
-      'rounded-xl border border-slate-800/60 bg-[#0d1117]/90 backdrop-blur-sm overflow-hidden flex flex-col',
+      'rounded-xl border border-slate-800/50 bg-[#0c1018]/95 backdrop-blur-sm overflow-hidden flex flex-col panel-glow hover-lift',
       className
     )}>
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/40 bg-slate-900/30 shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/30 bg-gradient-to-r from-slate-900/40 to-transparent shrink-0">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-3.5 h-3.5 text-slate-500" />}
           <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">{title}</span>
           {source && (
-            <Badge variant="outline" className="text-[7px] px-1 py-0 bg-blue-500/8 border-blue-500/20 text-blue-400/70 h-3.5">{source}</Badge>
+            <Badge variant="outline" className="text-[7px] px-1.5 py-0 bg-slate-800/50 border-slate-700/30 text-slate-500 h-4 font-medium">{source}</Badge>
           )}
         </div>
         {badge}
@@ -101,7 +101,7 @@ function P({ title, icon: Icon, badge, children, className, source, accent }: {
 // ==================== METRIC BOX ====================
 function MBox({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div className="text-center p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
+    <div className="text-center p-2.5 rounded-lg bg-slate-800/15 border border-slate-800/25 hover:bg-slate-800/25 hover:border-slate-700/30 transition-colors">
       <div className="text-[9px] text-slate-500 font-medium mb-0.5">{label}</div>
       <div className={cn('text-sm font-bold font-mono', color || 'text-slate-100')}>{value}</div>
       {sub && <div className="text-[8px] text-slate-500 mt-0.5">{sub}</div>}
@@ -116,12 +116,12 @@ function Sidebar({ view, setView, collapsed, setCollapsed, d, watchlist }: {
 }) {
   return (
     <aside className={cn(
-      'h-screen sticky top-0 flex flex-col border-r border-slate-800/60 bg-[#080b12] transition-all duration-300 shrink-0 z-40',
+      'h-screen sticky top-0 flex flex-col border-r border-slate-800/40 bg-[#070a10] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shrink-0 z-40',
       collapsed ? 'w-[60px]' : 'w-[220px]'
     )}>
       {/* Logo */}
-      <div className="flex items-center gap-2 px-3 py-3 border-b border-slate-800/40">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-2.5 px-3 py-3.5 border-b border-slate-800/30">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10">
           <Activity className="w-4 h-4 text-white" />
         </div>
         {!collapsed && <span className="text-xs font-bold text-slate-200 tracking-tight">NSE Analytics</span>}
@@ -138,19 +138,20 @@ function Sidebar({ view, setView, collapsed, setCollapsed, d, watchlist }: {
                 key={item.id}
                 onClick={() => setView(item.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-all group',
+                  'w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left transition-all duration-200 group relative',
                   active
-                    ? 'bg-gradient-to-r ' + item.color + ' border border-slate-700/50'
-                    : 'hover:bg-slate-800/40 border border-transparent'
+                    ? 'bg-gradient-to-r ' + item.color + ' border border-slate-700/40 shadow-sm'
+                    : 'hover:bg-slate-800/30 border border-transparent'
                 )}
                 title={collapsed ? item.label : undefined}
               >
-                <Icon className={cn('w-4 h-4 shrink-0', active ? 'text-white' : 'text-slate-500 group-hover:text-slate-300')} />
+                {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-400" />}
+                <Icon className={cn('w-4 h-4 shrink-0 transition-colors duration-200', active ? 'text-white' : 'text-slate-500 group-hover:text-slate-300')} />
                 {!collapsed && (
                   <>
                     <div className="flex-1 min-w-0">
-                      <div className={cn('text-[11px] font-semibold truncate', active ? 'text-white' : 'text-slate-400')}>{item.label}</div>
-                      <div className="text-[8px] text-slate-600">{item.source}</div>
+                      <div className={cn('text-[11px] font-semibold truncate transition-colors duration-200', active ? 'text-white' : 'text-slate-400')}>{item.label}</div>
+                      <div className="text-[8px] text-slate-600 transition-colors duration-200">{item.source}</div>
                     </div>
                     {active && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50" />}
                   </>
@@ -162,16 +163,16 @@ function Sidebar({ view, setView, collapsed, setCollapsed, d, watchlist }: {
       </ScrollArea>
 
       {/* Bottom controls */}
-      <div className="border-t border-slate-800/40 p-2 space-y-1">
-        <button onClick={() => setCollapsed(!collapsed)} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800/40 text-slate-500 hover:text-slate-300 transition-colors">
+      <div className="border-t border-slate-800/30 p-2 space-y-1">
+        <button onClick={() => setCollapsed(!collapsed)} className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800/30 text-slate-500 hover:text-slate-300 transition-colors duration-200">
           {collapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           {!collapsed && <span className="text-[10px]">Collapse</span>}
         </button>
         {!collapsed && d.q && (
-          <div className="px-2 py-1.5 rounded-lg bg-slate-800/30 border border-slate-800/40">
+          <div className="px-2.5 py-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
             <div className="text-[8px] text-slate-600 mb-0.5">Active Stock</div>
             <div className="text-[11px] font-bold text-slate-200 truncate">{d.selectedSymbol}</div>
-            <div className="text-[10px] font-mono text-emerald-400">₹{d.q.price.toLocaleString('en-IN')}</div>
+            <div className="text-[10px] font-mono text-emerald-400 mt-0.5">{d.q.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
         )}
       </div>
@@ -189,7 +190,7 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
   const isLive = !!liveTick;
   const topGainers = d.overview?.topGainers?.slice(0, 4) || [];
   return (
-    <div className={cn('border-b border-slate-800/60 backdrop-blur-md transition-colors duration-500', upstoxConnected ? 'bg-[#070d0b]/95 border-l-2 border-l-emerald-500' : 'bg-[#080b12]/95')}>
+    <div className={cn('border-b border-slate-800/30 backdrop-blur-md transition-colors duration-500', upstoxConnected ? 'bg-[#060d0a]/95 border-l-2 border-l-emerald-500/60' : 'bg-[#080a12]/95')}>
       {/* Market Ticker — scrollable area for index prices */}
       <div className="border-b border-slate-800/30 flex items-center">
         <div className="flex-1 overflow-x-auto no-scrollbar">
@@ -222,7 +223,7 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
       <div className="flex items-center justify-between px-4 py-2.5">
         {d.selectedSymbol && d.q ? (
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-600/20 border border-emerald-500/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/15 to-blue-600/15 border border-emerald-500/15 flex items-center justify-center shrink-0">
             <TrendingUp className="w-5 h-5 text-emerald-400" />
           </div>
           <div className="min-w-0">
@@ -233,32 +234,32 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
                   if (watchlist.isInWatchlist(d.selectedSymbol)) watchlist.removeFromWatchlist(d.selectedSymbol);
                   else watchlist.addToWatchlist(d.selectedSymbol, d.selectedType);
                 }}
-                className={cn('p-1 rounded-md transition-colors', watchlist.isInWatchlist(d.selectedSymbol) ? 'text-amber-400' : 'text-slate-600 hover:text-amber-400')}
+                className={cn('p-1 rounded-md transition-all duration-200', watchlist.isInWatchlist(d.selectedSymbol) ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-amber-400')}
               >
                 <Star className={cn('w-4 h-4', watchlist.isInWatchlist(d.selectedSymbol) && 'fill-current')} />
               </button>
-              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0', TYPE_COLOR[d.selectedType] || 'bg-slate-800 text-slate-400')}>
+              <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 font-medium', TYPE_COLOR[d.selectedType] || 'bg-slate-800 text-slate-400')}>
                 {d.selectedType.toUpperCase()}
               </Badge>
-              {q?.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/80 border-slate-700 text-slate-400">{q.sector}</Badge>}
+              {q?.sector && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800/60 border-slate-700/40 text-slate-400 font-medium">{q.sector}</Badge>}
             </div>
             <div className="flex items-center gap-3 mt-0.5">
-              <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span className="text-2xl font-extrabold font-mono text-white tracking-tight">{price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <span className={cn('text-sm font-semibold font-mono flex items-center gap-0.5 px-2 py-0.5 rounded-md', changePct >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10')}>
                 {changePct >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
                 {Math.abs(change).toFixed(2)} ({Math.abs(changePct).toFixed(2)}%)
               </span>
-              <Badge variant="outline" className={cn('text-[8px] px-1 py-0 gap-1', isLive ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400')}>
+              <Badge variant="outline" className={cn('text-[8px] px-1.5 py-0 gap-1 font-medium transition-colors duration-300', isLive ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-slate-800/50 border-slate-700/40 text-slate-500')}>
                 {isLive ? <><Radio className="w-2 h-2 animate-pulse" /> UPSTOX LIVE</> : <><Clock className="w-2 h-2" /> DELAYED</>}
               </Badge>
               <span className="text-[10px] text-slate-500 hidden sm:inline">{q.exchange} &middot; {q.currency}</span>
-              <span className="text-[9px] text-slate-600 hidden lg:inline">{d.lastUpdated && `Updated: ${d.lastUpdated}`}</span>
+              {d.lastUpdated && <span className="text-[9px] text-slate-600 hidden lg:inline">Updated: {d.lastUpdated}</span>}
             </div>
           </div>
         </div>
         ) : (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-600/20 border border-emerald-500/20 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/15 to-blue-600/15 border border-emerald-500/15 flex items-center justify-center shrink-0">
             <Activity className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
@@ -268,16 +269,16 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
         </div>
         )}
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white text-xs h-8" onClick={d.handleRefresh} disabled={d.detailLoading}>
-            <RefreshCw className={cn('w-3.5 h-3.5 mr-1', d.detailLoading && 'animate-spin')} /> Refresh
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-slate-800/40 text-xs h-8 transition-colors" onClick={d.handleRefresh} disabled={d.detailLoading}>
+            <RefreshCw className={cn('w-3.5 h-3.5 mr-1.5 transition-transform', d.detailLoading && 'animate-spin')} /> Refresh
           </Button>
           <button
             onClick={() => d.setAutoRefresh(!d.autoRefresh)}
-            className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border transition-colors',
-              d.autoRefresh ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-900/60 border-slate-800/60 text-slate-500'
+            className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border transition-all duration-200',
+              d.autoRefresh ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/15' : 'bg-slate-800/30 border-slate-700/40 text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
             )}
           >
-            <span className={cn('w-1.5 h-1.5 rounded-full', d.autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600')} />
+            <span className={cn('w-1.5 h-1.5 rounded-full transition-colors', d.autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600')} />
             {d.autoRefresh ? 'LIVE' : 'OFF'}
           </button>
           <StockSelectorSheet
@@ -301,7 +302,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
     const topGainers = d.overview?.topGainers || [];
     const topLosers = d.overview?.topLosers || [];
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 view-enter">
         {/* Market Indices Row */}
         <P title="Market Indices" icon={Activity} source="NSE Real-time">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -315,14 +316,17 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
         {/* Top Gainers & Losers side by side */}
         <div className="grid grid-cols-12 gap-3">
           <div className="col-span-12 lg:col-span-6">
-            <P title="Top Gainers" icon={TrendingUp} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">Today</Badge>} source="NSE">
+            <P title="Top Gainers" icon={TrendingUp} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/8 border-emerald-500/20 text-emerald-400 font-medium">Today</Badge>} source="NSE">
               {topGainers.length > 0 ? (
-                <div className="space-y-1.5">
-                  {topGainers.map((s: any) => (
-                    <div key={s.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 hover:bg-emerald-500/10 cursor-pointer transition-colors" onClick={() => d.handleSelect(s.symbol, 'equity')}>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-200">{s.symbol}</div>
-                        <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.longName || s.name}</div>
+                <div className="space-y-1">
+                  {topGainers.map((s: any, i: number) => (
+                    <div key={s.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 hover:border-emerald-500/20 cursor-pointer transition-all duration-200" onClick={() => d.handleSelect(s.symbol, 'equity')}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-[9px] font-mono text-emerald-500/40 w-4 text-right">{i + 1}</span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-200">{s.symbol}</div>
+                          <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.longName || s.name}</div>
+                        </div>
                       </div>
                       <div className="text-right shrink-0 ml-3">
                         <div className="text-xs font-bold font-mono text-slate-200">{s.price?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
@@ -331,18 +335,21 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                     </div>
                   ))}
                 </div>
-              ) : <div className="text-center py-8 text-slate-500 text-xs">Loading market data...</div>}
+              ) : <div className="flex items-center justify-center py-8"><div className="shimmer h-4 w-32 rounded" /></div>}
             </P>
           </div>
           <div className="col-span-12 lg:col-span-6">
-            <P title="Top Losers" icon={TrendingUp} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-red-500/10 border-red-500/30 text-red-400">Today</Badge>} source="NSE">
+            <P title="Top Losers" icon={TrendingUp} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-red-500/8 border-red-500/20 text-red-400 font-medium">Today</Badge>} source="NSE">
               {topLosers.length > 0 ? (
-                <div className="space-y-1.5">
-                  {topLosers.map((s: any) => (
-                    <div key={s.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/5 border border-red-500/15 hover:bg-red-500/10 cursor-pointer transition-colors" onClick={() => d.handleSelect(s.symbol, 'equity')}>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-200">{s.symbol}</div>
-                        <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.longName || s.name}</div>
+                <div className="space-y-1">
+                  {topLosers.map((s: any, i: number) => (
+                    <div key={s.symbol} className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 hover:border-red-500/20 cursor-pointer transition-all duration-200" onClick={() => d.handleSelect(s.symbol, 'equity')}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-[9px] font-mono text-red-500/40 w-4 text-right">{i + 1}</span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-200">{s.symbol}</div>
+                          <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.longName || s.name}</div>
+                        </div>
                       </div>
                       <div className="text-right shrink-0 ml-3">
                         <div className="text-xs font-bold font-mono text-slate-200">{s.price?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
@@ -351,7 +358,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                     </div>
                   ))}
                 </div>
-              ) : <div className="text-center py-8 text-slate-500 text-xs">Loading market data...</div>}
+              ) : <div className="flex items-center justify-center py-8"><div className="shimmer h-4 w-32 rounded" /></div>}
             </P>
           </div>
         </div>
@@ -365,7 +372,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                 {['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'LT', 'AXISBANK', 'BAJFINANCE', 'SUNPHARMA', 'MARUTI'].map(sym => {
                   const info = d.equities.find(e => e.symbol === sym);
                   return (
-                    <button key={sym} onClick={() => d.handleSelect(sym, 'equity')} className="p-2.5 rounded-lg bg-slate-800/15 border border-slate-800/30 hover:bg-emerald-500/10 hover:border-emerald-500/20 text-left transition-all group">
+                    <button key={sym} onClick={() => d.handleSelect(sym, 'equity')} className="p-2.5 rounded-lg bg-slate-800/10 border border-slate-800/20 hover:bg-emerald-500/8 hover:border-emerald-500/20 text-left transition-all duration-200 hover-lift group">
                       <div className="text-[11px] font-bold text-slate-200 group-hover:text-emerald-400 transition-colors">{sym}</div>
                       <div className="text-[9px] text-slate-500 truncate">{info?.name || sym}</div>
                       {info?.sector && <div className="text-[8px] text-slate-600 mt-0.5">{info.sector}</div>}
@@ -385,7 +392,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                   {['BANKNIFTY', 'NIFTYIT', 'NIFTYMIDCAP', 'NIFTYPHARMA'].map(sym => {
                     const info = d.indices.find(i => i.symbol === sym);
                     return (
-                      <button key={sym} onClick={() => d.handleSelect(sym, 'index')} className="p-2 rounded-lg bg-slate-800/15 border border-slate-800/30 hover:bg-purple-500/10 hover:border-purple-500/20 text-left transition-all group">
+                      <button key={sym} onClick={() => d.handleSelect(sym, 'index')} className="p-2 rounded-lg bg-slate-800/10 border border-slate-800/20 hover:bg-purple-500/8 hover:border-purple-500/20 text-left transition-all duration-200 hover-lift group">
                         <div className="text-[10px] font-bold text-slate-200 group-hover:text-purple-400 transition-colors">{sym}</div>
                         <div className="text-[9px] text-slate-500 truncate">{info?.name || sym}</div>
                       </button>
@@ -432,7 +439,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
     );
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       <KPIStrip q={d.q} latestSignal={d.latestSignal} />
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 xl:col-span-8">
@@ -895,7 +902,7 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
         <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
       </P>
@@ -955,7 +962,7 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     ]},
   ];
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {fundSections.map(sec => (
           <P key={sec.title} title={sec.title} icon={sec.icon} source={sec.source}>
@@ -995,7 +1002,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
           <P title="Technical Indicators Summary" icon={Activity} source="TradingView">
@@ -1111,7 +1118,7 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-5">
           <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
@@ -1298,7 +1305,7 @@ function OpenInterestView({ d, upstoxConnected }: { d: ReturnType<typeof useDash
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       {/* Controls Bar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
@@ -1685,7 +1692,7 @@ function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       {/* Portfolio Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <MBox label="Total Invested" value={fINR(totals.totalInvested || 0)} sub="Cost basis" color="text-slate-200" />
@@ -1871,7 +1878,7 @@ function AlertsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   const triggeredAlerts = alerts.filter(a => a.triggered);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 view-enter">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <MBox label="Active Alerts" value={String(activeAlerts.length)} sub="Monitoring" color="text-amber-400" />
@@ -2113,38 +2120,38 @@ export default function Home() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="min-h-screen bg-[#080a12] text-slate-100 flex" suppressHydrationWarning>
+      <div className="min-h-screen bg-[#070a10] text-slate-100 flex" suppressHydrationWarning>
         <SavePoints points={d.savePoints} />
         {/* === FLOATING UPSTOX CONNECTION INDICATOR — always visible, top-right === */}
         {rt.upstoxConnected ? (
-          <div className="fixed top-2 right-2 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/40 backdrop-blur-sm shadow-lg shadow-emerald-500/10">
+          <div className="fixed top-2 right-2 z-[100] flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0c1018]/90 border border-emerald-500/25 backdrop-blur-md shadow-lg shadow-emerald-900/20">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-emerald-300">UPSTOX {rt.wsConnected ? 'LIVE' : 'CONNECTED'}</span>
-            {rt.lastTickTime && <span className="text-[9px] text-emerald-500/70 font-mono">{rt.lastTickTime}</span>}
-            <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="ml-0.5 text-emerald-600 hover:text-red-400 transition-colors" title="Disconnect Upstox">
+            <span className="text-[10px] font-bold tracking-wider text-emerald-300/90">UPSTOX {rt.wsConnected ? 'LIVE' : 'CONNECTED'}</span>
+            {rt.lastTickTime && <span className="text-[9px] text-emerald-600 font-mono">{rt.lastTickTime}</span>}
+            <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="ml-0.5 text-emerald-600 hover:text-red-400 transition-colors duration-200" title="Disconnect Upstox">
               <X className="w-3 h-3" />
             </a>
           </div>
         ) : (
-          <a href="/api/upstox/connect" className="fixed top-2 right-2 z-[100] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/50 backdrop-blur-sm shadow-lg hover:border-amber-500/40 hover:bg-amber-950/50 transition-all group" title="Connect to Upstox for real-time data">
+          <a href="/api/upstox/connect" className="fixed top-2 right-2 z-[100] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0c1018]/90 border border-slate-700/30 backdrop-blur-md shadow-lg hover:border-amber-500/30 hover:bg-amber-950/40 transition-all duration-200 group" title="Connect to Upstox for real-time data">
             <WifiOff className="w-3 h-3 text-slate-500 group-hover:text-amber-400 transition-colors" />
             <span className="text-[10px] font-semibold text-slate-500 group-hover:text-amber-400 transition-colors">CONNECT UPSTOX</span>
           </a>
         )}
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
-        <div className={cn('flex-1 min-w-0 flex flex-col', rt.upstoxConnected && 'bg-[#060d0a]')}>
+        <div className={cn('flex-1 min-w-0 flex flex-col', rt.upstoxConnected && 'bg-[#060a08]')}>
           <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} upstoxConnected={rt.upstoxConnected} />
           <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
             {/* View breadcrumb */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className={cn('w-6 h-6 rounded-md bg-gradient-to-br flex items-center justify-center', activeNav?.color)}>
+            <div className="flex items-center gap-2 mb-3 view-enter" key={view}>
+              <div className={cn('w-6 h-6 rounded-md bg-gradient-to-br flex items-center justify-center shadow-sm', activeNav?.color)}>
                 {activeNav && <activeNav.icon className="w-3 h-3 text-white" />}
               </div>
               <span className="text-sm font-bold text-slate-200">{activeNav?.label}</span>
-              <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-500">{activeNav?.source}</Badge>
+              <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-slate-800/50 border-slate-700/40 text-slate-500 font-medium">{activeNav?.source}</Badge>
               {d.lastDate && <span className="ml-auto text-[10px] text-slate-600 flex items-center gap-1"><Calendar className="w-3 h-3" />{fDate(d.lastDate)}</span>}
             </div>
 
@@ -2162,14 +2169,20 @@ export default function Home() {
             {view === 'oi' && <OpenInterestView d={d} upstoxConnected={rt.upstoxConnected} />}
           </main>
           {/* Footer */}
-          <div className="border-t border-slate-800/30 py-2 px-4 flex items-center justify-between text-[9px] text-slate-600">
-            <span>NSE Analytics Dashboard — Power BI Style</span>
+          <div className="border-t border-slate-800/20 py-2.5 px-4 flex items-center justify-between text-[9px] text-slate-600">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">NSE Analytics</span>
+              <span className="text-slate-700">·</span>
+              <span>Educational use only</span>
+            </div>
             <div className="flex items-center gap-3">
-              {d.autoRefresh && <span className="flex items-center gap-1"><Radio className="w-2 h-2 text-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
+              {d.autoRefresh && <span className="flex items-center gap-1 text-slate-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Auto-refresh: {d.refreshInterval}s</span>}
+              <span className="text-slate-700">·</span>
               {rt.upstoxConnected
-                ? <span className="flex items-center gap-1 text-emerald-500"><Radio className="w-2 h-2 animate-pulse" /> Upstox Live{rt.lastTickTime ? ` · ${rt.lastTickTime}` : ''}</span>
-                : <a href="/api/upstox/connect" className="flex items-center gap-1 text-amber-500 hover:text-amber-400 transition-colors"><WifiOff className="w-2 h-2" /> Connect Upstox for Live Data</a>}
-              <span>Data: {rt.upstoxConnected ? 'Upstox WebSocket (real-time)' : 'Yahoo Finance (15min delayed)'} — Educational use only</span>
+                ? <span className="flex items-center gap-1 text-emerald-500/70"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Upstox Live{rt.lastTickTime ? ` · ${rt.lastTickTime}` : ''}</span>
+                : <a href="/api/upstox/connect" className="flex items-center gap-1 text-amber-500/60 hover:text-amber-400 transition-colors"><WifiOff className="w-2 h-2" /> Connect Upstox</a>}
+              <span className="text-slate-700">·</span>
+              <span className="text-slate-600">{rt.upstoxConnected ? 'Real-time via Upstox' : 'Yahoo Finance · 15min delayed'}</span>
             </div>
           </div>
         </div>

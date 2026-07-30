@@ -62,7 +62,7 @@ export function KPIStrip({
 }) {
   if (!q) return null;
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5 mb-4">
       <KPICard
         label="Market Cap"
         value={q.marketCap ? fINR(q.marketCap) : '--'}
