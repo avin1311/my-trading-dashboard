@@ -237,7 +237,7 @@ class UpstoxProvider implements OIProvider {
   /** Batch fetch quotes from Upstox /v2/market-quote/ohlc */
   private async fetchBatchQuotes(instrumentKeys: string[]): Promise<Record<string, any> | null> {
     try {
-      const BATCH = 50;
+      const BATCH = 100;
       const allData: Record<string, any> = {};
 
       for (let i = 0; i < instrumentKeys.length; i += BATCH) {

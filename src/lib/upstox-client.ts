@@ -160,6 +160,15 @@ async function upstoxFetch<T>(path: string): Promise<T | null> {
       return null;
     }
 
+    if (res.status === 429) {
+      const retryAfter = res.headers.get('x-ratelimit-reset') || res.headers.get('retry-after');
+      const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 2000;
+      console.warn(`[Upstox] Rate limited (429) on ${path}, retrying after ${waitMs}ms...`);
+      await new Promise(r => setTimeout(r, waitMs));
+      // Recursive retry — will hit the token check above if we keep getting 429
+      return upstoxFetch<T>(path);
+    }
+
     if (!res.ok) {
       const err = await res.text().catch(() => '');
       console.error(`[Upstox] ${res.status} for ${path}:`, err);
@@ -591,7 +600,7 @@ export async function fetchUpstoxLiveQuotes(symbols: string[]): Promise<Map<stri
   if (keys.length === 0) return new Map();
 
   const result = new Map<string, UpstoxLiveQuote>();
-  const BATCH = 50;
+  const BATCH = 100;
   for (let i = 0; i < keys.length; i += BATCH) {
     const batch = keys.slice(i, i + BATCH);
     const data = await upstoxFetch<Record<string, any>>(`/market-quote/ohlc?instrument_key=${encodeURIComponent(batch.join(','))}`);

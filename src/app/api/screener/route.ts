@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getScreenerData } from "@/lib/market-data";
 import { generateSignals, DEFAULT_PARAMS, type StrategyParams } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
+import { isUpstoxConnected, fetchUpstoxLiveQuotes } from "@/lib/upstox-client";
 import { db } from "@/lib/db";
 
 // Cache screener results for 5 minutes
 let screenerCache: { data: any; timestamp: number; params: string } | null = null;
 const SCREENER_TTL = 5 * 60_000;
 
-const BATCH_SIZE = 3;        // 3 stocks at a time (1 API call each = 3 concurrent)
-const BATCH_DELAY_MS = 800;   // 800ms between batches to avoid Yahoo rate limiting
-const PER_STOCK_TIMEOUT = 12000; // 12s per stock
+const BATCH_SIZE = 8;          // 8 concurrent stocks (up from 3) — Yahoo can handle this
+const BATCH_DELAY_MS = 400;     // 400ms between batches (down from 800ms)
+const PER_STOCK_TIMEOUT = 10000; // 10s per stock (down from 12s — fail fast)
 
 // GET /api/screener?signal=BUY&sector=Banking&limit=20
 export async function GET(request: NextRequest) {
@@ -59,19 +60,46 @@ export async function GET(request: NextRequest) {
     equities = equities.filter((e: any) => e.sec === sectorFilter);
   }
 
-  console.log(`[Screener] Starting scan of ${equities.length} stocks (1 API call each, batch=${BATCH_SIZE}, delay=${BATCH_DELAY_MS}ms)...`);
+  console.log(`[Screener] Starting scan of ${equities.length} stocks (batch=${BATCH_SIZE}, delay=${BATCH_DELAY_MS}ms, ${sectorFilter ? `sector=${sectorFilter}` : 'all sectors'})...`);
 
-  // Scan in small batches with delays to avoid Yahoo rate limiting
+  // Pre-fetch live prices via Upstox batch API when connected (fast: ~5 API calls for 500 stocks)
+  let livePriceMap = new Map<string, { price: number; change: number; changePct: number }>();
+  let upstoxSource = false;
+  if (isUpstoxConnected()) {
+    try {
+      const symbols = equities.map((e: any) => e.s);
+      const quotes = await fetchUpstoxLiveQuotes(symbols);
+      if (quotes.size > 0) {
+        for (const [sym, q] of quotes) {
+          if (q.last_price && q.close) {
+            livePriceMap.set(sym, {
+              price: q.last_price,
+              change: q.last_price - q.close,
+              changePct: q.close > 0 ? ((q.last_price - q.close) / q.close) * 100 : 0,
+            });
+          }
+        }
+        upstoxSource = true;
+        console.log(`[Screener] Upstox batch quotes: ${livePriceMap.size}/${symbols.length} prices fetched`);
+      }
+    } catch (err: any) {
+      console.warn('[Screener] Upstox batch quote failed, falling back to Yahoo:', err.message);
+    }
+  }
+
+  // Scan in batches with delays to avoid Yahoo rate limiting
   const results: any[] = [];
   let scanned = 0;
   let failed = 0;
   const totalBatches = Math.ceil(equities.length / BATCH_SIZE);
+  const startTime = Date.now();
 
   for (let batchIdx = 0; batchIdx < equities.length; batchIdx += BATCH_SIZE) {
     const batch = equities.slice(batchIdx, batchIdx + BATCH_SIZE);
     const batchResults = await Promise.allSettled(
       batch.map(async (eq: any) => {
         try {
+          // If we have Upstox live price, still need historical data for signals
           const result = await Promise.race([
             getScreenerData(eq.s, 100),
             new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_STOCK_TIMEOUT)),
@@ -81,14 +109,15 @@ export async function GET(request: NextRequest) {
 
           const signals = generateSignals(result.historical, params);
           const latest = signals.length > 0 ? signals[signals.length - 1] : null;
+          const liveData = livePriceMap.get(eq.s);
 
           return {
             symbol: eq.s,
             name: eq.n,
             sector: eq.sec,
-            price: result.price,
-            change: result.change,
-            changePct: result.changePct,
+            price: liveData?.price || result.price,
+            change: liveData?.change || result.change,
+            changePct: liveData?.changePct || result.changePct,
             volume: result.volume,
             marketCap: (result as any)._marketCap || 0,
             pe: (result as any)._pe ?? null,
@@ -114,14 +143,21 @@ export async function GET(request: NextRequest) {
     }
     scanned += batch.length;
 
-    // Delay between batches to avoid Yahoo rate limiting (skip delay after last batch)
+    // Progress logging every 100 stocks
+    if (scanned % 100 === 0 || scanned >= equities.length) {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[Screener] Progress: ${scanned}/${equities.length} (${results.length} ok, ${failed} fail, ${elapsed}s)`);
+    }
+
+    // Delay between batches (skip after last batch)
     const currentBatch = Math.floor(batchIdx / BATCH_SIZE) + 1;
     if (currentBatch < totalBatches) {
       await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
     }
   }
 
-  console.log(`[Screener] Done: ${results.length}/${scanned} successful, ${failed} failed`);
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[Screener] Done: ${results.length}/${scanned} successful, ${failed} failed, ${elapsed}s`);
 
   // Apply signal filter
   let filtered = results;
@@ -153,7 +189,8 @@ export async function GET(request: NextRequest) {
     totalScanned: equities.length,
     totalMatched: filtered.length,
     scanTime: new Date().toISOString(),
-    dataSource: "yahoo_finance_realtime",
+    scanDurationSec: parseFloat(elapsed),
+    dataSource: upstoxSource ? "upstox_batch+yahoo_signals" : "yahoo_finance_realtime",
   };
 
   screenerCache = { data: response, timestamp: Date.now(), params: cacheKey };

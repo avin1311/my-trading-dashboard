@@ -140,7 +140,7 @@ function generateOptionsChain(underlying: string, lotSizeOverride?: number): Arr
 // We always use the fallback hardcoded list (250+ equities from stock-list.ts).
 // The dynamic path is kept for when a future working alternative is found.
 
-const MIN_EQUITY_COUNT = 150; // Minimum expected equities — if dynamic returns fewer, use fallback
+const MIN_EQUITY_COUNT = 100; // Minimum expected equities — if dynamic returns fewer, use fallback
 
 async function getDynamicEquities(): Promise<{ instruments: any[]; sectors: string[]; source: string }> {
   // Build fallback list upfront (used when dynamic source is unavailable or returns too few stocks)
