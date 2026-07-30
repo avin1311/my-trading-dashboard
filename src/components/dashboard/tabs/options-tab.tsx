@@ -281,7 +281,7 @@ export function OptionsTab({
           </div>
         </SectionCard>
 
-        {/* Strategy Legs */
+        {/* Strategy Legs */}
         <SectionCard title="Strategy Legs" icon={BarChart2}>
           <div className="space-y-1.5">
             {strategyLegs.map((leg, i) => (

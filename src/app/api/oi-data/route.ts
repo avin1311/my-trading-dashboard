@@ -9,6 +9,7 @@ import {
   isIndexSymbol,
   type NSEOptionChainResponse,
 } from "@/lib/nse-option-chain";
+import { isUpstoxConnected, getUpstoxToken } from "@/lib/upstox-client";
 
 // ==================== LIVE PRICE FETCH (Yahoo fallback) ====================
 // When NSE option chain API is blocked (403), we need a real spot price
@@ -201,11 +202,7 @@ async function generateFuturesOI(underlying: string, clientSpotPrice?: number): 
   const allInstruments = [...stockList.equities, ...stockList.indices];
   const base = allInstruments.find((s: any) => s.s === underlying);
   // Priority: client-provided Upstox LTP > Yahoo > stale bp
-  let spotPrice = clientSpotPrice || await getQuickSpotPrice(underlying);
-  if (!spotPrice) {
-    spotPrice = base?.bp || 24580;
-    console.warn(`[OI Futures] Using stale bp=${spotPrice} for ${underlying}`);
-  }
+  let spotPrice: number = clientSpotPrice || await getQuickSpotPrice(underlying) || base?.bp || 24580;
   const name = base?.n || underlying;
   const lotSize = base?.ls || 25;
 
@@ -354,7 +351,7 @@ function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string
   };
 }
 
-function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): FuturesOIData {
+async function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): Promise<FuturesOIData> {
   const allInstruments = [...stockList.equities, ...stockList.indices];
   const base = allInstruments.find((s: any) => s.s === underlying);
   const name = base?.n || underlying;
@@ -418,7 +415,7 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
   const farMonth = sortedExpiries[2] ? makeContractFromNSE(sortedExpiries[2], expiryMap.get(sortedExpiries[2])!) : null;
 
   if (!currentMonth) {
-    return generateFuturesOI(underlying);
+    return await generateFuturesOI(underlying);
   }
 
   const basis = currentMonth.lastPrice - spotPrice;
@@ -438,6 +435,215 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
   };
 }
 
+// ==================== UPSTOX OPTION CHAIN PARSER ====================
+
+/**
+ * Parse the raw Upstox /v2/option/chain response into our OptionChainData format.
+ * Upstox response is an array of items, each representing one CE or PE contract:
+ *   { strike_price, expiry_date, option_type, open_interest, change_in_oi,
+ *     volume, last_price, iv, change, buy_quantity, sell_quantity, ... }
+ */
+function parseUpstoxOptionChain(
+  rawData: any[],
+  underlying: string,
+  expiryFilter?: string,
+  liveSpotPrice?: number,
+): OptionChainData | null {
+  if (!rawData || rawData.length === 0) {
+    console.warn('[OI] Upstox option chain returned empty data');
+    return null;
+  }
+
+  // Get unique expiry dates
+  const allExpiryDates = [...new Set(rawData.map((d: any) => d.expiry_date))].sort();
+  const currentExpiry = expiryFilter || allExpiryDates[0] || '';
+
+  // Filter for selected expiry
+  const filteredData = rawData.filter((d: any) => d.expiry_date === currentExpiry);
+  if (filteredData.length === 0) {
+    console.warn(`[OI] No Upstox data for expiry ${currentExpiry}`);
+    return null;
+  }
+
+  // Group by strike price
+  const strikeMap = new Map<number, OIStrikeData>();
+
+  for (const d of filteredData) {
+    const sp = parseFloat(d.strike_price);
+    if (!sp || sp <= 0) continue;
+
+    let entry = strikeMap.get(sp);
+    if (!entry) {
+      entry = {
+        strikePrice: sp,
+        callOI: 0, callOIChg: 0, callVolume: 0, callIV: 0, callLTP: 0, callChg: 0,
+        putOI: 0, putOIChg: 0, putVolume: 0, putIV: 0, putLTP: 0, putChg: 0,
+      };
+      strikeMap.set(sp, entry);
+    }
+
+    const isCE = (d.option_type || '').toUpperCase() === 'CE';
+    const oi = parseInt(d.open_interest || d.oi, 10) || 0;
+    const oiChg = parseInt(d.change_in_open_interest || d.change_in_oi || d.oi_change, 10) || 0;
+    const vol = parseInt(d.volume || d.traded_volume, 10) || 0;
+    const iv = parseFloat(d.implied_volatility || d.iv) || 0;
+    const ltp = parseFloat(d.last_price || d.ltp) || 0;
+    const chg = parseFloat(d.change || d.net_change) || 0;
+
+    if (isCE) {
+      entry.callOI += oi;
+      entry.callOIChg += oiChg;
+      entry.callVolume += vol;
+      entry.callIV = iv;
+      entry.callLTP = ltp;
+      entry.callChg = chg;
+    } else {
+      entry.putOI += oi;
+      entry.putOIChg += oiChg;
+      entry.putVolume += vol;
+      entry.putIV = iv;
+      entry.putLTP = ltp;
+      entry.putChg = chg;
+    }
+  }
+
+  // Sort by strike price
+  const strikes = Array.from(strikeMap.values()).sort((a, b) => a.strikePrice - b.strikePrice);
+  if (strikes.length === 0) return null;
+
+  // Calculate totals
+  let totalCallOI = 0, totalPutOI = 0, totalCallOIChg = 0, totalPutOIChg = 0;
+  for (const s of strikes) {
+    totalCallOI += s.callOI;
+    totalPutOI += s.putOI;
+    totalCallOIChg += s.callOIChg;
+    totalPutOIChg += s.putOIChg;
+  }
+
+  // Calculate max pain
+  let maxPain = 0;
+  let minPainValue = Infinity;
+  for (const s of strikes) {
+    let painValue = 0;
+    for (const s2 of strikes) {
+      if (s2.strikePrice < s.strikePrice) painValue += s2.callOI * (s.strikePrice - s2.strikePrice);
+      if (s2.strikePrice > s.strikePrice) painValue += s2.putOI * (s2.strikePrice - s.strikePrice);
+    }
+    if (painValue < minPainValue) {
+      minPainValue = painValue;
+      maxPain = s.strikePrice;
+    }
+  }
+
+  const pcr = totalPutOI > 0 ? totalCallOI / totalPutOI : 0;
+
+  // Spot price: use live Upstox tick if provided, otherwise estimate from ATM
+  let spotPrice = liveSpotPrice || 0;
+  if (!spotPrice) {
+    // Find ATM: strike closest to where CE LTP is smallest (closest to ATM)
+    let minCallLTP = Infinity;
+    for (const s of strikes) {
+      if (s.callLTP > 0 && s.callLTP < minCallLTP) {
+        minCallLTP = s.callLTP;
+        spotPrice = s.strikePrice;
+      }
+    }
+  }
+
+  return {
+    underlying,
+    spotPrice,
+    expiryDates: allExpiryDates,
+    currentExpiry,
+    strikes,
+    totalCallOI,
+    totalPutOI,
+    totalCallOIChg,
+    totalPutOIChg,
+    maxPain,
+    pcr: Math.round(pcr * 1000) / 1000,
+    dataSource: 'upstox_live',
+  };
+}
+
+/**
+ * Fetch Upstox option chain data directly using the OAuth token.
+ */
+async function fetchUpstoxOptionChainDirect(
+  symbol: string,
+  expiry?: string,
+  liveSpotPrice?: number,
+): Promise<OptionChainData | null> {
+  const token = getUpstoxToken();
+  if (!token) return null;
+
+  try {
+    const { toInstrumentKey } = await import('@/lib/instrument-keys');
+    const instrumentKey = toInstrumentKey(symbol);
+    if (!instrumentKey) {
+      console.warn(`[OI] No instrument key for Upstox OC: ${symbol}`);
+      return null;
+    }
+
+    let url = `https://api.upstox.com/v2/option/chain?instrument_key=${encodeURIComponent(instrumentKey)}`;
+    if (expiry) {
+      url += `&expiry_date=${encodeURIComponent(expiry)}`;
+    }
+
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'x-api-version': '2.0',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (res.status === 401) {
+      console.warn('[OI] Upstox token expired for option chain');
+      return null;
+    }
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.warn(`[OI] Upstox option chain ${res.status}: ${errText}`);
+      return null;
+    }
+
+    const json = await res.json();
+    const rawData = json?.data;
+    // Handle both array and nested object responses
+    let contracts: any[] | null = null;
+    if (Array.isArray(rawData)) {
+      contracts = rawData;
+    } else if (rawData && typeof rawData === 'object') {
+      // Might be { options: [...], underlying_price: ... } or similar
+      contracts = rawData.options || rawData.contracts || rawData.chain || null;
+      // Try to use underlying_price from the response
+      if (rawData.underlying_price && !liveSpotPrice) {
+        liveSpotPrice = parseFloat(rawData.underlying_price) || undefined;
+      }
+    }
+
+    if (!contracts || contracts.length === 0) {
+      // Log first item keys for debugging
+      if (rawData) {
+        const sample = Array.isArray(rawData) ? rawData[0] : Object.values(rawData)[0];
+        if (sample && typeof sample === 'object') {
+          console.log(`[OI] Upstox OC sample keys:`, Object.keys(sample));
+        }
+      }
+      console.warn(`[OI] Upstox option chain: empty or invalid data for ${symbol}`);
+      return null;
+    }
+
+    console.log(`[OI] Upstox option chain: got ${contracts.length} contracts for ${symbol}`);
+    return parseUpstoxOptionChain(contracts, symbol, expiry || undefined, liveSpotPrice);
+  } catch (err) {
+    console.error(`[OI] Upstox option chain fetch error:`, (err as Error).message);
+    return null;
+  }
+}
+
 // ==================== MAIN ROUTE ====================
 
 export async function GET(request: NextRequest) {
@@ -445,7 +651,7 @@ export async function GET(request: NextRequest) {
   const underlying = searchParams.get('underlying') || 'NIFTY';
   const type = searchParams.get('type') || 'both';
   const expiry = searchParams.get('expiry') || '';
-  const source = searchParams.get('source') || 'nse';
+  const source = searchParams.get('source') || 'auto';
   const liveSpotOverride = searchParams.get('spot'); // Client passes Upstox LTP
 
   const allUnderlyings = stockList.optionUnderlyings;
@@ -455,8 +661,50 @@ export async function GET(request: NextRequest) {
   const clientSpotPrice = liveSpotOverride ? parseFloat(liveSpotOverride) : NaN;
   const validClientSpot = clientSpotPrice > 0 ? clientSpotPrice : undefined;
 
-  // Try live data first (unless source=mock)
-  if (source === 'nse') {
+  // ---- DATA SOURCE PRIORITY ----
+  // 1. If Upstox is connected and source != 'nse' and source != 'mock' -> try Upstox first
+  // 2. If source == 'nse' or Upstox fails -> try NSE direct
+  // 3. If NSE fails -> mock with live spot price
+
+  const upstoxConnected = isUpstoxConnected();
+  let upstoxOptionResult: OptionChainData | null = null;
+
+  // --- TRY UPSTOX FIRST (when connected) ---
+  if (upstoxConnected && source !== 'nse' && source !== 'mock') {
+    console.log(`[OI] Upstox connected, trying option chain API for ${underlying}...`);
+    if (type === 'option' || type === 'both') {
+      upstoxOptionResult = await fetchUpstoxOptionChainDirect(
+        underlying, expiry || undefined, validClientSpot
+      );
+    }
+
+    if (upstoxOptionResult) {
+      // Upstox option chain data succeeded
+      if (type === 'option') {
+        return NextResponse.json({
+          ...upstoxOptionResult,
+          underlyings: allUnderlyings,
+          lastUpdated: new Date().toISOString(),
+        }, { headers: cacheHeaders });
+      }
+
+      // For 'both': return Upstox options + mock futures
+      if (type === 'both') {
+        const futuresData = await generateFuturesOI(underlying, upstoxOptionResult.spotPrice || validClientSpot);
+        return NextResponse.json({
+          option: upstoxOptionResult,
+          futures: futuresData,
+          underlyings: allUnderlyings,
+          lastUpdated: new Date().toISOString(),
+        }, { headers: cacheHeaders });
+      }
+    } else {
+      console.warn(`[OI] Upstox option chain failed for ${underlying}, falling back`);
+    }
+  }
+
+  // --- TRY NSE DIRECT ---
+  if (source === 'nse' || source === 'auto' || !upstoxConnected) {
     try {
       const nseData = isIndexSymbol(underlying)
         ? await fetchIndexOptionChain(underlying)
@@ -464,7 +712,7 @@ export async function GET(request: NextRequest) {
 
       if (nseData) {
         const optionResult = parseNSEOptionChain(nseData, underlying, expiry || undefined);
-        const futuresResult = parseNSEFutures(nseData, underlying);
+        const futuresResult = await parseNSEFutures(nseData, underlying);
 
         if (type === 'option') {
           return NextResponse.json({
@@ -497,7 +745,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Mock fallback - use client-provided Upstox spot price if available,
+  // --- MOCK FALLBACK ---
+  // Use client-provided Upstox spot price if available,
   // then try Yahoo, then stale bp as last resort
   if (type === 'option') {
     const data = await generateOptionChain(underlying, expiry || undefined, validClientSpot);
