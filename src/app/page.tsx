@@ -180,7 +180,7 @@ function Sidebar({ view, setView, collapsed, setCollapsed, d, watchlist }: {
 }
 
 // ==================== HEADER BAR ====================
-function HeaderBar({ d, watchlist, liveTick, rtTicks }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; liveTick: LiveTick | null; rtTicks: Map<string, LiveTick> }) {
+function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; liveTick: LiveTick | null; rtTicks: Map<string, LiveTick>; upstoxConnected: boolean }) {
   const q = d.q;
   // Use real-time price from Upstox when available
   const price = liveTick?.ltp || q?.price || 0;
@@ -189,7 +189,7 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks }: { d: ReturnType<typeof u
   const isLive = !!liveTick;
   const topGainers = d.overview?.topGainers?.slice(0, 4) || [];
   return (
-    <div className="border-b border-slate-800/60 bg-[#080b12]/95 backdrop-blur-md">
+    <div className={cn('border-b border-slate-800/60 bg-[#080b12]/95 backdrop-blur-md', upstoxConnected && 'border-l-2 border-l-emerald-500')}>
       {/* Market Ticker */}
       <div className="border-b border-slate-800/30 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-0.5 px-4 py-1 min-w-max">
@@ -212,6 +212,20 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks }: { d: ReturnType<typeof u
                 ))}
               </div>
             </>
+          )}
+        </div>
+        {/* Upstox Connection Pill - always visible in ticker bar */}
+        <div className="ml-auto shrink-0 pl-4 flex items-center">
+          {upstoxConnected ? (
+            <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer" title="Connected to Upstox (real-time) · Click to disconnect">
+              <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
+              <span className="text-[9px] font-bold tracking-wide">UPSTOX LIVE</span>
+            </a>
+          ) : (
+            <a href="/api/upstox/connect" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-500 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors" title="Connect to Upstox for real-time data">
+              <WifiOff className="w-2.5 h-2.5" />
+              <span className="text-[9px] font-semibold">CONNECT</span>
+            </a>
           )}
         </div>
       </div>
@@ -1346,7 +1360,11 @@ function OpenInterestView({ d, upstoxConnected }: { d: ReturnType<typeof useDash
         <Button variant="ghost" size="sm" className="ml-auto h-8 text-xs text-slate-400 hover:text-white hover:bg-slate-800/50" onClick={() => d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter)}>
           <RefreshCw className={cn("w-3 h-3 mr-1", d.oiLoading && "animate-spin")} /> Refresh
         </Button>
-        {d.oiOptionData?.dataSource === 'nse_live' ? (
+        {d.oiOptionData?.dataSource === 'upstox_live' ? (
+          <Badge className="h-7 text-[10px] font-semibold bg-emerald-500/90 text-white border-0 gap-1">
+            <Radio className="w-2.5 h-2.5 animate-pulse" /> LIVE UPSTOX
+          </Badge>
+        ) : d.oiOptionData?.dataSource === 'nse_live' ? (
           <Badge className="h-7 text-[10px] font-semibold bg-emerald-600/90 text-white border-0 gap-1">
             <Radio className="w-2.5 h-2.5" /> LIVE NSE
           </Badge>
@@ -2111,7 +2129,7 @@ export default function Home() {
         <SavePoints points={d.savePoints} />
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
         <div className="flex-1 min-w-0 flex flex-col">
-          <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} />
+          <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} upstoxConnected={rt.upstoxConnected} />
           <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
             {/* View breadcrumb */}
             <div className="flex items-center gap-2 mb-3">
