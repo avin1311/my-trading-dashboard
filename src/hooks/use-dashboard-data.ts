@@ -17,6 +17,7 @@ export function useDashboardData() {
   const [selectedType, setSelectedType] = useState('index');
   const [signalsLoading, setSignalsLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(true);
+  const [initialLoadError, setInitialLoadError] = useState(false);
 
   // Auto-refresh ON by default for real-time feel
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -96,14 +97,21 @@ export function useDashboardData() {
   const fetchDetail = useCallback(async (sym: string) => {
     setDetailLoading(true);
     try {
-      const res = await fetch('/api/stock-detail?symbol=' + sym);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      const res = await fetch('/api/stock-detail?symbol=' + sym, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`stock-detail API ${res.status}`);
       const data = await res.json();
       if (data.quote) {
         setDetail(data);
         addSavePoint(`Loaded ${sym}`, `Price: ₹${data.quote.price.toLocaleString('en-IN')} | ${data.quote.changePct >= 0 ? '+' : ''}${data.quote.changePct.toFixed(2)}%`);
       }
-    } catch (err) { console.warn('[fetchDetail]', err); } finally { setDetailLoading(false); }
+    } catch (err: any) {
+      console.warn('[fetchDetail]', err?.name === 'AbortError' ? 'Request timed out' : err);
+      // Only mark initial load error if we have no detail yet (first load attempt)
+      setDetail(prev => { if (!prev) setInitialLoadError(true); return prev; });
+    } finally { setDetailLoading(false); }
   }, [addSavePoint]);
 
   // Silent fetch — no save points, no loading spinner
@@ -121,9 +129,12 @@ export function useDashboardData() {
   const fetchSignals = useCallback(async (sym: string, p: StrategyParams, days = 200) => {
     setSignalsLoading(true);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
       const sp = new URLSearchParams({ symbol: sym, days: String(days) });
       for (const [k, v] of Object.entries(p)) sp.append(k, String(v));
-      const res = await fetch('/api/signals?' + sp.toString());
+      const res = await fetch('/api/signals?' + sp.toString(), { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`signals API ${res.status}`);
       const data = await res.json();
       setStockData(data.stockData || []);
@@ -135,17 +146,24 @@ export function useDashboardData() {
         const last = data.signals[data.signals.length - 1];
         addSavePoint('Signals Calculated', `${last.signal} | RSI: ${last.rsi?.toFixed(1)} | ST: ${last.supertrendDir === 1 ? 'Bullish' : 'Bearish'}`);
       }
-    } catch (err) { console.warn('[fetchSignals]', err); } finally { setSignalsLoading(false); setRecalculating(false); }
+    } catch (err: any) {
+      console.warn('[fetchSignals]', err?.name === 'AbortError' ? 'Request timed out' : err);
+    } finally { setSignalsLoading(false); setRecalculating(false); }
   }, [addSavePoint]);
 
   const fetchNews = useCallback(async (sym: string) => {
     setNewsLoading(true);
     try {
-      const res = await fetch('/api/news?symbol=' + sym);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch('/api/news?symbol=' + sym, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`news API ${res.status}`);
       const data = await res.json();
       if (data.news) setNews(data.news);
-    } catch (err) { console.warn('[fetchNews]', err); } finally { setNewsLoading(false); }
+    } catch (err: any) {
+      console.warn('[fetchNews]', err?.name === 'AbortError' ? 'Request timed out' : err);
+    } finally { setNewsLoading(false); }
   }, []);
 
   const fetchScreener = useCallback(async () => {
@@ -180,6 +198,7 @@ export function useDashboardData() {
   const initialFetchDone = useRef(false);
   useEffect(() => {
     if (!selectedSymbol) return;
+    setInitialLoadError(false);
     // On first mount with default symbol, always fetch
     if (!initialFetchDone.current) {
       initialFetchDone.current = true;
@@ -348,7 +367,7 @@ export function useDashboardData() {
     sheetOpen, setSheetOpen,
     equities, indices, sectors,
     selectedSymbol, selectedType,
-    signalsLoading, detailLoading,
+    signalsLoading, detailLoading, initialLoadError, setInitialLoadError,
     stockData, signals, backtest, params, setParams, recalculating, setRecalculating,
     detail, overview, lastDate, lastUpdated,
     equitySearch, setEquitySearch, selectedSector, setSelectedSector,

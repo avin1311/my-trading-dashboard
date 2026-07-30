@@ -402,6 +402,25 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
   }
   // Stock is selected but data not yet loaded — show loading
   if (!d.q) {
+    if (d.initialLoadError && !d.detailLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[50vh]">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+            <WifiOff className="w-6 h-6 text-red-400" />
+          </div>
+          <h3 className="text-sm font-semibold text-slate-300 mb-1">Failed to load {d.selectedSymbol}</h3>
+          <p className="text-xs text-slate-500 mb-4">Could not fetch data from Yahoo Finance. Check your internet connection.</p>
+          <div className="flex gap-2">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}>
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+            </Button>
+            <Button variant="outline" size="sm" className="border-slate-700 text-slate-400 hover:text-white" onClick={() => d.setSheetOpen(true)}>
+              <Search className="w-3.5 h-3.5 mr-1.5" /> Pick Another Stock
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center h-[50vh]">
         <RefreshCw className="w-6 h-6 animate-spin text-emerald-400 mb-3" />
@@ -857,7 +876,16 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 // ==================== CHART VIEW (TradingView Style) ====================
 function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('price charts & indicators');
-  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  if (!d.q) {
+    if (d.initialLoadError && !d.detailLoading) return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <WifiOff className="w-6 h-6 text-red-400 mb-3" />
+        <p className="text-xs text-slate-400 mb-3">Failed to load {d.selectedSymbol}</p>
+        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
+      </div>
+    );
+    return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  }
   return (
     <div className="space-y-3">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
@@ -889,7 +917,12 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 // ==================== FUNDAMENTALS VIEW (Tickertape Style) ====================
 function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('fundamentals & financials');
-  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  if (!d.q) {
+    if (d.initialLoadError && !d.detailLoading) return (
+      <div className="flex flex-col items-center justify-center h-[50vh]"><WifiOff className="w-6 h-6 text-red-400 mb-3" /><p className="text-xs text-slate-400 mb-3">Failed to load {d.selectedSymbol}</p><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button></div>
+    );
+    return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  }
   const fundSections = [
     { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
       { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
@@ -947,7 +980,12 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 // ==================== TECHNICALS VIEW (TradingView Style) ====================
 function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('technical indicators');
-  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  if (!d.q) {
+    if (d.initialLoadError && !d.detailLoading) return (
+      <div className="flex flex-col items-center justify-center h-[50vh]"><WifiOff className="w-6 h-6 text-red-400 mb-3" /><p className="text-xs text-slate-400 mb-3">Failed to load {d.selectedSymbol}</p><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button></div>
+    );
+    return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  }
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
@@ -1058,7 +1096,12 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 // ==================== STRATEGY VIEW ====================
 function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('trading strategies & signals');
-  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  if (!d.q) {
+    if (d.initialLoadError && !d.detailLoading) return (
+      <div className="flex flex-col items-center justify-center h-[50vh]"><WifiOff className="w-6 h-6 text-red-400 mb-3" /><p className="text-xs text-slate-400 mb-3">Failed to load {d.selectedSymbol}</p><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button></div>
+    );
+    return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  }
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-3">
@@ -1153,7 +1196,12 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 // ==================== NEWS VIEW (Moneycontrol Style) ====================
 function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('news & headlines');
-  if (!d.q) return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  if (!d.q) {
+    if (d.initialLoadError && !d.detailLoading) return (
+      <div className="flex flex-col items-center justify-center h-[50vh]"><WifiOff className="w-6 h-6 text-red-400 mb-3" /><p className="text-xs text-slate-400 mb-3">Failed to load {d.selectedSymbol}</p><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button></div>
+    );
+    return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
+  }
   return (
     <P title={`${d.selectedSymbol} — News & Headlines`} icon={Newspaper} badge={d.news.length > 0 && <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-slate-800 border-slate-700 text-slate-400">{d.news.length} articles</Badge>} source="Moneycontrol / Google News">
       <Button size="sm" variant="ghost" className="h-7 text-[10px] mb-3 text-slate-400 hover:text-white" onClick={() => d.fetchNews(d.selectedSymbol)} disabled={d.newsLoading}>
