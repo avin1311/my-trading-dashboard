@@ -24,6 +24,7 @@ export function useRealtimeData(symbols: string[]) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const [connected, setConnected] = useState(false);
   const [upstoxConnected, setUpstoxConnected] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const [liveTicks, setLiveTicks] = useState<Map<string, LiveTick>>(new Map());
   const [lastTickTime, setLastTickTime] = useState('');
   const symbolsRef = useRef<string[]>(symbols);
@@ -86,6 +87,7 @@ export function useRealtimeData(symbols: string[]) {
       try {
         const status = JSON.parse(event.data);
         setUpstoxConnected(status.connected);
+        if (status.authorized) setWsConnected(true);
       } catch { /* ignore */ }
     });
   }, []);
@@ -193,6 +195,7 @@ export function useRealtimeData(symbols: string[]) {
   return {
     connected,
     upstoxConnected,
+    wsConnected,
     liveTicks,
     lastTickTime,
     connectUpstox,

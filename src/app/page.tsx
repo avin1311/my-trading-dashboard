@@ -216,20 +216,6 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
           )}
         </div>
         </div>
-        {/* Upstox Connection Pill - always visible, outside scrollable area */}
-        <div className="shrink-0 px-3 flex items-center border-l border-slate-800/30 h-9">
-          {upstoxConnected ? (
-            <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer" title="Connected to Upstox (real-time) · Click to disconnect">
-              <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
-              <span className="text-[9px] font-bold tracking-wide">UPSTOX LIVE</span>
-            </a>
-          ) : (
-            <a href="/api/upstox/connect" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-500 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors" title="Connect to Upstox for real-time data">
-              <WifiOff className="w-2.5 h-2.5" />
-              <span className="text-[9px] font-semibold">CONNECT</span>
-            </a>
-          )}
-        </div>
       </div>
 
       {/* Stock Header */}
@@ -2136,7 +2122,7 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-wider text-emerald-300">UPSTOX LIVE</span>
+            <span className="text-[10px] font-bold tracking-wider text-emerald-300">UPSTOX {rt.wsConnected ? 'LIVE' : 'CONNECTED'}</span>
             {rt.lastTickTime && <span className="text-[9px] text-emerald-500/70 font-mono">{rt.lastTickTime}</span>}
             <a href="/api/upstox/disconnect" onClick={async (e) => { e.preventDefault(); await fetch('/api/upstox/disconnect', { method: 'POST' }); window.location.reload(); }} className="ml-0.5 text-emerald-600 hover:text-red-400 transition-colors" title="Disconnect Upstox">
               <X className="w-3 h-3" />

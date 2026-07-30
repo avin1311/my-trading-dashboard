@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
       const saved = await db.savedScreener.findMany({ orderBy: { createdAt: 'desc' } });
       return NextResponse.json({ saved: saved.map(s => ({ id: s.id, name: s.name, filters: JSON.parse(s.filters), createdAt: s.createdAt })) });
     } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 500 });
+      console.error('[Screener] DB error listing saved:', e.message);
+      return NextResponse.json({ saved: [] });
     }
   }
 

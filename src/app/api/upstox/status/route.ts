@@ -24,7 +24,9 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    connected: hasToken && mgr.connected,
+    // connected = true if we have a valid token (can make REST API calls + OI)
+    // The WS connection is a bonus for real-time ticks, not a requirement for "connected"
+    connected: hasToken,
     hasToken,
     wsConnected: mgr.connected,
     wsAuthorized: mgr.authorized,
