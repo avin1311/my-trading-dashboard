@@ -238,11 +238,13 @@ export function useDashboardData() {
   // Fetch options on demand
   useEffect(() => { if (optionsData.length === 0) fetchOptions(optionsUnderlying); }, [optionsUnderlying]);
 
-  const fetchOIData = useCallback(async (underlying: string, expiry?: string) => {
+  const fetchOIData = useCallback(async (underlying: string, expiry?: string, liveSpotPrice?: number) => {
     setOiLoading(true);
     try {
       const sp = new URLSearchParams({ underlying, type: 'both' });
       if (expiry) sp.append('expiry', expiry);
+      // Pass live spot price from Upstox WS tick so mock OI uses correct strikes
+      if (liveSpotPrice && liveSpotPrice > 0) sp.append('spot', String(liveSpotPrice));
       const res = await fetch('/api/oi-data?' + sp.toString());
       if (!res.ok) throw new Error(`oi-data API ${res.status}`);
       const data = await res.json();
@@ -260,7 +262,11 @@ export function useDashboardData() {
   }, [addSavePoint, oiExpiryFilter]);
 
   // Fetch OI on underlying change
-  useEffect(() => { fetchOIData(oiUnderlying); }, [oiUnderlying]);
+  useEffect(() => {
+    // Try to get live price from window.__upstoxLiveTicks if available
+    // (set by page.tsx before calling fetchOIData)
+    fetchOIData(oiUnderlying);
+  }, [oiUnderlying]);
 
   // Auto-switch OI underlying when selected stock is an F&O underlying
   useEffect(() => {

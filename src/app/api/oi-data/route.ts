@@ -197,10 +197,11 @@ async function generateOptionChain(underlying: string, expiry?: string, liveSpot
   };
 }
 
-async function generateFuturesOI(underlying: string): Promise<FuturesOIData> {
+async function generateFuturesOI(underlying: string, clientSpotPrice?: number): Promise<FuturesOIData> {
   const allInstruments = [...stockList.equities, ...stockList.indices];
   const base = allInstruments.find((s: any) => s.s === underlying);
-  let spotPrice = await getQuickSpotPrice(underlying);
+  // Priority: client-provided Upstox LTP > Yahoo > stale bp
+  let spotPrice = clientSpotPrice || await getQuickSpotPrice(underlying);
   if (!spotPrice) {
     spotPrice = base?.bp || 24580;
     console.warn(`[OI Futures] Using stale bp=${spotPrice} for ${underlying}`);
@@ -445,9 +446,14 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') || 'both';
   const expiry = searchParams.get('expiry') || '';
   const source = searchParams.get('source') || 'nse';
+  const liveSpotOverride = searchParams.get('spot'); // Client passes Upstox LTP
 
   const allUnderlyings = stockList.optionUnderlyings;
   const cacheHeaders = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' };
+
+  // Parse client-provided spot price (from Upstox live tick)
+  const clientSpotPrice = liveSpotOverride ? parseFloat(liveSpotOverride) : NaN;
+  const validClientSpot = clientSpotPrice > 0 ? clientSpotPrice : undefined;
 
   // Try live data first (unless source=mock)
   if (source === 'nse') {
@@ -491,9 +497,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Mock fallback - fetch live price from Yahoo for accurate strike generation
+  // Mock fallback - use client-provided Upstox spot price if available,
+  // then try Yahoo, then stale bp as last resort
   if (type === 'option') {
-    const data = await generateOptionChain(underlying, expiry || undefined);
+    const data = await generateOptionChain(underlying, expiry || undefined, validClientSpot);
     return NextResponse.json({
       ...data,
       underlyings: allUnderlyings,
@@ -502,7 +509,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === 'futures') {
-    const data = await generateFuturesOI(underlying);
+    const data = await generateFuturesOI(underlying, validClientSpot);
     return NextResponse.json({
       ...data,
       underlyings: allUnderlyings,
@@ -512,8 +519,8 @@ export async function GET(request: NextRequest) {
 
   // Both (mock)
   const [optionData, futuresData] = await Promise.all([
-    generateOptionChain(underlying, expiry || undefined),
-    generateFuturesOI(underlying),
+    generateOptionChain(underlying, expiry || undefined, validClientSpot),
+    generateFuturesOI(underlying, validClientSpot),
   ]);
   return NextResponse.json({
     option: optionData,

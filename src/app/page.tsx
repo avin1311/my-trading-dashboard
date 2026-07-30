@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1238,7 +1238,7 @@ function NewsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 }
 
 // ==================== OPEN INTEREST VIEW ====================
-function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+function OpenInterestView({ d, upstoxConnected }: { d: ReturnType<typeof useDashboardData>; upstoxConnected: boolean }) {
   const [oiTab, setOiTab] = useState<'options' | 'futures'>('options');
   const [strikeRange, setStrikeRange] = useState(5);
 
@@ -1352,7 +1352,7 @@ function OpenInterestView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </Badge>
         ) : (
           <Badge className="h-7 text-[10px] font-semibold bg-amber-600/20 text-amber-400 border border-amber-600/30 gap-1">
-            <WifiOff className="w-2.5 h-2.5" /> SIMULATED
+            <WifiOff className="w-2.5 h-2.5" /> SIMULATED OI{upstoxConnected ? ' · Live Price' : ''}
           </Badge>
         )}
         {d.oiLastUpdated && (
@@ -2086,6 +2086,20 @@ export default function Home() {
   ];
   const rt = useRealtimeData(realtimeSymbols);
 
+  // Re-fetch OI data when a live Upstox tick arrives for the OI underlying
+  // This ensures the mock OI strikes use the live spot price, not stale bp/Yahoo
+  const prevOiSpotRef = useRef(0);
+  useEffect(() => {
+    if (!d.oiUnderlying || !rt.upstoxConnected) return;
+    const tick = rt.liveTicks.get(d.oiUnderlying);
+    if (!tick || tick.ltp <= 0) return;
+    // Only re-fetch if price moved significantly (>0.1%) from last OI fetch
+    const prevSpot = prevOiSpotRef.current;
+    if (prevSpot > 0 && Math.abs(tick.ltp - prevSpot) / prevSpot < 0.001) return;
+    prevOiSpotRef.current = tick.ltp;
+    d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter, tick.ltp);
+  }, [rt.liveTicks, rt.upstoxConnected, d.oiUnderlying]);
+
   // Get live price for current symbol
   const liveTick = d.selectedSymbol ? rt.getLivePrice(d.selectedSymbol) : null;
 
@@ -2120,7 +2134,7 @@ export default function Home() {
             {view === 'portfolio' && <PortfolioView d={d} />}
             {view === 'alerts' && <AlertsView d={d} />}
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
-            {view === 'oi' && <OpenInterestView d={d} />}
+            {view === 'oi' && <OpenInterestView d={d} upstoxConnected={rt.upstoxConnected} />}
           </main>
           {/* Footer */}
           <div className="border-t border-slate-800/30 py-2 px-4 flex items-center justify-between text-[9px] text-slate-600">
