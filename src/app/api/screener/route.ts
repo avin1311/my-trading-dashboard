@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 let screenerCache: { data: any[]; timestamp: number; params: string } | null = null;
 const SCREENER_TTL = 5 * 60_000;
 
+const PER_STOCK_TIMEOUT = 15000; // 15s per stock
+
 // GET /api/screener?signal=BUY&sector=Banking&limit=20
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -54,42 +56,53 @@ export async function GET(request: NextRequest) {
     equities = equities.filter((e: any) => e.sec === sectorFilter);
   }
 
+  console.log(`[Screener] Starting scan of ${equities.length} stocks...`);
+
   // Scan in batches of 5 (parallel but rate-limited)
   const results: any[] = [];
   const batchSize = 5;
+  let scanned = 0;
+  let failed = 0;
 
   for (let i = 0; i < equities.length; i += batchSize) {
     const batch = equities.slice(i, i + batchSize);
     const batchResults = await Promise.allSettled(
       batch.map(async (eq: any) => {
         try {
-          const [quote, histData] = await Promise.all([
-            getLiveQuote(eq.s).catch(() => null),
-            getHistoricalData(eq.s, 100).catch(() => []),
+          // Per-stock timeout wrapper
+          const result = await Promise.race([
+            (async () => {
+              const [quote, histData] = await Promise.all([
+                getLiveQuote(eq.s).catch(() => null),
+                getHistoricalData(eq.s, 100).catch(() => []),
+              ]);
+
+              if (!quote || histData.length < 50) return null;
+
+              const signals = generateSignals(histData, params);
+              const latest = signals.length > 0 ? signals[signals.length - 1] : null;
+
+              return {
+                symbol: eq.s,
+                name: eq.n,
+                sector: eq.sec,
+                price: quote.price,
+                change: quote.change,
+                changePct: quote.changePct,
+                volume: quote.volume,
+                marketCap: quote.marketCap,
+                pe: quote.pe,
+                signal: latest?.signal || "HOLD",
+                rsi: latest?.rsi || null,
+                macdHistogram: latest?.macdHistogram || null,
+                supertrendDir: latest?.supertrendDir || 0,
+                signalReason: latest?.reason || "",
+                lastDate: histData[histData.length - 1]?.date,
+              };
+            })(),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_STOCK_TIMEOUT)),
           ]);
-
-          if (!quote || histData.length < 50) return null;
-
-          const signals = generateSignals(histData, params);
-          const latest = signals.length > 0 ? signals[signals.length - 1] : null;
-
-          return {
-            symbol: eq.s,
-            name: eq.n,
-            sector: eq.sec,
-            price: quote.price,
-            change: quote.change,
-            changePct: quote.changePct,
-            volume: quote.volume,
-            marketCap: quote.marketCap,
-            pe: quote.pe,
-            signal: latest?.signal || "HOLD",
-            rsi: latest?.rsi || null,
-            macdHistogram: latest?.macdHistogram || null,
-            supertrendDir: latest?.supertrendDir || 0,
-            signalReason: latest?.reason || "",
-            lastDate: histData[histData.length - 1]?.date,
-          };
+          return result;
         } catch {
           return null;
         }
@@ -99,9 +112,14 @@ export async function GET(request: NextRequest) {
     for (const r of batchResults) {
       if (r.status === "fulfilled" && r.value) {
         results.push(r.value);
+      } else {
+        failed++;
       }
     }
+    scanned += batch.length;
   }
+
+  console.log(`[Screener] Done: ${results.length}/${scanned} successful, ${failed} failed`);
 
   // Apply signal filter
   let filtered = results;

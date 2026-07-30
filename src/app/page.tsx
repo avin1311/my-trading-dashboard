@@ -637,6 +637,9 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                 </TableRow></TableHeader>
                 <TableBody>
                   {d.screenerLoading ? Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-7 bg-slate-800/50" /></TableCell></TableRow>)
+                    : d.screenerError && d.screenerData.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-6"><div className="text-amber-400 text-xs mb-2">Scan failed or timed out</div><Button size="sm" className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1" />Retry Scan</Button></TableCell></TableRow>
+                  )
                     : d.filteredScreener.map((s: ScreenerResult) => (
                     <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(s.symbol, 'equity')}>
                       <TableCell className="text-[10px] py-1.5"><span className="font-semibold text-slate-200">{s.symbol}</span><span className="text-slate-500 ml-1 text-[9px]">{s.sector}</span></TableCell>
@@ -854,6 +857,9 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </TableRow></TableHeader>
           <TableBody>
             {d.screenerLoading ? Array.from({ length: 10 }).map((_, i) => <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-8 bg-slate-800/50" /></TableCell></TableRow>)
+              : d.screenerError && d.screenerData.length === 0 ? (
+              <TableRow><TableCell colSpan={8} className="text-center py-8"><div className="text-amber-400 text-sm mb-1">Scan failed or timed out</div><div className="text-slate-500 text-xs mb-3">Yahoo Finance may be rate-limited. Try again in a minute.</div><Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1.5" />Retry Scan</Button></TableCell></TableRow>
+              )
               : sorted.map((s: ScreenerResult) => (
               <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(s.symbol, 'equity')}>
                 <TableCell className="text-xs py-2"><div className="font-bold text-slate-200">{s.symbol}</div><div className="text-[9px] text-slate-500">{s.name} &middot; {s.sector}</div></TableCell>

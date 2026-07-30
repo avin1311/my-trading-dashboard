@@ -166,20 +166,29 @@ export function useDashboardData() {
     } finally { setNewsLoading(false); }
   }, []);
 
+  const [screenerError, setScreenerError] = useState(false);
+
   const fetchScreener = useCallback(async () => {
     setScreenerLoading(true);
+    setScreenerError(false);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 300000); // 5 min max
       const sp = new URLSearchParams({ limit: '0' });
       if (screenerFilter !== 'ALL') sp.append('signal', screenerFilter);
       if (screenerSector !== 'all') sp.append('sector', screenerSector);
-      const res = await fetch('/api/screener?' + sp.toString());
+      const res = await fetch('/api/screener?' + sp.toString(), { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`screener API ${res.status}`);
       const data = await res.json();
       setScreenerData(data.results || []);
       setScreenerCounts(data.signalCounts || {});
       setScreenerTotal(data.totalScanned || 0);
       addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched`);
-    } catch (err) { console.warn('[fetchScreener]', err); } finally { setScreenerLoading(false); }
+    } catch (err: any) {
+      console.warn('[fetchScreener]', err?.name === 'AbortError' ? 'Screener timed out (5min)' : err);
+      setScreenerError(true);
+    } finally { setScreenerLoading(false); }
   }, [screenerFilter, screenerSector, addSavePoint]);
 
   const fetchOptions = useCallback(async (underlying: string) => {
@@ -223,8 +232,8 @@ export function useDashboardData() {
     }
   }, [selectedSymbol]);
 
-  // Fetch screener on first load
-  useEffect(() => { fetchScreener(); }, []);
+  // Fetch screener on first load — delay 3s to not compete with initial stock data fetches
+  useEffect(() => { const t = setTimeout(() => fetchScreener(), 3000); return () => clearTimeout(t); }, []);
 
   // Fetch options on demand
   useEffect(() => { if (optionsData.length === 0) fetchOptions(optionsUnderlying); }, [optionsUnderlying]);
@@ -372,7 +381,7 @@ export function useDashboardData() {
     detail, overview, lastDate, lastUpdated,
     equitySearch, setEquitySearch, selectedSector, setSelectedSector,
     news, newsLoading,
-    screenerData, setScreenerData, screenerCounts, screenerTotal, screenerLoading, screenerFilter, setScreenerFilter,
+    screenerData, setScreenerData, screenerCounts, screenerTotal, screenerLoading, screenerError, screenerFilter, setScreenerFilter,
     screenerSector, setScreenerSector, screenerSearched, setScreenerSearched,
     optionsUnderlying, setOptionsUnderlying,
     optionsData, setOptionsData, optionsExpiries, setOptionsExpiries,
