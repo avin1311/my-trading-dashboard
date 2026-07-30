@@ -10,6 +10,48 @@ import {
   type NSEOptionChainResponse,
 } from "@/lib/nse-option-chain";
 
+// ==================== LIVE PRICE FETCH (Yahoo fallback) ====================
+// When NSE option chain API is blocked (403), we need a real spot price
+// for mock data generation. This uses the Yahoo chart API but only
+// extracts the current price - very fast, no heavy parsing.
+const YAHOO_INDEX_MAP: Record<string, string> = {
+  'NIFTY': '^NSEI',
+  'BANKNIFTY': '^NSEBANK',
+  'FINNIFTY': 'NIFTY_FIN_SERVICE.NS',
+  'NIFTYIT': '^CNXIT',
+  'NIFTYNXT50': '^NSMIDCP',
+  'MIDCPNIFTY': '^NSMIDCP',
+  'NIFTYBANK': '^NSEBANK',
+  'NIFTYFIN': 'NIFTY_FIN_SERVICE.NS',
+};
+
+const spotPriceCache = new Map<string, { price: number; ts: number }>();
+const SPOT_TTL = 30_000; // 30s cache
+
+async function getQuickSpotPrice(nseSymbol: string): Promise<number | undefined> {
+  const cached = spotPriceCache.get(nseSymbol);
+  if (cached && Date.now() - cached.ts < SPOT_TTL) return cached.price;
+
+  try {
+    const yahooSym = YAHOO_INDEX_MAP[nseSymbol.toUpperCase()] || `${nseSymbol.toUpperCase()}.NS`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?range=1d&interval=5m`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json();
+    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    if (price && price > 0) {
+      spotPriceCache.set(nseSymbol, { price, ts: Date.now() });
+      return price;
+    }
+  } catch (err) {
+    console.warn(`[OI] Quick price fetch failed for ${nseSymbol}:`, (err as Error).message);
+  }
+  return undefined;
+}
+
 // ==================== MOCK DATA GENERATORS ====================
 
 function seededRandom(seed: number) {
@@ -37,69 +79,79 @@ function getExpiryDates(): string[] {
   return expiries;
 }
 
-function generateOptionChain(underlying: string, expiry?: string, liveSpotPrice?: number): OptionChainData {
+async function generateOptionChain(underlying: string, expiry?: string, liveSpotPrice?: number): Promise<OptionChainData> {
   const allInstruments = [...stockList.equities, ...stockList.indices];
   const base = allInstruments.find((s: any) => s.s === underlying);
-  // Use live spot price if available, otherwise fall back to stale bp
-  const spotPrice = liveSpotPrice || base?.bp || 24580;
-  
+  // Use live spot price if provided (from Yahoo), otherwise try Yahoo ourselves,
+  // and only fall back to stale bp as absolute last resort
+  let spotPrice = liveSpotPrice;
+  if (!spotPrice) {
+    spotPrice = await getQuickSpotPrice(underlying);
+  }
+  if (!spotPrice) {
+    spotPrice = base?.bp || 24580;
+    console.warn(`[OI] Using stale bp=${spotPrice} for ${underlying} (no live price available)`);
+  } else {
+    console.log(`[OI] Using live spot price=${spotPrice} for ${underlying}`);
+  }
+
   const expiryDates = getExpiryDates();
   const currentExpiry = expiry || expiryDates[0] || '';
-  
+
   const step = spotPrice > 30000 ? 100 : spotPrice > 10000 ? 50 : spotPrice > 1000 ? 20 : spotPrice > 100 ? 5 : 1;
   const atmStrike = Math.round(spotPrice / step) * step;
   const numStrikes = 15;
-  
+
   const seed = underlying.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const rng = seededRandom(seed + new Date().getDate());
-  
+
   const strikes: OIStrikeData[] = [];
   let totalCallOI = 0, totalPutOI = 0;
   let totalCallOIChg = 0, totalPutOIChg = 0;
-  
+
   const isIndex = !stockList.equities.some((e: any) => e.s === underlying);
   const baseOI = isIndex ? 5000000 : 500000;
-  
+
   for (let i = -numStrikes; i <= numStrikes; i++) {
     const strike = atmStrike + i * step;
     if (strike <= 0) continue;
-    
+
     const distFromATM = Math.abs(strike - spotPrice) / spotPrice;
     const isITMCall = strike < spotPrice;
     const isITMPut = strike > spotPrice;
-    
+
     const callOIFactor = Math.exp(-distFromATM * 8) * (isITMCall ? 2.5 : 0.6) * (0.7 + rng() * 0.6);
     const putOIFactor = Math.exp(-distFromATM * 8) * (isITMPut ? 2.8 : 0.5) * (0.7 + rng() * 0.6);
-    
+
     const callOI = Math.round(baseOI * callOIFactor);
     const putOI = Math.round(baseOI * putOIFactor);
-    
+
     const callOIBase = rng() > 0.4 ? 1 : -1;
     const putOIBase = rng() > 0.4 ? 1 : -1;
     const callOIChg = Math.round(callOI * (rng() * 0.15) * callOIBase);
     const putOIChg = Math.round(putOI * (rng() * 0.15) * putOIBase);
-    
+
     totalCallOI += callOI;
     totalPutOI += putOI;
     totalCallOIChg += callOIChg;
     totalPutOIChg += putOIChg;
-    
+
     const callVolume = Math.round(Math.abs(callOIChg) * (0.5 + rng() * 1.5));
     const putVolume = Math.round(Math.abs(putOIChg) * (0.5 + rng() * 1.5));
-    
+
     const baseIV = isIndex ? 12 : 20;
     const callIV = baseIV + distFromATM * 60 + (rng() - 0.5) * 4;
     const putIV = baseIV + distFromATM * 55 + (rng() - 0.5) * 4;
-    
+
     const callIntrinsic = Math.max(0, spotPrice - strike);
     const putIntrinsic = Math.max(0, strike - spotPrice);
     const timeValue = spotPrice * baseIV / 100 * Math.sqrt(30 / 365) * Math.exp(-distFromATM * 3);
     const callLTP = Math.max(0.05, callIntrinsic + timeValue * (0.8 + rng() * 0.4));
     const putLTP = Math.max(0.05, putIntrinsic + timeValue * (0.8 + rng() * 0.4));
-    
+
     const callChg = (rng() - 0.5) * callLTP * 0.15;
     const putChg = (rng() - 0.5) * putLTP * 0.15;
-    
+
     strikes.push({
       strikePrice: strike,
       callOI, callOIChg, callVolume,
@@ -112,7 +164,7 @@ function generateOptionChain(underlying: string, expiry?: string, liveSpotPrice?
       putChg: Math.round(putChg * 100) / 100,
     });
   }
-  
+
   let maxPain = atmStrike;
   let minPainValue = Infinity;
   for (const s of strikes) {
@@ -126,9 +178,9 @@ function generateOptionChain(underlying: string, expiry?: string, liveSpotPrice?
       maxPain = s.strikePrice;
     }
   }
-  
+
   const pcr = totalPutOI > 0 ? totalCallOI / totalPutOI : 0;
-  
+
   return {
     underlying,
     spotPrice,
@@ -145,22 +197,26 @@ function generateOptionChain(underlying: string, expiry?: string, liveSpotPrice?
   };
 }
 
-function generateFuturesOI(underlying: string): FuturesOIData {
+async function generateFuturesOI(underlying: string): Promise<FuturesOIData> {
   const allInstruments = [...stockList.equities, ...stockList.indices];
   const base = allInstruments.find((s: any) => s.s === underlying);
-  const spotPrice = base?.bp || 24580;
+  let spotPrice = await getQuickSpotPrice(underlying);
+  if (!spotPrice) {
+    spotPrice = base?.bp || 24580;
+    console.warn(`[OI Futures] Using stale bp=${spotPrice} for ${underlying}`);
+  }
   const name = base?.n || underlying;
   const lotSize = base?.ls || 25;
-  
+
   const seed = underlying.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + 999;
   const rng = seededRandom(seed + new Date().getDate());
-  
+
   const expiryDates = getExpiryDates();
-  
+
   const isIndex = !stockList.equities.some((e: any) => e.s === underlying);
   const baseOI = isIndex ? 15000000 : 1500000;
   const baseVolume = isIndex ? 800000 : 80000;
-  
+
   function makeContract(expiryIdx: number): FuturesContract {
     const premium = spotPrice * (0.001 + rng() * 0.005) * (expiryIdx + 1);
     const futPrice = spotPrice + premium;
@@ -172,7 +228,7 @@ function generateFuturesOI(underlying: string): FuturesOIData {
     const oiChg = Math.round(oi * (rng() - 0.35) * 0.12);
     const volume = Math.round(baseVolume * (1 - expiryIdx * 0.4) * (0.5 + rng()));
     const value = volume * futPrice * lotSize;
-    
+
     return {
       expiry: expiryDates[expiryIdx] || expiryDates[expiryDates.length - 1],
       lastPrice: Math.round(futPrice * 100) / 100,
@@ -188,14 +244,14 @@ function generateFuturesOI(underlying: string): FuturesOIData {
       value: Math.round(value),
     };
   }
-  
+
   const currentMonth = makeContract(0);
   const nextMonth = makeContract(1);
   const farMonth = expiryDates.length > 2 ? makeContract(2) : null;
-  
+
   const basis = currentMonth.lastPrice - spotPrice;
   const basisPct = spotPrice > 0 ? (basis / spotPrice) * 100 : 0;
-  
+
   return {
     symbol: underlying,
     name,
@@ -214,17 +270,17 @@ function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string
   const spotPrice = records.underlyingValue;
   const allExpiryDates = [...new Set(records.data.map(d => d.expiryDate))].sort();
   const currentExpiry = expiryFilter || allExpiryDates[0] || '';
-  
+
   // Filter data for selected expiry
   const filteredData = records.data.filter(d => d.expiryDate === currentExpiry);
-  
+
   // Group by strike price
   const strikeMap = new Map<number, OIStrikeData>();
-  
+
   for (const d of filteredData) {
     const sp = d.strikePrice;
     if (sp <= 0) continue;
-    
+
     let entry = strikeMap.get(sp);
     if (!entry) {
       entry = {
@@ -234,7 +290,7 @@ function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string
       };
       strikeMap.set(sp, entry);
     }
-    
+
     if (d.CE) {
       entry.callOI += d.CE.openInterest || 0;
       entry.callOIChg += d.CE.changeinOpenInterest || 0;
@@ -252,10 +308,10 @@ function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string
       entry.putChg = d.PE.change || 0;
     }
   }
-  
+
   // Sort by strike price
   const strikes = Array.from(strikeMap.values()).sort((a, b) => a.strikePrice - b.strikePrice);
-  
+
   let totalCallOI = 0, totalPutOI = 0, totalCallOIChg = 0, totalPutOIChg = 0;
   for (const s of strikes) {
     totalCallOI += s.callOI;
@@ -263,7 +319,7 @@ function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string
     totalCallOIChg += s.callOIChg;
     totalPutOIChg += s.putOIChg;
   }
-  
+
   // Calculate max pain
   let maxPain = 0;
   let minPainValue = Infinity;
@@ -278,9 +334,9 @@ function parseNSEOptionChain(nseData: NSEOptionChainResponse, underlying: string
       maxPain = s.strikePrice;
     }
   }
-  
+
   const pcr = totalPutOI > 0 ? totalCallOI / totalPutOI : 0;
-  
+
   return {
     underlying,
     spotPrice,
@@ -303,7 +359,7 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
   const name = base?.n || underlying;
   const lotSize = base?.ls || 25;
   const spotPrice = nseData.records.underlyingValue;
-  
+
   // Get unique expiry dates with their latest data point
   const expiryMap = new Map<string, any[]>();
   for (const d of nseData.records.data) {
@@ -311,15 +367,15 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
     if (!expiryMap.has(exp)) expiryMap.set(exp, []);
     expiryMap.get(exp)!.push(d);
   }
-  
+
   const sortedExpiries = [...expiryMap.keys()].sort();
-  
+
   function makeContractFromNSE(expiry: string, data: any[]): FuturesContract {
     // Use CE data if available, fallback to PE
     const sampleCE = data.find(d => d.CE)?.CE;
     const samplePE = data.find(d => d.PE)?.PE;
     const sample = sampleCE || samplePE;
-    
+
     // Aggregate OI and volume from all strikes for this expiry
     let totalOI = 0, totalOIChg = 0, totalVolume = 0;
     for (const d of data) {
@@ -334,12 +390,12 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
         totalVolume += d.PE.totalTradedVolume || 0;
       }
     }
-    
+
     // Derive futures price from spot + premium estimate
     const monthsToExpiry = Math.max(0.5, (new Date(expiry).getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000));
     const premiumPct = 0.001 * monthsToExpiry; // ~0.1% per month annualized
     const futPrice = spotPrice * (1 + premiumPct);
-    
+
     return {
       expiry,
       lastPrice: Math.round(futPrice * 100) / 100,
@@ -355,18 +411,18 @@ function parseNSEFutures(nseData: NSEOptionChainResponse, underlying: string): F
       value: Math.round(totalVolume * futPrice * lotSize),
     };
   }
-  
+
   const currentMonth = sortedExpiries[0] ? makeContractFromNSE(sortedExpiries[0], expiryMap.get(sortedExpiries[0])!) : null;
   const nextMonth = sortedExpiries[1] ? makeContractFromNSE(sortedExpiries[1], expiryMap.get(sortedExpiries[1])!) : null;
   const farMonth = sortedExpiries[2] ? makeContractFromNSE(sortedExpiries[2], expiryMap.get(sortedExpiries[2])!) : null;
-  
+
   if (!currentMonth) {
     return generateFuturesOI(underlying);
   }
-  
+
   const basis = currentMonth.lastPrice - spotPrice;
   const basisPct = spotPrice > 0 ? (basis / spotPrice) * 100 : 0;
-  
+
   return {
     symbol: underlying,
     name,
@@ -389,21 +445,21 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') || 'both';
   const expiry = searchParams.get('expiry') || '';
   const source = searchParams.get('source') || 'nse';
-  
+
   const allUnderlyings = stockList.optionUnderlyings;
   const cacheHeaders = { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' };
-  
+
   // Try live data first (unless source=mock)
   if (source === 'nse') {
     try {
       const nseData = isIndexSymbol(underlying)
         ? await fetchIndexOptionChain(underlying)
         : await fetchStockOptionChain(underlying);
-      
+
       if (nseData) {
         const optionResult = parseNSEOptionChain(nseData, underlying, expiry || undefined);
         const futuresResult = parseNSEFutures(nseData, underlying);
-        
+
         if (type === 'option') {
           return NextResponse.json({
             ...optionResult,
@@ -411,7 +467,7 @@ export async function GET(request: NextRequest) {
             lastUpdated: new Date().toISOString(),
           }, { headers: cacheHeaders });
         }
-        
+
         if (type === 'futures') {
           return NextResponse.json({
             ...futuresResult,
@@ -419,7 +475,7 @@ export async function GET(request: NextRequest) {
             lastUpdated: new Date().toISOString(),
           }, { headers: cacheHeaders });
         }
-        
+
         // Both
         return NextResponse.json({
           option: optionResult,
@@ -428,35 +484,37 @@ export async function GET(request: NextRequest) {
           lastUpdated: new Date().toISOString(),
         }, { headers: cacheHeaders });
       }
-      
+
       console.warn(`[OI] NSE data unavailable for ${underlying}, falling back to mock`);
     } catch (err) {
       console.error(`[OI] NSE fetch error for ${underlying}:`, (err as Error).message);
     }
   }
-  
-  // Mock fallback
+
+  // Mock fallback - fetch live price from Yahoo for accurate strike generation
   if (type === 'option') {
-    const data = generateOptionChain(underlying, expiry || undefined);
+    const data = await generateOptionChain(underlying, expiry || undefined);
     return NextResponse.json({
       ...data,
       underlyings: allUnderlyings,
       lastUpdated: new Date().toISOString(),
     }, { headers: cacheHeaders });
   }
-  
+
   if (type === 'futures') {
-    const data = generateFuturesOI(underlying);
+    const data = await generateFuturesOI(underlying);
     return NextResponse.json({
       ...data,
       underlyings: allUnderlyings,
       lastUpdated: new Date().toISOString(),
     }, { headers: cacheHeaders });
   }
-  
+
   // Both (mock)
-  const optionData = generateOptionChain(underlying, expiry || undefined);
-  const futuresData = generateFuturesOI(underlying);
+  const [optionData, futuresData] = await Promise.all([
+    generateOptionChain(underlying, expiry || undefined),
+    generateFuturesOI(underlying),
+  ]);
   return NextResponse.json({
     option: optionData,
     futures: futuresData,
