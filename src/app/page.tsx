@@ -611,12 +611,12 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
       {/* Row 3: Screener + News */}
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 xl:col-span-7">
-          <P title="Multi-Stock Signal Screener" icon={Search} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">{d.screenerData.length} stocks</Badge>} source="Screener.in">
+          <P title="Multi-Stock Signal Screener" icon={Search} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">{d.filteredScreener.length} stocks</Badge>} source="Screener.in">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Button size="sm" className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener} disabled={d.screenerLoading}>
                 {d.screenerLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{d.screenerLoading ? 'Scanning...' : 'Run Scan'}
               </Button>
-              <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); d.setScreenerData([]); }}>
+              <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); }}>
                 <SelectTrigger className="h-7 w-[130px] text-[10px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Signals</SelectItem>
@@ -832,7 +832,7 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           {d.screenerLoading ? 'Scanning All Stocks...' : 'Scan All Stocks'}
         </Button>
         {d.screenerTotal > 0 && <Badge variant="outline" className="text-[9px] px-2 py-0.5 bg-blue-500/10 border-blue-500/20 text-blue-400">Scanned {d.screenerTotal} stocks</Badge>}
-        <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); d.setScreenerData([]); }}>
+        <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); }}>
           <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Signals</SelectItem>
@@ -842,7 +842,7 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
         <Input placeholder="Search stock..." value={d.screenerSearched} onChange={e => d.setScreenerSearched(e.target.value)} className="h-8 w-[180px] text-xs" />
         <div className="ml-auto flex items-center gap-1">
           {Object.entries(d.screenerCounts).map(([sig, cnt]) => (
-            <Badge key={sig} variant="outline" className={cn('text-[9px] px-2 py-0.5 cursor-pointer hover:opacity-80', SIG_BG[sig as keyof typeof SIG_BG] || SIG_BG.HOLD)} onClick={() => { d.setScreenerFilter(sig); d.setScreenerData([]); d.fetchScreener(); }}>{cnt} {sig.replace('_', ' ')}</Badge>
+            <Badge key={sig} variant="outline" className={cn('text-[9px] px-2 py-0.5 cursor-pointer hover:opacity-80', SIG_BG[sig as keyof typeof SIG_BG] || SIG_BG.HOLD)} onClick={() => { d.setScreenerFilter(sig); }}>{cnt} {sig.replace('_', ' ')}</Badge>
           ))}
         </div>
       </div>

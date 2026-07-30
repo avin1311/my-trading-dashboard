@@ -636,3 +636,76 @@ export async function getMarketOverview(): Promise<{
 
   return { nifty50, bankNifty, niftyIT, indiaVix, topGainers, topLosers };
 }
+
+// ==================== SCREENER LIGHTWEIGHT ====================
+// Single Yahoo API call per stock — returns both price quote AND historical OHLCV
+// Used by /api/screener to scan all stocks efficiently (no enrichWithYahooQuote)
+export interface ScreenerStockData {
+  price: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  dayHigh: number;
+  dayLow: number;
+  prevClose: number;
+  historical: HistoricalDataPoint[];
+}
+
+export async function getScreenerData(nseSymbol: string, days: number = 100): Promise<ScreenerStockData | null> {
+  try {
+    const yahooSymbol = getYahooSymbol(nseSymbol);
+    const period1 = Math.floor(new Date(Date.now() - Math.ceil(days * 1.5) * 86400000).getTime() / 1000);
+    // Single chart API call gets both current price (in meta) and historical OHLCV
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${period1}&period2=9999999999&interval=1d`;
+    const body = await httpsGet(url, 10000);
+    const data = JSON.parse(body);
+    const result = data.chart?.result?.[0];
+    const meta = result?.meta;
+
+    if (!meta) return null;
+
+    const price = meta.regularMarketPrice || 0;
+    const prevClose = meta.previousClose || meta.chartPreviousClose || 0;
+    const change = price - prevClose;
+    const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+    // Extract historical OHLCV from the same response
+    const timestamps = result.timestamp || [];
+    const quotes = result.indicators?.quote?.[0] || {};
+    const historical: HistoricalDataPoint[] = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const close = quotes.close?.[i];
+      if (close != null && close > 0) {
+        historical.push({
+          date: new Date(timestamps[i] * 1000).toISOString().split("T")[0],
+          open: Math.round((quotes.open?.[i] || close) * 100) / 100,
+          high: Math.round((quotes.high?.[i] || close) * 100) / 100,
+          low: Math.round((quotes.low?.[i] || close) * 100) / 100,
+          close: Math.round(close * 100) / 100,
+          volume: quotes.volume?.[i] || 0,
+        });
+      }
+    }
+
+    // Need at least 50 data points for reliable signal generation
+    if (historical.length < 50) return null;
+
+    const fund = FUNDAMENTALS_DB[nseSymbol] || {};
+
+    return {
+      price: Math.round(price * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePct: Math.round(changePct * 100) / 100,
+      volume: meta.regularMarketVolume || 0,
+      dayHigh: Math.round((meta.regularMarketDayHigh || price) * 100) / 100,
+      dayLow: Math.round((meta.regularMarketDayLow || price) * 100) / 100,
+      prevClose: Math.round(prevClose * 100) / 100,
+      historical: historical.slice(-days),
+      // Attach fundamentals from DB for PE/marketCap display
+      _pe: fund.pe ?? null,
+      _marketCap: fund.marketCap || 0,
+    } as any;
+  } catch {
+    return null;
+  }
+}

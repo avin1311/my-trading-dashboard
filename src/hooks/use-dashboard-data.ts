@@ -174,8 +174,8 @@ export function useDashboardData() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 300000); // 5 min max
+      // Always fetch ALL signals — filtering is done client-side via filteredScreener
       const sp = new URLSearchParams({ limit: '0' });
-      if (screenerFilter !== 'ALL') sp.append('signal', screenerFilter);
       if (screenerSector !== 'all') sp.append('sector', screenerSector);
       const res = await fetch('/api/screener?' + sp.toString(), { signal: controller.signal });
       clearTimeout(timeout);
@@ -189,7 +189,7 @@ export function useDashboardData() {
       console.warn('[fetchScreener]', err?.name === 'AbortError' ? 'Screener timed out (5min)' : err);
       setScreenerError(true);
     } finally { setScreenerLoading(false); }
-  }, [screenerFilter, screenerSector, addSavePoint]);
+  }, [screenerSector, addSavePoint]);
 
   const fetchOptions = useCallback(async (underlying: string) => {
     setOptionsLoading(true);
@@ -352,12 +352,22 @@ export function useDashboardData() {
 
   const filteredScreener = useMemo(() => {
     let d = screenerData;
+    // Client-side signal filter (no need to re-fetch from server)
+    if (screenerFilter && screenerFilter !== 'ALL') {
+      if (screenerFilter === 'BULLISH') {
+        d = d.filter(s => s.signal === 'STRONG_BUY' || s.signal === 'BUY');
+      } else if (screenerFilter === 'BEARISH') {
+        d = d.filter(s => s.signal === 'STRONG_SELL' || s.signal === 'SELL');
+      } else {
+        d = d.filter(s => s.signal === screenerFilter);
+      }
+    }
     if (screenerSearched) {
       const q = screenerSearched.toLowerCase();
       d = d.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     }
     return d;
-  }, [screenerData, screenerSearched]);
+  }, [screenerData, screenerSearched, screenerFilter]);
 
   const filteredOptions = useMemo(() => {
     if (!optionsExpiryFilter) return optionsData;
