@@ -189,6 +189,9 @@ function calculateEMA(values: number[], period: number): number[] {
 
 function calculateRSI(closes: number[], period: number): number[] {
   const rsi: number[] = [];
+  let avgGain = 0;
+  let avgLoss = 0;
+  let initialized = false;
 
   for (let i = 0; i < closes.length; i++) {
     if (i < period) {
@@ -196,44 +199,29 @@ function calculateRSI(closes: number[], period: number): number[] {
       continue;
     }
 
-    if (i === period) {
-      let gains = 0;
-      let losses = 0;
+    const change = closes[i] - closes[i - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? -change : 0;
+
+    if (!initialized) {
+      // Seed: simple average of first `period` changes
+      let gains = 0, losses = 0;
       for (let j = 1; j <= period; j++) {
-        const change = closes[j] - closes[j - 1];
-        if (change > 0) gains += change;
-        else losses -= change;
+        const c = closes[j] - closes[j - 1];
+        if (c > 0) gains += c; else losses -= c;
       }
-      const avgGain = gains / period;
-      const avgLoss = losses / period;
-      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-      rsi.push(Math.round((100 - 100 / (1 + rs)) * 100) / 100);
+      avgGain = gains / period;
+      avgLoss = losses / period;
+      initialized = true;
     } else {
-      const prevRSI = rsi[i - 1];
-      // Recalculate from previous avg gain/loss
-      let prevAvgGain = 0;
-      let prevAvgLoss = 0;
-      // Simplified: use change
-      const change = closes[i] - closes[i - 1];
-      const gain = change > 0 ? change : 0;
-      const loss = change < 0 ? -change : 0;
-
-      // Reconstruct from previous RSI: RS = avgGain/avgLoss, RSI = 100 - 100/(1+RS)
-      // So RS = (100 - RSI) / RSI
-      const prevRS = (100 - prevRSI) / (prevRSI === 0 ? 0.01 : prevRSI);
-      // RS = prevAvgGain / prevAvgLoss, and prevAvgGain + prevAvgLoss doesn't directly map
-      // Instead, approximate: track avgGain and avgLoss using running method
-      // Use a simple approach: recalculate running averages from scratch
-      // For efficiency, use the standard Wilder smoothing with reconstructed values
-      const totalFromRS = prevRS + 1;
-      prevAvgLoss = 1 / totalFromRS;
-      prevAvgGain = prevRS / totalFromRS;
-
-      const newAvgGain = (prevAvgGain * (period - 1) + gain) / period;
-      const newAvgLoss = (prevAvgLoss * (period - 1) + loss) / period;
-      const rs = newAvgLoss === 0 ? 100 : newAvgGain / newAvgLoss;
-      rsi.push(Math.round((100 - 100 / (1 + rs)) * 100) / 100);
+      // Wilder's smoothing: maintains absolute magnitude
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
     }
+
+    const rs = avgLoss === 0 ? 999 : avgGain / avgLoss;
+    const rsiVal = 100 - 100 / (1 + rs);
+    rsi.push(Math.round(Math.min(100, Math.max(0, rsiVal)) * 100) / 100);
   }
 
   return rsi;
@@ -396,16 +384,20 @@ export function generateSignals(
 
 export interface BacktestResult {
   totalReturn: number;
-  totalReturnPct: number;
-  winRate: number;
+  totalReturnPct: number;       // compounded: ∏(1+rᵢ) − 1
+  totalReturnPctArithmetic: number; // Σrᵢ (for reference)
+  winRate: number;               // e.g. 46.15 not 46
   totalTrades: number;
   winningTrades: number;
   losingTrades: number;
   avgWinPct: number;
   avgLossPct: number;
-  maxDrawdownPct: number;
+  maxDrawdownPct: number;         // on strategy equity curve
   profitFactor: number;
+  benchmarkReturnPct: number;     // buy-and-hold over same window
+  alphaPct: number;                // strategy − benchmark
   trades: TradeRecord[];
+  note?: string;                  // e.g. "13 trades — insufficient for confidence"
 }
 
 export interface TradeRecord {
@@ -483,37 +475,60 @@ export function runBacktest(
   const totalWin = winningTrades.reduce((s, t) => s + t.pnlPct, 0);
   const totalLoss = Math.abs(losingTrades.reduce((s, t) => s + t.pnlPct, 0));
 
-  // Max drawdown calculation
-  let maxDrawdown = 0;
-  let peak = 0;
-  let cumulative = 0;
+  // Compounded return: ∏(1+rᵢ) − 1
+  let compoundedEquity = 1;
   for (const trade of trades) {
-    cumulative += trade.pnlPct;
-    if (cumulative > peak) peak = cumulative;
-    const dd = peak - cumulative;
+    compoundedEquity *= (1 + trade.pnlPct / 100);
+  }
+  const totalReturnPctCompounded = Math.round((compoundedEquity - 1) * 10000) / 100;
+  const totalReturnPctArithmetic = Math.round(trades.reduce((s, t) => s + t.pnlPct, 0) * 100) / 100;
+
+  // Max drawdown on EQUITY CURVE (not price)
+  let maxDrawdown = 0;
+  let peak = 1;
+  compoundedEquity = 1;
+  for (const trade of trades) {
+    compoundedEquity *= (1 + trade.pnlPct / 100);
+    if (compoundedEquity > peak) peak = compoundedEquity;
+    const dd = (peak - compoundedEquity) / peak * 100;
     if (dd > maxDrawdown) maxDrawdown = dd;
   }
 
+  // Benchmark: buy-and-hold return over the same window
+  const benchmarkReturnPct = (data.length >= 2 && trades.length > 0)
+    ? Math.round(((data[data.length - 1].close - data[0].close) / data[0].close) * 10000) / 100
+    : 0;
+  const alphaPct = Math.round((totalReturnPctCompounded - benchmarkReturnPct) * 100) / 100;
+
+  // Win rate: show as X of Y (Z.ZZ%)
+  const winRate = trades.length > 0
+    ? Math.round((winningTrades.length / trades.length) * 10000) / 100
+    : 0;
+
+  // Note for statistical significance
+  const note = trades.length < 30
+    ? `${trades.length} trade${trades.length !== 1 ? 's' : ''} — insufficient for statistical confidence`
+    : undefined;
+
   return {
     totalReturn: trades.reduce((s, t) => s + t.pnl, 0),
-    totalReturnPct: Math.round(trades.reduce((s, t) => s + t.pnlPct, 0) * 100) / 100,
-    winRate:
-      trades.length > 0
-        ? Math.round((winningTrades.length / trades.length) * 10000) / 100
-        : 0,
+    totalReturnPct: totalReturnPctCompounded,
+    totalReturnPctArithmetic,
+    winRate,
     totalTrades: trades.length,
     winningTrades: winningTrades.length,
     losingTrades: losingTrades.length,
-    avgWinPct:
-      winningTrades.length > 0
-        ? Math.round((totalWin / winningTrades.length) * 100) / 100
-        : 0,
-    avgLossPct:
-      losingTrades.length > 0
-        ? Math.round((totalLoss / losingTrades.length) * 100) / 100
-        : 0,
+    avgWinPct: winningTrades.length > 0
+      ? Math.round((totalWin / winningTrades.length) * 100) / 100
+      : 0,
+    avgLossPct: losingTrades.length > 0
+      ? Math.round((totalLoss / losingTrades.length) * 100) / 100
+      : 0,
     maxDrawdownPct: Math.round(maxDrawdown * 100) / 100,
     profitFactor: totalLoss > 0 ? Math.round((totalWin / totalLoss) * 100) / 100 : totalWin > 0 ? 999 : 0,
-    trades: trades.slice(-20), // Last 20 trades
+    benchmarkReturnPct,
+    alphaPct,
+    trades: trades.slice(-20),
+    note,
   };
 }

@@ -129,23 +129,33 @@ export async function GET(request: NextRequest) {
       : 0;
     const volumeRatio = avgVol20 > 0 ? Math.round((quote.volume / avgVol20) * 100) / 100 : 0;
 
-    // Ownership breakdown (approximate for Indian markets)
-    const ownership = {
-      promoter: quote.instHolding ? Math.round((100 - quote.instHolding - 15) * 10) / 10 : null,
-      fii: quote.instHolding ? Math.round(quote.instHolding * 0.45 * 10) / 10 : null,
-      dii: quote.instHolding ? Math.round(quote.instHolding * 0.55 * 10) / 10 : null,
-      public: quote.instHolding ? Math.round((100 - quote.instHolding) * 10) / 10 : null,
-    };
+    // Ownership breakdown (approximate — labeled as such)
+    // NOTE: This is synthetic from instHolding. Real ownership requires exchange filings.
+    const ownership = quote.instHolding
+      ? {
+          promoter: Math.round((100 - quote.instHolding) * 0.50 * 10) / 10,
+          fii: Math.round(quote.instHolding * 0.30 * 10) / 10,
+          dii: Math.round(quote.instHolding * 0.25 * 10) / 10,
+          public: Math.round((100 - quote.instHolding) * 0.50 * 10) / 10,
+          _synthetic: true, // flag for UI to show "approx" label
+        }
+      : null;
 
     // Financial highlights
+    // NOTE: netProfit is ESTIMATED from revenue × profitMargin.
+    // profitMargins from FUNDAMENTALS_DB may be operating margin, not net margin.
+    // This is labeled _estimated for the UI.
     const financials = {
       revenue: quote.totalRevenue,
       ebitda: quote.ebitda,
       grossProfits: quote.grossProfits,
       freeCashflow: quote.freeCashflow,
+      opm: quote.operatingMargins ?? null,
+      netMargin: quote.profitMargins ?? null,
       netProfit: quote.profitMargins && quote.totalRevenue
         ? Math.round(quote.totalRevenue * quote.profitMargins / 100) / 100
         : null,
+      _netProfitEstimated: true,
     };
 
     // Price performance metrics

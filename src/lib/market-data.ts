@@ -428,10 +428,12 @@ export async function getLiveQuote(nseSymbol: string): Promise<LiveQuote> {
     dayLow: Math.round((meta.regularMarketDayLow || price) * 100) / 100,
 
     volume: meta.regularMarketVolume || 0,
-    avgVolume: fund.marketCap ? Math.round((fund.marketCap / price) * 0.005) : 0,
+    avgVolume: meta.averageDailyVolume3Month
+      ? Math.round(meta.averageDailyVolume3Month)
+      : 0,
     volumeRatio: 1.0,
 
-    marketCap: fund.marketCap || (isIndex ? 0 : price * 1e9),
+    marketCap: fund.marketCap || (isIndex ? 0 : null), // null = unknown, not fabricated
     pe: fund.pe ?? null,
     forwardPE: fund.forwardPE ?? null,
     pb: fund.pb ?? null,

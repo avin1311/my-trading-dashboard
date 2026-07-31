@@ -3,23 +3,72 @@
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function fINR(v: number): string {
-  if (v >= 1e12) return '\u20B9' + (v / 1e12).toFixed(2) + ' T';
-  if (v >= 1e7) return '\u20B9' + (v / 1e7).toFixed(2) + ' Cr';
-  if (v >= 1e5) return '\u20B9' + (v / 1e5).toFixed(2) + ' L';
-  return '\u20B9' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// ==================== INR FORMATTING ====================
+// Unified scale: raw absolute INR values → human-readable
+// One scale per canvas, declared. Never mix Cr/L/T in one list.
+
+export type INRScale = 'auto' | 'raw' | 'L' | 'Cr' | 'T';
+
+export function fINR(v: number, opts?: { scale?: INRScale; decimals?: number; sign?: boolean }): string {
+  if (v == null || isNaN(v)) return '—';
+  const { scale = 'auto', decimals, sign = false } = opts || {};
+  const prefix = sign && v > 0 ? '+' : '';
+  const rupee = '\u20B9';
+
+  if (scale === 'raw') return prefix + rupee + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: decimals ?? 2 });
+
+  if (scale === 'L') return prefix + rupee + (v / 1e5).toFixed(decimals ?? 2) + ' L';
+  if (scale === 'Cr') return prefix + rupee + (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
+  if (scale === 'T') return prefix + rupee + (v / 1e12).toFixed(decimals ?? 2) + ' T';
+
+  // Auto scale with smooth transitions
+  if (Math.abs(v) >= 1e12) return prefix + rupee + (v / 1e12).toFixed(decimals ?? 2) + ' T';
+  if (Math.abs(v) >= 1e7) return prefix + rupee + (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
+  if (Math.abs(v) >= 1e5) return prefix + rupee + (v / 1e5).toFixed(decimals ?? 2) + ' L';
+  if (Math.abs(v) >= 1e3) return prefix + rupee + (v / 1e3).toFixed(decimals ?? 1) + 'K';
+  return prefix + rupee + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: decimals ?? 2 });
 }
 
-export function fNum(v: number): string {
-  if (v >= 1e12) return (v / 1e12).toFixed(2) + 'T';
-  if (v >= 1e7) return (v / 1e7).toFixed(2) + ' Cr';
-  if (v >= 1e5) return (v / 1e5).toFixed(2) + ' L';
-  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
-  return v.toFixed(2);
+export function fNum(v: number, opts?: { decimals?: number; sign?: boolean }): string {
+  if (v == null || isNaN(v)) return '—';
+  const { decimals, sign = false } = opts || {};
+  const prefix = sign && v > 0 ? '+' : '';
+
+  if (Math.abs(v) >= 1e12) return prefix + (v / 1e12).toFixed(decimals ?? 2) + 'T';
+  if (Math.abs(v) >= 1e7) return prefix + (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
+  if (Math.abs(v) >= 1e5) return prefix + (v / 1e5).toFixed(decimals ?? 2) + ' L';
+  if (Math.abs(v) >= 1e3) return prefix + (v / 1e3).toFixed(decimals ?? 1) + 'K';
+  return prefix + v.toFixed(decimals ?? 2);
+}
+
+// Format percentage with EXPLICIT sign: +2.50% or −1.30%
+export function fPct(v: number | null, decimals: number = 2): string {
+  if (v == null || isNaN(v)) return '—';
+  const sign = v >= 0 ? '+' : '\u2212'; // minus sign U+2212
+  return sign + Math.abs(v).toFixed(decimals) + '%';
+}
+
+// Format a price with fixed 2 decimal places and optional sign
+export function fPrice(v: number | null, opts?: { sign?: boolean; currency?: boolean }): string {
+  if (v == null || isNaN(v)) return '—';
+  const { sign = false, currency = true } = opts || {};
+  const prefix = sign && v > 0 ? '+' : (sign && v < 0 ? '\u2212' : '');
+  const abs = Math.abs(v);
+  const formatted = abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return prefix + (currency ? '\u20B9' : '') + formatted;
+}
+
+// ISO-ish date: 2026-07-31 15:30 IST
+export function fDateISO(d: string | Date): string {
+  if (!d) return '—';
+  const dt = typeof d === 'string' ? new Date(d) : d;
+  return dt.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' })
+    + ' ' + dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+    + ' IST';
 }
 
 export function fDate(d: string): string {
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export function fTime(d: string): string {
@@ -44,9 +93,12 @@ export const TYPE_COLOR: Record<string, string> = {
   index: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
 };
 
+// Percentage display with explicit +/− sign and arrow
+// ALWAYS shows the sign character, not just color
 export function pctVal(v: number | null) {
-  if (v === null) return <span className="text-slate-600">--</span>;
+  if (v === null) return <span className="text-slate-600">—</span>;
   const c = v >= 0 ? 'text-emerald-400' : 'text-red-400';
+  const sign = v >= 0 ? '+' : '\u2212';
   const icon = v > 0.5 ? <ArrowUpRight className="w-3 h-3" /> : v < -0.5 ? <ArrowDownRight className="w-3 h-3" /> : <Minus className="w-3 h-3" />;
-  return <span className={cn(c, 'flex items-center gap-0.5 font-mono')}>{icon}{Math.abs(v).toFixed(2)}%</span>;
+  return <span className={cn(c, 'flex items-center gap-0.5 font-mono tabular-nums')}>{icon}{sign}{Math.abs(v).toFixed(2)}%</span>;
 }
