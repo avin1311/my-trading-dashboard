@@ -48,13 +48,40 @@ export function fPct(v: number | null, decimals: number = 2): string {
   return sign + Math.abs(v).toFixed(decimals) + '%';
 }
 
-// Format a price with fixed 2 decimal places and optional sign
+// Format a price with fixed 2 decimal places and optional sign/currency symbol (NO auto-scaling — always shows full number, e.g. ₹1,308.45)
 export function fPrice(v: number | null, opts?: { sign?: boolean; currency?: boolean }): string {
   if (v == null || isNaN(v)) return '—';
   const { sign = false, currency = true } = opts || {};
   const prefix = sign && v > 0 ? '+' : (sign && v < 0 ? '\u2212' : '');
   const abs = Math.abs(v);
   const formatted = abs.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return prefix + (currency ? '\u20B9' : '') + formatted;
+}
+
+// Compact large-number formatter WITHOUT rupee symbol.
+// Use for: market cap, volume, revenue in tables where ₹ prefix is shown separately.
+// Examples: 8.90 L Cr, 1.34 L Cr, 45.2K, 1.20 L
+export function fCompact(v: number, opts?: { decimals?: number }): string {
+  if (v == null || isNaN(v)) return '—';
+  const { decimals } = opts || {};
+  if (Math.abs(v) >= 1e12) return (v / 1e12).toFixed(decimals ?? 2) + ' L Cr';
+  if (Math.abs(v) >= 1e7) return (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
+  if (Math.abs(v) >= 1e5) return (v / 1e5).toFixed(decimals ?? 2) + ' L';
+  if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(decimals ?? 1) + 'K';
+  return v.toFixed(decimals ?? 2);
+}
+
+// Per-share price formatter: always 2 decimals, auto ₹ prefix.
+// Use for: stock price, EPS, book value, target price, DMA, open, close, high, low, supertrend.
+// NEVER auto-scales — a stock price of ₹1,308.45 must NOT become ₹1.31K.
+export function fPerShare(v: number | null, opts?: { sign?: boolean; currency?: boolean }): string {
+  if (v == null || isNaN(v)) return '—';
+  const { sign = false, currency = true } = opts || {};
+  const prefix = sign && v > 0 ? '+' : (sign && v < 0 ? '\u2212' : '');
+  const abs = Math.abs(v);
+  // For very small values (penny stocks), show more decimals
+  const d = abs < 10 ? 3 : 2;
+  const formatted = abs.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d });
   return prefix + (currency ? '\u20B9' : '') + formatted;
 }
 

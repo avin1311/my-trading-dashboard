@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { fINR, fNum, fDate, fTime, pctVal, SIG_BG, TYPE_COLOR } from '@/lib/formatters';
+import { fINR, fPerShare, fCompact, fNum, fDate, fTime, pctVal, SIG_BG, TYPE_COLOR } from '@/lib/formatters';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useRealtimeData, type LiveTick } from '@/hooks/use-realtime-data';
 import { useWatchlist } from '@/components/dashboard/watchlist';
@@ -486,7 +486,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             </div>
             {/* Quick metrics row */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px]">
-              <span className="text-slate-500">MCap: <span className="text-slate-300 font-mono">{q?.marketCap ? fINR(q.marketCap) : '--'}</span></span>
+              <span className="text-slate-500">MCap: <span className="text-slate-300 font-mono">{q?.marketCap ? fCompact(q.marketCap) : '--'}</span></span>
               <span className="text-slate-500">P/E: <span className="text-slate-300 font-mono">{q?.pe?.toFixed(1) || '--'}</span></span>
               <span className="text-slate-500">Vol: <span className="text-slate-300 font-mono">{fNum(q?.volume || 0)}</span></span>
               {q?.avgVolume && <span className="text-slate-500">Avg Vol: <span className="text-slate-300 font-mono">{fNum(q.avgVolume)}</span></span>}
@@ -550,7 +550,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   <MBox label="RSI" value={d.latestSignal.rsi?.toFixed(1) || '--'} color={(d.latestSignal.rsi || 50) > 70 ? 'text-red-400' : (d.latestSignal.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400'} />
-                  <MBox label="Supertrend" value={d.latestSignal.supertrendDir === 1 ? 'BULL' : 'BEAR'} color={d.latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'} sub={fINR(d.latestSignal.supertrend)} />
+                  <MBox label="Supertrend" value={d.latestSignal.supertrendDir === 1 ? 'BULL' : 'BEAR'} color={d.latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'} sub={fPerShare(d.latestSignal.supertrend)} />
                   <MBox label="MACD" value={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'BULL' : 'BEAR'} color={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400'} sub={(d.latestSignal.macdHistogram || 0).toFixed(2)} />
                 </div>
                 <div className="p-2 rounded-lg bg-slate-800/15 border border-slate-800/30">
@@ -575,7 +575,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                 <span className="text-[10px] text-slate-400">Supertrend</span>
                 <div className="flex items-center gap-2">
                   <span className={cn('text-xs font-bold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{t.supertrend ? fINR(t.supertrend) : '--'}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">{t.supertrend ? fPerShare(t.supertrend) : '--'}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
@@ -590,13 +590,13 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                 {[['Resistance 2', t.resistance2, 'text-red-400/80'], ['Resistance 1', t.resistance1, 'text-orange-400/80'], ['Price', q?.price, 'text-white font-bold', true], ['Support 1', t.support1, 'text-emerald-400/80'], ['Support 2', t.support2, 'text-green-400/80']].map(([label, val, color, isPrice]: any) => (
                   <div key={String(label)} className={cn('flex justify-between text-[10px]', isPrice && 'bg-slate-800/30 px-1.5 py-0.5 rounded')}>
                     <span className={String(color)}>{label}</span>
-                    <span className={cn('font-mono', isPrice ? 'font-bold text-white' : 'text-slate-300')}>{val ? fINR(val) : '--'}</span>
+                    <span className={cn('font-mono', isPrice ? 'font-bold text-white' : 'text-slate-300')}>{val ? fPerShare(val) : '--'}</span>
                   </div>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                {q?.fiftyDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">50 DMA</div><div className="font-mono text-slate-200">{fINR(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>}
-                {q?.twoHundredDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">200 DMA</div><div className="font-mono text-slate-200">{fINR(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>}
+                {q?.fiftyDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">50 DMA</div><div className="font-mono text-slate-200">{fPerShare(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>}
+                {q?.twoHundredDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">200 DMA</div><div className="font-mono text-slate-200">{fPerShare(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>}
               </div>
             </div>
           </CSection>
@@ -608,7 +608,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
               <MetricRow label="P/E Ratio" value={q?.pe?.toFixed(1) || '--'} highlight />
               <MetricRow label="Forward P/E" value={q?.forwardPE?.toFixed(1) || '--'} />
               <MetricRow label="P/B Ratio" value={q?.pb?.toFixed(2) || '--'} />
-              <MetricRow label="EPS (TTM)" value={q?.eps ? fINR(q.eps) : '--'} highlight />
+              <MetricRow label="EPS (TTM)" value={q?.eps ? fPerShare(q.eps) : '--'} highlight />
               <MetricRow label="ROE" value={q?.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
               <MetricRow label="ROA" value={q?.roa ? q.roa.toFixed(1) + '%' : '--'} />
               <MetricRow label="Net Margin" value={q?.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
@@ -618,14 +618,14 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
               <Separator className="bg-slate-800/40 my-1" />
               <MetricRow label="Revenue" value={d.fin.revenue ? fINR(d.fin.revenue) : '--'} />
               <MetricRow label="EBITDA" value={d.fin.ebitda ? fINR(d.fin.ebitda) : '--'} />
-              <MetricRow label="Net Profit" value={d.fin.netProfit ? fINR(d.fin.netProfit) : '--'} highlight />
+              <MetricRow label="Net Profit (est.)" value={d.fin.netProfit ? '~' + fINR(d.fin.netProfit) : '--'} highlight />
             </div>
             {q?.targetMean && (
               <><Separator className="bg-slate-800/40 my-1" />
               <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-800/15">
                 <span className="text-[10px] text-slate-400">Analyst Target</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-slate-200">{fINR(q.targetMean)}</span>
+                  <span className="font-mono text-xs text-slate-200">{fPerShare(q.targetMean)}</span>
                   <Badge variant="outline" className={cn('text-[8px] px-1 py-0', q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{q.recommendation}</Badge>
                   <span className={cn('text-[9px] font-mono font-bold', ((q.targetMean - q.price) / q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                     {((q.targetMean - q.price) / q.price * 100) >= 0 ? '+' : ''}{((q.targetMean - q.price) / q.price * 100).toFixed(1)}%
@@ -649,8 +649,8 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
               })}
             </div>
             <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Open</span><span className="font-mono text-slate-200">{fINR(q?.open)}</span></div>
-              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Prev Close</span><span className="font-mono text-slate-200">{fINR(q?.prevClose)}</span></div>
+              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Open</span><span className="font-mono text-slate-200">{fPerShare(q?.open)}</span></div>
+              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Prev Close</span><span className="font-mono text-slate-200">{fPerShare(q?.prevClose)}</span></div>
             </div>
           </CSection>
 
@@ -752,7 +752,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                         <TableCell className="text-[10px] py-1.5"><span className="font-semibold text-slate-200">{p.symbol}</span><span className="text-slate-500 ml-1 text-[8px]">{p.name}</span></TableCell>
                         <TableCell className="text-[10px] font-mono text-slate-200 text-right">{p.price.toLocaleString('en-IN')}</TableCell>
                         <TableCell className="text-[10px] font-mono text-right">{pctVal(p.changePct)}</TableCell>
-                        <TableCell className="text-[10px] font-mono text-slate-300 text-right">{fNum(p.marketCap)}</TableCell>
+                        <TableCell className="text-[10px] font-mono text-slate-300 text-right">{fCompact(p.marketCap)}</TableCell>
                         <TableCell className="text-[10px] font-mono text-slate-300 text-right">{p.pe?.toFixed(1) || '--'}</TableCell>
                         <TableCell className="text-[10px] font-mono text-slate-300 text-right">{p.pb?.toFixed(1) || '--'}</TableCell>
                         <TableCell className="text-[10px] font-mono text-slate-300 text-right">{p.roe ? p.roe.toFixed(1) + '%' : '--'}</TableCell>
@@ -936,7 +936,7 @@ function ScreenerView({ d, onSetAlert }: { d: ReturnType<typeof useDashboardData
                 <TableCell className="text-xs font-mono text-right">{s.rsi?.toFixed(1) || '--'}</TableCell>
                 <TableCell className="text-center"><Badge className={cn('text-[9px] font-bold border px-1.5 py-0.5', SIG_BG[s.signal as keyof typeof SIG_BG] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
                 <TableCell className="text-xs font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
-                <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(s.marketCap)}</TableCell>
+                <TableCell className="text-xs font-mono text-slate-300 text-right">{fCompact(s.marketCap)}</TableCell>
                 <TableCell className="text-xs font-mono text-slate-300 text-right">{s.pe?.toFixed(1) || '--'}</TableCell>
                 <TableCell className="text-center">
                   <button
@@ -1007,8 +1007,8 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   const fundSections = [
     { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
       { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
-      { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--' }, { l: 'EPS (TTM)', v: d.q.eps ? fINR(d.q.eps) : '--', h: true },
-      { l: 'Book Value', v: d.q.bookValue ? fINR(d.q.bookValue) : '--' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--' },
+      { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--' }, { l: 'EPS (TTM)', v: d.q.eps ? fPerShare(d.q.eps) : '--', h: true },
+      { l: 'Book Value', v: d.q.bookValue ? fPerShare(d.q.bookValue) : '--' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--' },
       { l: 'Payout Ratio', v: d.q.payoutRatio ? (d.q.payoutRatio * 100).toFixed(1) + '%' : '--' },
     ]},
     { title: 'Profitability', icon: TrendingUp, source: 'Moneycontrol', items: [
@@ -1024,7 +1024,7 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       { l: 'EBITDA', v: d.fin.ebitda ? fINR(d.fin.ebitda) : '--' },
       { l: 'Gross Profit', v: d.fin.grossProfits ? fINR(d.fin.grossProfits) : '--' },
       { l: 'Free Cashflow', v: d.fin.freeCashflow ? fINR(d.fin.freeCashflow) : '--' },
-      { l: 'Net Profit', v: d.fin.netProfit ? fINR(d.fin.netProfit) : '--', h: true },
+      { l: 'Net Profit (est.)', v: d.fin.netProfit ? '~' + fINR(d.fin.netProfit) : '--', h: true },
     ]},
   ];
   return (
@@ -1042,10 +1042,10 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       {d.q.targetMean && (
         <P title="Analyst Price Target" icon={Target} source="Tickertape">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <MBox label="Target High" value={fINR(d.q.targetHigh || 0)} color="text-emerald-400" />
-            <MBox label="Target Mean" value={fINR(d.q.targetMean)} color="text-cyan-400" />
-            <MBox label="Target Median" value={fINR(d.q.targetMedian || 0)} color="text-blue-400" />
-            <MBox label="Target Low" value={fINR(d.q.targetLow || 0)} color="text-red-400" />
+            <MBox label="Target High" value={fPerShare(d.q.targetHigh || 0)} color="text-emerald-400" />
+            <MBox label="Target Mean" value={fPerShare(d.q.targetMean)} color="text-cyan-400" />
+            <MBox label="Target Median" value={fPerShare(d.q.targetMedian || 0)} color="text-blue-400" />
+            <MBox label="Target Low" value={fPerShare(d.q.targetLow || 0)} color="text-red-400" />
             <MBox label="Upside" value={((d.q.targetMean - d.q.price) / d.q.price * 100).toFixed(1) + '%'} color={((d.q.targetMean - d.q.price) / d.q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400'} sub={`${d.q.analysts} analysts`} />
           </div>
         </P>
@@ -1091,7 +1091,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                 <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800/30">
                   <div className="text-[10px] text-slate-500 mb-1">Supertrend ({d.params.supertrendPeriod}, {d.params.supertrendMultiplier})</div>
                   <div className={cn('text-lg font-bold', d.t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{d.t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</div>
-                  <div className="text-[10px] text-slate-500 font-mono">ST Value: {d.t.supertrend ? fINR(d.t.supertrend) : '--'}</div>
+                  <div className="text-[10px] text-slate-500 font-mono">ST Value: {d.t.supertrend ? fPerShare(d.t.supertrend) : '--'}</div>
                 </div>
                 <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800/30">
                   <div className="text-[10px] text-slate-500 mb-1">MACD ({d.params.macdFast}, {d.params.macdSlow}, {d.params.macdSignal})</div>
@@ -1119,7 +1119,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
               ].map(level => (
                 <div key={level.l} className={cn('flex items-center justify-between p-2.5 rounded-lg', level.bg ? 'bg-slate-700/30 border border-slate-600/40' : 'bg-slate-800/15 border border-slate-800/30')}>
                   <span className={cn('text-xs font-medium', level.c)}>{level.l}</span>
-                  <span className={cn('text-sm font-bold font-mono', level.c)}>{level.v ? fINR(level.v) : '--'}</span>
+                  <span className={cn('text-sm font-bold font-mono', level.c)}>{level.v ? fPerShare(level.v) : '--'}</span>
                 </div>
               ))}
               <Separator className="bg-slate-800/40" />
@@ -1130,7 +1130,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
               ].map(pp => (
                 <div key={pp.l} className="flex justify-between text-[10px] py-0.5">
                   <span className="text-slate-500">{pp.l}</span>
-                  <span className="font-mono text-slate-300">{pp.v ? fINR(pp.v) : '--'}</span>
+                  <span className="font-mono text-slate-300">{pp.v ? fPerShare(pp.v) : '--'}</span>
                 </div>
               ))}
             </div>
@@ -1142,7 +1142,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {d.q.fiftyDMA && <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
             <div className="text-[10px] text-slate-500 mb-1">50 Day MA</div>
-            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.fiftyDMA)}</div>
+            <div className="text-lg font-bold font-mono text-slate-200">{fPerShare(d.q.fiftyDMA)}</div>
             <div className={cn('text-sm font-bold font-mono', (d.q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
               {(d.q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{d.q.percentAbove50DMA?.toFixed(1)}%
             </div>
@@ -1150,7 +1150,7 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </div>}
           {d.q.twoHundredDMA && <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
             <div className="text-[10px] text-slate-500 mb-1">200 Day MA</div>
-            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.twoHundredDMA)}</div>
+            <div className="text-lg font-bold font-mono text-slate-200">{fPerShare(d.q.twoHundredDMA)}</div>
             <div className={cn('text-sm font-bold font-mono', (d.q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
               {(d.q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{d.q.percentAbove200DMA?.toFixed(1)}%
             </div>
@@ -1158,13 +1158,13 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </div>}
           <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
             <div className="text-[10px] text-slate-500 mb-1">52W High</div>
-            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.high52w)}</div>
+            <div className="text-lg font-bold font-mono text-slate-200">{fPerShare(d.q.high52w)}</div>
             <div className="text-sm font-bold font-mono text-red-400">{d.q.percentFrom52wHigh.toFixed(1)}%</div>
             <div className="text-[9px] text-slate-600 mt-0.5">From 52W High</div>
           </div>
           <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
             <div className="text-[10px] text-slate-500 mb-1">52W Low</div>
-            <div className="text-lg font-bold font-mono text-slate-200">{fINR(d.q.low52w)}</div>
+            <div className="text-lg font-bold font-mono text-slate-200">{fPerShare(d.q.low52w)}</div>
             <div className="text-sm font-bold font-mono text-emerald-400">+{d.q.percentFrom52wLow.toFixed(1)}%</div>
             <div className="text-[9px] text-slate-600 mt-0.5">From 52W Low</div>
           </div>
@@ -1763,7 +1763,7 @@ function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <MBox label="Total Invested" value={fINR(totals.totalInvested || 0)} sub="Cost basis" color="text-slate-200" />
         <MBox label="Current Value" value={fINR(totals.totalCurrent || 0)} sub="Mark-to-market" color="text-slate-200" />
-        <MBox label="Total P&L" value={fINR(totals.totalPnl || 0)} sub={fINR(0) + "invested"} color={(totals.totalPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+        <MBox label="Total P&L" value={fINR(totals.totalPnl || 0)} sub="invested" color={(totals.totalPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
         <MBox label="P&L %" value={(totals.totalPnlPct || 0).toFixed(2) + '%'} sub="Overall return" color={(totals.totalPnlPct || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
         <MBox label="Day P&L" value={fINR(totals.totalDayPnl || 0)} sub="Today's change" color={(totals.totalDayPnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'} />
       </div>

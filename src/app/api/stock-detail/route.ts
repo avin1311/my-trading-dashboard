@@ -3,6 +3,7 @@ import { getLiveQuote, getHistoricalData, getSectorPeers } from "@/lib/market-da
 import { generateSignals } from "@/lib/trading-strategy";
 import { DEFAULT_PARAMS } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
+import { checkPE, checkPB, checkPriceBounds, checkRSI, validateAll, safeValue } from "@/lib/data-validation";
 
 // GET /api/stock-detail?symbol=RELIANCE
 // Returns comprehensive stock data: quote, fundamentals, technicals, ownership, financials, peers, analyst targets
@@ -28,6 +29,18 @@ export async function GET(request: NextRequest) {
     }
 
     const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
+
+    // ==================== DATA VALIDATION ====================
+    // Run invariants — invalidate fields that fail, log warnings
+    const valPE = checkPE(quote.pe, quote.price, quote.eps || 0);
+    const valPB = checkPB(quote.pb, quote.price, quote.bookValue || 0);
+    const valPrice = checkPriceBounds(quote.price, quote.dayLow, quote.dayHigh, quote.low52w, quote.high52w);
+    const valRSI = checkRSI(latestSignal?.rsi ?? null);
+    const valError = validateAll([valPE, valPB, valPrice, valRSI]);
+    if (valError) console.warn(`[validate] ${symbol}: ${valError}`);
+    // Null out PE/PB if they fail cross-check (prevents showing misleading ratios)
+    if (!valPE.valid) quote.pe = null;
+    if (!valPB.valid) quote.pb = null;
 
     // Calculate support/resistance levels from recent data
     const recentData = histData.slice(-60);
@@ -142,9 +155,9 @@ export async function GET(request: NextRequest) {
       : null;
 
     // Financial highlights
-    // NOTE: netProfit is ESTIMATED from revenue × profitMargin.
-    // profitMargins from FUNDAMENTALS_DB may be operating margin, not net margin.
-    // This is labeled _estimated for the UI.
+    // netProfit is derived: revenue × profitMargins / 100.
+    // profitMargins is net profit margin (%) from FUNDAMENTALS_DB or Yahoo v6 (consistent).
+    // This is an approximation — real net profit includes exceptional items, tax adjustments, etc.
     const financials = {
       revenue: quote.totalRevenue,
       ebitda: quote.ebitda,
