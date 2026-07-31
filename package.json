@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "next build && node -e \"const fs=require('fs'),p=require('path');[['.next/static','.next/standalone/.next/static'],['public','.next/standalone/public']].forEach(([s,d])=>{if(fs.existsSync(s)){fs.rmSync(d,{recursive:true,force:true});fs.cpSync(s,d,{recursive:true});console.log('Copied '+s+' → '+d)}})\"",
     "start": "next start",
     "lint": "eslint .",
     "db:push": "prisma db push",
