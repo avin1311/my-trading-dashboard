@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getScreenerData } from "@/lib/market-data";
+import { getLiveQuote, getHistoricalData } from "@/lib/market-data";
 import { generateSignals, DEFAULT_PARAMS, type StrategyParams } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
-import { isUpstoxConnected, fetchUpstoxLiveQuotes } from "@/lib/upstox-client";
 import { db } from "@/lib/db";
 
-// Cache screener results for 5 minutes
+// Cache screener results for 10 minutes (longer TTL for 1000+ stocks)
 let screenerCache: { data: any; timestamp: number; params: string } | null = null;
-const SCREENER_TTL = 5 * 60_000;
+const SCREENER_TTL = 10 * 60_000;
 
-const BATCH_SIZE = 8;          // 8 concurrent stocks (up from 3) — Yahoo can handle this
-const BATCH_DELAY_MS = 400;     // 400ms between batches (down from 800ms)
-const PER_STOCK_TIMEOUT = 10000; // 10s per stock (down from 12s — fail fast)
+const PER_STOCK_TIMEOUT = 12_000; // 12s per stock
+const BATCH_SIZE = 8; // 8 concurrent stocks per batch
+const INTER_BATCH_DELAY_MS = 250; // 250ms pause between batches to avoid Yahoo rate limits
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
 
 // GET /api/screener?signal=BUY&sector=Banking&limit=20
 export async function GET(request: NextRequest) {
@@ -23,8 +24,7 @@ export async function GET(request: NextRequest) {
       const saved = await db.savedScreener.findMany({ orderBy: { createdAt: 'desc' } });
       return NextResponse.json({ saved: saved.map(s => ({ id: s.id, name: s.name, filters: JSON.parse(s.filters), createdAt: s.createdAt })) });
     } catch (e: any) {
-      console.error('[Screener] DB error listing saved:', e.message);
-      return NextResponse.json({ saved: [] });
+      return NextResponse.json({ error: e.message }, { status: 500 });
     }
   }
 
@@ -55,82 +55,25 @@ export async function GET(request: NextRequest) {
   }
 
   // Get equities to scan
-  let equities = stockList.equities;
+  let equities = stockList.equities as readonly any[];
   if (sectorFilter && sectorFilter !== "all") {
     equities = equities.filter((e: any) => e.sec === sectorFilter);
   }
 
-  console.log(`[Screener] Starting scan of ${equities.length} stocks (batch=${BATCH_SIZE}, delay=${BATCH_DELAY_MS}ms, ${sectorFilter ? `sector=${sectorFilter}` : 'all sectors'})...`);
+  const totalToScan = equities.length;
+  console.log(`[Screener] Starting scan of ${totalToScan} stocks (batch=${BATCH_SIZE}, delay=${INTER_BATCH_DELAY_MS}ms)...`);
 
-  // Pre-fetch live prices via Upstox batch API when connected (fast: ~5 API calls for 500 stocks)
-  let livePriceMap = new Map<string, { price: number; change: number; changePct: number }>();
-  let upstoxSource = false;
-  if (isUpstoxConnected()) {
-    try {
-      const symbols = equities.map((e: any) => e.s);
-      const quotes = await fetchUpstoxLiveQuotes(symbols);
-      if (quotes.size > 0) {
-        for (const [sym, q] of quotes) {
-          if (q.last_price && q.close) {
-            livePriceMap.set(sym, {
-              price: q.last_price,
-              change: q.last_price - q.close,
-              changePct: q.close > 0 ? ((q.last_price - q.close) / q.close) * 100 : 0,
-            });
-          }
-        }
-        upstoxSource = true;
-        console.log(`[Screener] Upstox batch quotes: ${livePriceMap.size}/${symbols.length} prices fetched`);
-      }
-    } catch (err: any) {
-      console.warn('[Screener] Upstox batch quote failed, falling back to Yahoo:', err.message);
-    }
-  }
-
-  // Scan in batches with delays to avoid Yahoo rate limiting
+  // Scan in optimized batches
   const results: any[] = [];
   let scanned = 0;
   let failed = 0;
-  const totalBatches = Math.ceil(equities.length / BATCH_SIZE);
   const startTime = Date.now();
 
-  for (let batchIdx = 0; batchIdx < equities.length; batchIdx += BATCH_SIZE) {
-    const batch = equities.slice(batchIdx, batchIdx + BATCH_SIZE);
+  for (let i = 0; i < equities.length; i += BATCH_SIZE) {
+    const batch = equities.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.allSettled(
       batch.map(async (eq: any) => {
-        try {
-          // If we have Upstox live price, still need historical data for signals
-          const result = await Promise.race([
-            getScreenerData(eq.s, 100),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_STOCK_TIMEOUT)),
-          ]);
-
-          if (!result) return null;
-
-          const signals = generateSignals(result.historical, params);
-          const latest = signals.length > 0 ? signals[signals.length - 1] : null;
-          const liveData = livePriceMap.get(eq.s);
-
-          return {
-            symbol: eq.s,
-            name: eq.n,
-            sector: eq.sec,
-            price: liveData?.price || result.price,
-            change: liveData?.change || result.change,
-            changePct: liveData?.changePct || result.changePct,
-            volume: result.volume,
-            marketCap: (result as any)._marketCap || 0,
-            pe: (result as any)._pe ?? null,
-            signal: latest?.signal || "HOLD",
-            rsi: latest?.rsi || null,
-            macdHistogram: latest?.macdHistogram || null,
-            supertrendDir: latest?.supertrendDir || 0,
-            signalReason: latest?.reason || "",
-            lastDate: result.historical[result.historical.length - 1]?.date,
-          };
-        } catch {
-          return null;
-        }
+        return scanStockWithRetry(eq, params);
       })
     );
 
@@ -143,21 +86,20 @@ export async function GET(request: NextRequest) {
     }
     scanned += batch.length;
 
-    // Progress logging every 100 stocks
-    if (scanned % 100 === 0 || scanned >= equities.length) {
+    // Progress log every 50 stocks
+    if (scanned % 50 === 0 || scanned === totalToScan) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`[Screener] Progress: ${scanned}/${equities.length} (${results.length} ok, ${failed} fail, ${elapsed}s)`);
+      console.log(`[Screener] Progress: ${scanned}/${totalToScan} (${results.length} ok, ${failed} fail) — ${elapsed}s`);
     }
 
-    // Delay between batches (skip after last batch)
-    const currentBatch = Math.floor(batchIdx / BATCH_SIZE) + 1;
-    if (currentBatch < totalBatches) {
-      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+    // Inter-batch delay to avoid Yahoo rate limits (skip after last batch)
+    if (i + BATCH_SIZE < equities.length) {
+      await sleep(INTER_BATCH_DELAY_MS);
     }
   }
 
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`[Screener] Done: ${results.length}/${scanned} successful, ${failed} failed, ${elapsed}s`);
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[Screener] Done: ${results.length}/${scanned} successful, ${failed} failed — ${totalTime}s`);
 
   // Apply signal filter
   let filtered = results;
@@ -189,14 +131,67 @@ export async function GET(request: NextRequest) {
     totalScanned: equities.length,
     totalMatched: filtered.length,
     scanTime: new Date().toISOString(),
-    scanDurationSec: parseFloat(elapsed),
-    dataSource: upstoxSource ? "upstox_batch+yahoo_signals" : "yahoo_finance_realtime",
+    scanDurationSec: Number(totalTime),
+    dataSource: "yahoo_finance_realtime",
   };
 
   screenerCache = { data: response, timestamp: Date.now(), params: cacheKey };
 
   if (exportFormat === 'csv') return csvResponse(final);
   return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+async function scanStockWithRetry(eq: any, params: StrategyParams, attempt = 0): Promise<any> {
+  try {
+    const result = await Promise.race([
+      (async () => {
+        const [quote, histData] = await Promise.all([
+          getLiveQuote(eq.s).catch(() => null),
+          getHistoricalData(eq.s, 100).catch(() => []),
+        ]);
+
+        if (!quote || histData.length < 50) return null;
+
+        const signals = generateSignals(histData, params);
+        const latest = signals.length > 0 ? signals[signals.length - 1] : null;
+
+        return {
+          symbol: eq.s,
+          name: eq.n,
+          sector: eq.sec,
+          price: quote.price,
+          change: quote.change,
+          changePct: quote.changePct,
+          volume: quote.volume,
+          marketCap: quote.marketCap,
+          pe: quote.pe,
+          signal: latest?.signal || "HOLD",
+          rsi: latest?.rsi || null,
+          macdHistogram: latest?.macdHistogram || null,
+          supertrendDir: latest?.supertrendDir || 0,
+          signalReason: latest?.reason || "",
+          lastDate: histData[histData.length - 1]?.date,
+        };
+      })(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_STOCK_TIMEOUT)),
+    ]);
+    return result;
+  } catch (err: any) {
+    // Retry on rate-limit or timeout errors
+    const msg = (err?.message || '').toLowerCase();
+    const isRetryable = msg.includes('429') || msg.includes('rate') || msg.includes('timeout') || msg.includes('econnreset');
+    if (isRetryable && attempt < MAX_RETRIES) {
+      await sleep(RETRY_DELAY_MS * (attempt + 1));
+      return scanStockWithRetry(eq, params, attempt + 1);
+    }
+    return null;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // POST /api/screener — save a screener preset

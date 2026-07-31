@@ -137,10 +137,10 @@ function generateOptionsChain(underlying: string, lotSizeOverride?: number): Arr
 // ==================== Dynamic equity data with fallback ====================
 // Since Upstox /v2/master/contracts was deprecated (Jun 30, 2025),
 // getAllNSEEquities() and getAllFOUnderlyings() now return [].
-// We always use the fallback hardcoded list (250+ equities from stock-list.ts).
+// We always use the fallback hardcoded list (1000+ equities from stock-list.ts).
 // The dynamic path is kept for when a future working alternative is found.
 
-const MIN_EQUITY_COUNT = 100; // Minimum expected equities — if dynamic returns fewer, use fallback
+const MIN_EQUITY_COUNT = 500; // Minimum expected equities — if dynamic returns fewer, use fallback (we have 1010 offline)
 
 async function getDynamicEquities(): Promise<{ instruments: any[]; sectors: string[]; source: string }> {
   // Build fallback list upfront (used when dynamic source is unavailable or returns too few stocks)
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(
-      { instruments, stats, sectors, sourceNote: source === 'fallback' ? 'Using offline list (250+ stocks). Connect Upstox for live instrument discovery.' : 'Live from exchange' },
+      { instruments, stats, sectors, sourceNote: source === 'fallback' ? 'Using offline list (1000+ stocks). Connect Upstox for live instrument discovery.' : 'Live from exchange' },
       { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }
