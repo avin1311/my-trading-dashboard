@@ -70,7 +70,7 @@ function RSIGauge({ value }: { value: number | null }) {
       <svg width="80" height="48" viewBox="0 0 80 48">
         <path d="M 8 44 A 34 34 0 0 1 72 44" fill="none" stroke="#1e293b" strokeWidth="6" strokeLinecap="round" />
         <path d="M 8 44 A 34 34 0 0 1 72 44" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={(value / 100 * 107) + ' 107'} />
-        <text x="40" y="28" textAnchor="middle" fill={color} fontSize="14" fontWeight="bold">{Math.round(value)}</text>
+        <text x="40" y="28" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white" stroke="#0f172a" strokeWidth="3" paintOrder="stroke" strokeLinejoin="round">{Math.round(value)}</text>
       </svg>
       <span className="text-[9px] text-slate-500">{value > 70 ? 'Overbought' : value < 30 ? 'Oversold' : 'Neutral'}</span>
     </div>

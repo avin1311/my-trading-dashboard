@@ -625,13 +625,6 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
               <Button size="sm" className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener} disabled={d.screenerLoading}>
                 {d.screenerLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{d.screenerLoading ? 'Scanning...' : 'Run Scan'}
               </Button>
-              <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); }}>
-                <SelectTrigger className="h-7 w-[130px] text-[10px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Signals</SelectItem>
-                  {Object.entries(d.screenerCounts).map(([sig, cnt]) => <SelectItem key={sig} value={sig}>{sig.replace('_', ' ')} ({cnt})</SelectItem>)}
-                </SelectContent>
-              </Select>
               <Input placeholder="Search stock..." value={d.screenerSearched} onChange={e => d.setScreenerSearched(e.target.value)} className="h-7 w-[140px] text-[10px]" />
             </div>
             <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
@@ -777,7 +770,10 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
   // Export CSV
   const handleExport = () => {
-    const url = '/api/screener?export=csv' + (d.screenerFilter !== 'ALL' ? '&signal=' + d.screenerFilter : '') + (d.screenerSector !== 'all' ? '&sector=' + d.screenerSector : '');
+    const params = new URLSearchParams({ export: 'csv' });
+    d.screenerFilter.forEach((s: string) => params.append('signal', s));
+    d.screenerSector.forEach((s: string) => params.append('sector', s));
+    const url = '/api/screener?' + params.toString();
     const a = document.createElement('a');
     a.href = url;
     a.download = `screener-${new Date().toISOString().split('T')[0]}.csv`;
@@ -786,8 +782,8 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 
   // Load a saved filter
   const handleLoadFilter = (filters: any) => {
-    if (filters.signal) d.setScreenerFilter(filters.signal);
-    if (filters.sector) d.setScreenerSector(filters.sector);
+    if (filters.signal) d.setScreenerFilter(Array.isArray(filters.signal) ? filters.signal : [filters.signal]);
+    if (filters.sector) d.setScreenerSector(Array.isArray(filters.sector) ? filters.sector : [filters.sector]);
     d.fetchScreener();
   };
 
@@ -841,19 +837,32 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           {d.screenerLoading ? 'Scanning All Stocks...' : 'Scan All Stocks'}
         </Button>
         {d.screenerTotal > 0 && <Badge variant="outline" className="text-[9px] px-2 py-0.5 bg-blue-500/10 border-blue-500/20 text-blue-400">Scanned {d.screenerTotal} stocks</Badge>}
-        <Select value={d.screenerFilter} onValueChange={v => { d.setScreenerFilter(v); }}>
-          <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Signals</SelectItem>
-            {Object.entries(d.screenerCounts).map(([sig, cnt]) => <SelectItem key={sig} value={sig}>{sig.replace('_', ' ')} ({cnt})</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Input placeholder="Search stock..." value={d.screenerSearched} onChange={e => d.setScreenerSearched(e.target.value)} className="h-8 w-[180px] text-xs" />
-        <div className="ml-auto flex items-center gap-1">
-          {Object.entries(d.screenerCounts).map(([sig, cnt]) => (
-            <Badge key={sig} variant="outline" className={cn('text-[9px] px-2 py-0.5 cursor-pointer hover:opacity-80', SIG_BG[sig as keyof typeof SIG_BG] || SIG_BG.HOLD)} onClick={() => { d.setScreenerFilter(sig); }}>{cnt} {sig.replace('_', ' ')}</Badge>
-          ))}
+        <div className="flex flex-wrap items-center gap-1">
+          {Object.entries(d.screenerCounts).map(([sig, cnt]) => {
+            const isActive = d.screenerFilter.includes(sig);
+            return (
+              <Badge
+                key={sig}
+                variant="outline"
+                className={cn(
+                  'text-[9px] px-2 py-0.5 cursor-pointer transition-all',
+                  SIG_BG[sig as keyof typeof SIG_BG] || SIG_BG.HOLD,
+                  isActive ? 'ring-1 ring-white/30 scale-105' : 'opacity-50 hover:opacity-80'
+                )}
+                onClick={() => {
+                  d.setScreenerFilter(
+                    isActive
+                      ? d.screenerFilter.filter((s: string) => s !== sig)
+                      : [...d.screenerFilter, sig]
+                  );
+                }}
+              >
+                {isActive && '✓ '}{cnt} {sig.replace('_', ' ')}
+              </Badge>
+            );
+          })}
         </div>
+        <Input placeholder="Search stock..." value={d.screenerSearched} onChange={e => d.setScreenerSearched(e.target.value)} className="h-8 w-[180px] text-xs" />
       </div>
       <div className="overflow-auto max-h-[calc(100vh-320px)]">
         <Table>
