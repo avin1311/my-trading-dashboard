@@ -539,7 +539,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
 
       {/* ===== CHART (always visible) ===== */}
       <P title="Price Chart with Signals" icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="Yahoo Finance" className="col-span-full">
-        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} />
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} strategyParams={{ macdFast: d.params.macdFast, macdSlow: d.params.macdSlow, macdSignal: d.params.macdSignal }} />
       </P>
 
       {/* ===== DETAIL SECTIONS (collapsible, collapsed by default) ===== */}
@@ -568,7 +568,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
           <CSection title="Technical Analysis" icon={Activity} defaultOpen={false}>
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
-                <span className="text-[10px] text-slate-400">RSI (14)</span>
+                <span className="text-[10px] text-slate-400">RSI ({d.params.rsiPeriod})</span>
                 <span className={cn('text-sm font-bold font-mono', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi?.toFixed(1) || '--'}</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
@@ -582,7 +582,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                 <span className="text-[10px] text-slate-400">MACD</span>
                 <div className="flex items-center gap-2">
                   <span className={cn('text-xs font-bold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">H: {(t.macdHistogram || 0).toFixed(2)}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">Hist: {(t.macdHistogram || 0).toFixed(2)}</span>
                 </div>
               </div>
               <Separator className="bg-slate-800/40" />
@@ -637,7 +637,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
 
           <CSection title="Price Performance" icon={TrendingUp} defaultOpen={false}>
             <div className="grid grid-cols-3 gap-2 mb-2">
-              {(['1W', '1M', '3M', '6M', '1Y', 'YTD'] as const).map(p => {
+              {(['1W', '1M', '3M', '6M', '1Y', 'Period'] as const).map(p => {
                 const val = d.perf[p] ?? null;
                 const up = val !== null && val >= 0;
                 return (
@@ -970,7 +970,7 @@ function ChartView({ d, liveTick }: { d: ReturnType<typeof useDashboardData>; li
   return (
     <div className="space-y-3 view-enter">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
-        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} />
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} strategyParams={{ macdFast: d.params.macdFast, macdSlow: d.params.macdSlow, macdSignal: d.params.macdSignal }} />
       </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
@@ -1099,9 +1099,9 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                   <div className="text-[10px] text-slate-500 font-mono">Histogram: {(d.t.macdHistogram || 0).toFixed(2)}</div>
                 </div>
               </div>
-              {d.t.volatility20d && (
+              {d.t.volatility60d && (
                 <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800/30">
-                  <div className="flex justify-between"><span className="text-[10px] text-slate-500">20-Day Volatility</span><span className="text-xs font-mono text-amber-400 font-bold">{d.t.volatility20d.toFixed(1)}%</span></div>
+                  <div className="flex justify-between"><span className="text-[10px] text-slate-500">Annualized Volatility (60D)</span><span className="text-xs font-mono text-amber-400 font-bold">{d.t.volatility60d.toFixed(1)}%</span></div>
                 </div>
               )}
             </div>

@@ -128,14 +128,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate 20-day volatility
+    // Annualized volatility from 60-day sample (label should say 60D, not 20D)
     const returns = [];
     for (let i = 1; i < recentCloses.length; i++) {
       returns.push(Math.log(recentCloses[i] / recentCloses[i - 1]));
     }
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
     const variance = returns.reduce((a, r) => a + (r - avgReturn) ** 2, 0) / returns.length;
-    const volatility20d = Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100; // annualized %
+    const volatility60d = Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100; // annualized %
 
     // Volume analysis
     const avgVol20 = recentData.length >= 20
@@ -145,14 +145,25 @@ export async function GET(request: NextRequest) {
 
     // Ownership breakdown (approximate — labeled as such)
     // NOTE: This is synthetic from instHolding. Real ownership requires exchange filings.
+    // Four segments normalized to sum to 100%.
     const ownership = quote.instHolding
-      ? {
-          promoter: Math.round((100 - quote.instHolding) * 0.50 * 10) / 10,
-          fii: Math.round(quote.instHolding * 0.30 * 10) / 10,
-          dii: Math.round(quote.instHolding * 0.25 * 10) / 10,
-          public: Math.round((100 - quote.instHolding) * 0.50 * 10) / 10,
-          _synthetic: true, // flag for UI to show "approx" label
-        }
+      ? (() => {
+          const nonInst = 100 - quote.instHolding;
+          const promoter = Math.round(nonInst * 0.55 * 10) / 10;
+          const public_ = Math.round((nonInst - promoter) * 10) / 10;
+          const fii = Math.round(quote.instHolding * 0.60 * 10) / 10;
+          const dii = Math.round(quote.instHolding * 0.40 * 10) / 10;
+          // Final normalization to ensure sum = 100%
+          const total = promoter + fii + dii + public_;
+          const norm = total > 0 ? 100 / total : 1;
+          return {
+            promoter: Math.round(promoter * norm * 10) / 10,
+            fii: Math.round(fii * norm * 10) / 10,
+            dii: Math.round(dii * norm * 10) / 10,
+            public: Math.round(public_ * norm * 10) / 10,
+            _synthetic: true,
+          };
+        })()
       : null;
 
     // Financial highlights
@@ -221,7 +232,9 @@ export async function GET(request: NextRequest) {
     const perf1y = histData.length >= 252
       ? Math.round(((quote.price - histData[histData.length - 252].close) / histData[histData.length - 252].close) * 10000) / 100
       : null;
-    const ytdReturn = histData.length >= 1
+    // Period return: from oldest data point to current price.
+    // Labeled "Period" (not YTD) since histData[0] is the oldest fetched candle, not Jan 1.
+    const periodReturn = histData.length >= 1
       ? Math.round(((quote.price - histData[0].close) / histData[0].close) * 10000) / 100
       : null;
 
@@ -248,7 +261,7 @@ export async function GET(request: NextRequest) {
         pivotS1: s1,
         pivotR2: r2,
         pivotS2: s2,
-        volatility20d,
+        volatility60d,
         volumeRatio,
         signalReason: latestSignal?.reason || "",
       },
@@ -258,7 +271,7 @@ export async function GET(request: NextRequest) {
         "3M": perf3m,
         "6M": perf6m,
         "1Y": perf1y,
-        "YTD": ytdReturn,
+        "Period": periodReturn,
       },
       ownership,
       financials,

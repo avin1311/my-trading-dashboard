@@ -352,7 +352,7 @@ function XIcon({ className }: { className?: string }) {
 
 // ==================== MAIN EXPORT ====================
 export default function StrategySection({
-  chartData, visibleData, latestSignal, signalsLoading, symbol, liveTick,
+  chartData, visibleData, latestSignal, signalsLoading, symbol, liveTick, strategyParams,
 }: {
   chartData: ChartDataPoint[];
   visibleData: ChartDataPoint[];
@@ -360,6 +360,7 @@ export default function StrategySection({
   signalsLoading: boolean;
   symbol?: string;
   liveTick?: import('./candlestick-chart').LiveTickProp | null;
+  strategyParams?: { macdFast?: number; macdSlow?: number; macdSignal?: number };
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
   const [chartType, setChartType] = useState<ChartType>('candle');
@@ -466,7 +467,7 @@ export default function StrategySection({
           </div>
         </div>
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 md:col-span-2">
-          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">MACD (12, 26, 9)</div>
+          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">MACD ({strategyParams?.macdFast ?? 12}, {strategyParams?.macdSlow ?? 26}, {strategyParams?.macdSignal ?? 9})</div>
           {signalsLoading ? (
             <div className="h-[100px] bg-slate-900/50 rounded-lg animate-pulse" />
           ) : chartData.length > 0 ? (

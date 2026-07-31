@@ -215,9 +215,10 @@ export function Supertrend(highs: number[], lows: number[], closes: number[], pe
 
 export function FibonacciRetracement(high: number, low: number): { level: number; price: number; label: string }[] {
   const diff = high - low;
+  // Standard convention (TradingView): 0% = swing low, 100% = swing high
   const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
   const labels = ['0%', '23.6%', '38.2%', '50%', '61.8%', '78.6%', '100%'];
-  return levels.map((l, i) => ({ level: l, price: high - diff * l, label: labels[i] }));
+  return levels.map((l, i) => ({ level: l, price: low + diff * l, label: labels[i] }));
 }
 
 // ==================== HEIKIN-ASHI CONVERSION ====================
@@ -441,7 +442,7 @@ function detectInvHeadAndShoulders(data: OHLCV[]): DetectedPattern | null {
       return {
         type: 'inv_head_shoulders', name: 'Inv. Head & Shoulders',
         startIndex: Math.max(0, lows[i] - 3), endIndex: Math.min(data.length - 1, lows[i + 2] + 3),
-        direction: 'bullish', confidence: Math.min(92, 65 + (lL / lL - 1) * 200 + (1 - Math.abs(lL - rL) / (lL * 0.03)) * 20),
+        direction: 'bullish', confidence: Math.min(92, 65 + (lL / hL - 1) * 200 + (1 - Math.abs(lL - rL) / (lL * 0.03)) * 20),
         description: `Inv. Head & Shoulders — head at ₹${hL.toFixed(2)}, shoulders at ₹${lL.toFixed(2)}`
       };
     }
