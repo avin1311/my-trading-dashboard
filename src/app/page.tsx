@@ -2040,8 +2040,8 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
                 {creating ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : null} {creating ? 'Creating...' : 'Create'}
               </Button>
             </div>
+            {formError && <div className="text-[10px] text-red-400 mt-1.5 px-1">{formError}</div>}
           </div>
-          {formError && <div className="text-[10px] text-red-400 mt-1.5 px-1">{formError}</div>}
         )}
 
         {loading ? <div className="flex items-center justify-center py-12"><RefreshCw className="w-4 h-4 animate-spin text-amber-400 mr-2" /><span className="text-xs text-slate-400">Loading alerts...</span></div> :
