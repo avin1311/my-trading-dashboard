@@ -636,11 +636,12 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                   <TableHead className="text-[9px] text-slate-500 h-7 text-right">RSI</TableHead>
                   <TableHead className="text-[9px] text-slate-500 h-7 text-center">Signal</TableHead>
                   <TableHead className="text-[9px] text-slate-500 h-7 text-right">Volume</TableHead>
+                  <TableHead className="text-[9px] text-slate-500 h-7 w-8"></TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {d.screenerLoading ? Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-7 bg-slate-800/50" /></TableCell></TableRow>)
+                  {d.screenerLoading ? Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-7 bg-slate-800/50" /></TableCell></TableRow>)
                     : d.screenerError && d.screenerData.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-6"><div className="text-amber-400 text-xs mb-2">Scan failed or timed out</div><Button size="sm" className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1" />Retry Scan</Button></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-6"><div className="text-amber-400 text-xs mb-2">Scan failed or timed out</div><Button size="sm" className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1" />Retry Scan</Button></TableCell></TableRow>
                   )
                     : d.filteredScreener.map((s: ScreenerResult) => (
                     <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(s.symbol, 'equity')}>
@@ -650,6 +651,13 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                       <TableCell className="text-[10px] font-mono text-right">{s.rsi?.toFixed(1) || '--'}</TableCell>
                       <TableCell className="text-center"><Badge className={cn('text-[8px] font-bold border px-1 py-0', SIG_BG[s.signal as keyof typeof SIG_BG] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
                       <TableCell className="text-[10px] font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
+                      <TableCell className="text-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleSetAlert({ symbol: s.symbol, name: s.name, price: s.price, signal: s.signal }); }}
+                          className="p-1 rounded hover:bg-amber-500/20 text-slate-600 hover:text-amber-400 transition-colors"
+                          title="Set price alert"
+                        ><Bell className="w-3 h-3" /></button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -726,7 +734,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
 }
 
 // ==================== SCREENER VIEW (Screener.in Style) ====================
-function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+function ScreenerView({ d, onSetAlert }: { d: ReturnType<typeof useDashboardData>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void }) {
   const [sortBy, setSortBy] = useState<string>('changePct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [saveName, setSaveName] = useState('');
@@ -867,16 +875,16 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       <div className="overflow-auto max-h-[calc(100vh-320px)]">
         <Table>
           <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
-            {([['symbol', 'Stock'], ['price', 'Price'], ['changePct', 'Change'], ['rsi', 'RSI'], ['signal', 'Signal'], ['volume', 'Volume'], ['marketCap', 'Mkt Cap'], ['pe', 'P/E']] as [string, string][]).map(([key, label]) => (
-              <TableHead key={key} className={cn('text-[10px] text-slate-400 h-8 cursor-pointer hover:text-white', key === 'price' || key === 'changePct' || key === 'rsi' || key === 'volume' || key === 'marketCap' || key === 'pe' ? 'text-right' : '')} onClick={() => handleSort(key)}>
+            {([['symbol', 'Stock'], ['price', 'Price'], ['changePct', 'Change'], ['rsi', 'RSI'], ['signal', 'Signal'], ['volume', 'Volume'], ['marketCap', 'Mkt Cap'], ['pe', 'P/E'], ['_alert', '']] as [string, string][]).map(([key, label]) => (
+              <TableHead key={key} className={cn('text-[10px] text-slate-400 h-8 cursor-pointer hover:text-white', key === 'price' || key === 'changePct' || key === 'rsi' || key === 'volume' || key === 'marketCap' || key === 'pe' ? 'text-right' : '', key === '_alert' ? 'w-8' : '')} onClick={() => { if (key !== '_alert') handleSort(key); }}>
                 {label} {sortBy === key && <span className="text-emerald-400 ml-0.5">{sortDir === 'desc' ? '↓' : '↑'}</span>}
               </TableHead>
             ))}
           </TableRow></TableHeader>
           <TableBody>
-            {d.screenerLoading ? Array.from({ length: 10 }).map((_, i) => <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-8 bg-slate-800/50" /></TableCell></TableRow>)
+            {d.screenerLoading ? Array.from({ length: 10 }).map((_, i) => <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-8 bg-slate-800/50" /></TableCell></TableRow>)
               : d.screenerError && d.screenerData.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8"><div className="text-amber-400 text-sm mb-1">Scan failed or timed out</div><div className="text-slate-500 text-xs mb-3">Yahoo Finance may be rate-limited. Try again in a minute.</div><Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1.5" />Retry Scan</Button></TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8"><div className="text-amber-400 text-sm mb-1">Scan failed or timed out</div><div className="text-slate-500 text-xs mb-3">Yahoo Finance may be rate-limited. Try again in a minute.</div><Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1.5" />Retry Scan</Button></TableCell></TableRow>
               )
               : sorted.map((s: ScreenerResult) => (
               <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(s.symbol, 'equity')}>
@@ -888,6 +896,13 @@ function ScreenerView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                 <TableCell className="text-xs font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
                 <TableCell className="text-xs font-mono text-slate-300 text-right">{fNum(s.marketCap)}</TableCell>
                 <TableCell className="text-xs font-mono text-slate-300 text-right">{s.pe?.toFixed(1) || '--'}</TableCell>
+                <TableCell className="text-center">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onSetAlert({ symbol: s.symbol, name: s.name, price: s.price, signal: s.signal }); }}
+                    className="p-1.5 rounded hover:bg-amber-500/20 text-slate-600 hover:text-amber-400 transition-colors"
+                    title="Set price alert"
+                  ><Bell className="w-3.5 h-3.5" /></button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -1843,12 +1858,28 @@ function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
 }
 
 // ==================== ALERTS VIEW ====================
-function AlertsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType<typeof useDashboardData>; pendingAlert: { symbol: string; name: string; price: number; signal: string } | null; onPendingAlertConsumed: () => void }) {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [justTriggered, setJustTriggered] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
+
+  // Pre-fill form when navigated from screener
+  useEffect(() => {
+    if (pendingAlert) {
+      const isBearish = pendingAlert.signal === 'SELL' || pendingAlert.signal === 'STRONG_SELL';
+      setForm({
+        symbol: pendingAlert.symbol,
+        name: pendingAlert.name,
+        condition: isBearish ? 'below' : 'above',
+        targetPrice: String(Math.round(pendingAlert.price * 100) / 100),
+        note: `From screener: ${pendingAlert.signal}`,
+      });
+      setShowAdd(true);
+      onPendingAlertConsumed();
+    }
+  }, [pendingAlert, onPendingAlertConsumed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2084,6 +2115,12 @@ export default function Home() {
   const watchlist = useWatchlist();
   const [view, setView] = useState<ViewType>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [pendingAlert, setPendingAlert] = useState<{ symbol: string; name: string; price: number; signal: string } | null>(null);
+
+  const handleSetAlert = (s: { symbol: string; name: string; price: number; signal: string }) => {
+    setPendingAlert(s);
+    setView('alerts');
+  };
 
   // Handle Upstox OAuth callback URL params
   useEffect(() => {
@@ -2166,14 +2203,14 @@ export default function Home() {
 
             {/* View Content */}
             {view === 'overview' && <OverviewView d={d} watchlist={watchlist} />}
-            {view === 'screener' && <ScreenerView d={d} />}
+            {view === 'screener' && <ScreenerView d={d} onSetAlert={handleSetAlert} />}
             {view === 'chart' && <ChartView d={d} />}
             {view === 'fundamentals' && <FundamentalsView d={d} />}
             {view === 'technicals' && <TechnicalsView d={d} />}
             {view === 'strategy' && <StrategyView d={d} />}
             {view === 'news' && <NewsView d={d} />}
             {view === 'portfolio' && <PortfolioView d={d} />}
-            {view === 'alerts' && <AlertsView d={d} />}
+            {view === 'alerts' && <AlertsView d={d} pendingAlert={pendingAlert} onPendingAlertConsumed={() => setPendingAlert(null)} />}
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
             {view === 'oi' && <OpenInterestView d={d} upstoxConnected={rt.upstoxConnected} />}
           </main>
