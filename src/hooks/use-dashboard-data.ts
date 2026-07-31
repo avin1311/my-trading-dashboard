@@ -181,10 +181,48 @@ export function useDashboardData() {
       clearTimeout(timeout);
       if (!res.ok) throw new Error(`screener API ${res.status}`);
       const data = await res.json();
-      setScreenerData(data.results || []);
+      const results: ScreenerResult[] = data.results || [];
+      setScreenerData(results);
       setScreenerCounts(data.signalCounts || {});
       setScreenerTotal(data.totalScanned || 0);
       addSavePoint('Screener Complete', `Scanned ${data.totalScanned} stocks | ${data.totalMatched} matched`);
+
+      // Auto-create alerts for STRONG_BUY and STRONG_SELL signals
+      const strongSignals = results.filter(s => s.signal === 'STRONG_BUY' || s.signal === 'STRONG_SELL');
+      if (strongSignals.length > 0) {
+        // Fire-and-forget: create alerts in background, don't block UI
+        (async () => {
+          // First fetch existing alerts to avoid duplicates
+          let existingSymbols = new Set<string>();
+          try {
+            const alertsRes = await fetch('/api/alerts');
+            const alertsData = await alertsRes.json();
+            const activeAlerts = (alertsData.alerts || []).filter((a: any) => a.active && !a.triggered);
+            existingSymbols = new Set(activeAlerts.map((a: any) => a.symbol));
+          } catch {}
+
+          // Create alerts only for stocks not already tracked
+          const newAlerts = strongSignals.filter(s => !existingSymbols.has(s.symbol.toUpperCase()));
+          for (const s of newAlerts) {
+            try {
+              await fetch('/api/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  symbol: s.symbol,
+                  name: s.name,
+                  condition: s.signal === 'STRONG_BUY' ? 'above' : 'below',
+                  targetPrice: Math.round(s.price * 100) / 100,
+                  note: `Auto-alert: ${s.signal} | RSI: ${s.rsi?.toFixed(1) || 'N/A'} | ${s.signalReason || ''}`,
+                }),
+              });
+            } catch {}
+          }
+          if (newAlerts.length > 0) {
+            addSavePoint('Auto-Alerts Created', `${newAlerts.length} alerts for ${newAlerts.map(s => s.symbol).join(', ')}`);
+          }
+        })();
+      }
     } catch (err: any) {
       console.warn('[fetchScreener]', err?.name === 'AbortError' ? 'Screener timed out (5min)' : err);
       setScreenerError(true);

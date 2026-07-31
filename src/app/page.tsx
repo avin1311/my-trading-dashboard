@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff, Wallet, Bell, BellRing, Plus, Trash2, ToggleLeft, ToggleRight, History, Save } from 'lucide-react';
+import { Activity, TrendingUp, PieChart, Target, Users, Newspaper, Search, Layers, Star, Gauge, BarChart3, DollarSign, Zap, RefreshCw, ExternalLink, Clock, Radio, Calendar, ArrowUp, ArrowDown, Settings2, Trophy, Download, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, LayoutDashboard, ScanSearch, LineChart, BookOpen, Cpu, Flame, BookmarkPlus, Eye, X, PanelLeftClose, PanelLeft, Bot, GitBranch, WifiOff, Wallet, Bell, BellRing, Plus, Trash2, ToggleLeft, ToggleRight, History, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { fINR, fNum, fDate, fTime, pctVal, SIG_BG, TYPE_COLOR } from '@/lib/formatters';
@@ -95,6 +96,22 @@ function P({ title, icon: Icon, badge, children, className, source, accent }: {
       </div>
       <div className="p-3.5 flex-1 min-h-0">{children}</div>
     </div>
+  );
+}
+
+// ==================== COLLAPSIBLE SECTION ====================
+function CSection({ title, icon: Icon, badge, children, defaultOpen = false }: { title: string; icon: React.ElementType; badge?: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-lg bg-slate-800/20 border border-slate-800/30 hover:bg-slate-800/35 hover:border-slate-700/40 transition-colors group">
+        <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-colors" />
+        <span className="text-xs font-semibold text-slate-300 flex-1 text-left">{title}</span>
+        {badge}
+        {open ? <ChevronUp className="w-3 h-3 text-slate-500" /> : <ChevronDown className="w-3 h-3 text-slate-500" />}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2 space-y-2">{children}</CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -438,141 +455,188 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
       </div>
     );
   }
+  const q = d.q;
+  const t = d.t;
+  const price = liveTick?.ltp || q?.price || 0;
+  const changePct = liveTick ? liveTick.changePct : (q?.changePct || 0);
+  const change = liveTick ? liveTick.change : (q?.change || 0);
+  const isLive = !!liveTick;
+  const sig = d.latestSignal?.signal || 'HOLD';
+  const isInWatchlist = watchlist.watchlist.some(w => w.symbol === d.selectedSymbol);
+
   return (
     <div className="space-y-3 view-enter">
-      <KPIStrip q={liveTick ? { ...d.q, price: liveTick.ltp, changePct: liveTick.changePct, change: liveTick.change, volume: liveTick.volume } : d.q} latestSignal={d.latestSignal} />
-      <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 xl:col-span-8">
-          <P title="Price Chart with Signals" icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="Yahoo Finance">
-            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} />
-          </P>
-        </div>
-        <div className="col-span-12 xl:col-span-4 space-y-3">
-          {d.latestSignal && (
-            <P title="Composite Signal" icon={Gauge} badge={<Badge className={cn('text-[10px] font-bold border', SIG_BG[d.latestSignal.signal])}>{d.latestSignal.signal.replace('_', ' ')}</Badge>}>
-              <div className="flex flex-col items-center gap-3">
+      {/* ===== STOCK MONITOR HERO ===== */}
+      <div className="rounded-xl border border-slate-800/60 bg-gradient-to-br from-[#0c1018] to-[#0a0e1a] p-4">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+          {/* Left: Price + Signal */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-bold text-slate-100">{d.selectedSymbol}</span>
+              <span className="text-xs text-slate-500 truncate max-w-[200px]">{q?.longName || q?.name || ''}</span>
+              {isLive && <span className="flex items-center gap-1 text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />LIVE</span>}
+              {q?.sector && <Badge variant="outline" className="text-[8px] px-1.5 py-0 text-slate-500 border-slate-700/50">{q.sector}</Badge>}
+            </div>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-bold font-mono tracking-tight text-white">{price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className={cn('text-sm font-semibold font-mono', changePct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+                <span className="text-xs ml-1">({changePct >= 0 ? '+' : ''}{change.toFixed(2)})</span>
+              </span>
+            </div>
+            {/* Quick metrics row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px]">
+              <span className="text-slate-500">MCap: <span className="text-slate-300 font-mono">{q?.marketCap ? fINR(q.marketCap) : '--'}</span></span>
+              <span className="text-slate-500">P/E: <span className="text-slate-300 font-mono">{q?.pe?.toFixed(1) || '--'}</span></span>
+              <span className="text-slate-500">Vol: <span className="text-slate-300 font-mono">{fNum(q?.volume || 0)}</span></span>
+              {q?.avgVolume && <span className="text-slate-500">Avg Vol: <span className="text-slate-300 font-mono">{fNum(q.avgVolume)}</span></span>}
+              <span className="text-slate-500">H: <span className="text-emerald-400 font-mono">{q?.dayHigh?.toLocaleString('en-IN')}</span></span>
+              <span className="text-slate-500">L: <span className="text-red-400 font-mono">{q?.dayLow?.toLocaleString('en-IN')}</span></span>
+            </div>
+          </div>
+
+          {/* Center: Signal Badge + Gauge */}
+          <div className="flex flex-col items-center gap-2 lg:min-w-[180px]">
+            {d.latestSignal ? (
+              <>
                 <SignalGauge signal={d.latestSignal} />
-                <div className="grid grid-cols-3 gap-2 w-full">
+                <Badge className={cn('text-[11px] font-bold border px-3 py-1', SIG_BG[sig])}>{sig.replace('_', ' ')}</Badge>
+              </>
+            ) : (
+              <div className="text-xs text-slate-500">Calculating signal...</div>
+            )}
+          </div>
+
+          {/* Right: Quick Actions */}
+          <div className="flex lg:flex-col gap-2 flex-shrink-0">
+            <button onClick={() => onSetAlert({ symbol: d.selectedSymbol, name: q?.name || d.selectedSymbol, price, signal: sig })} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[10px] font-semibold hover:bg-amber-500/20 transition-colors">
+              <Bell className="w-3.5 h-3.5" /> Set Alert
+            </button>
+            <button onClick={() => isInWatchlist ? watchlist.removeFromWatchlist(d.selectedSymbol) : watchlist.addToWatchlist(d.selectedSymbol, 'equity')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-semibold transition-colors', isInWatchlist ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/20' : 'bg-slate-800/30 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600')}>
+              {isInWatchlist ? <><Star className="w-3.5 h-3.5 fill-current" /> Watching</> : <><Star className="w-3.5 h-3.5" /> Watchlist</>}
+            </button>
+            <button onClick={() => {}} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/40 text-slate-400 text-[10px] font-semibold hover:text-slate-200 hover:border-slate-600 transition-colors">
+              <Activity className="w-3.5 h-3.5" /> Full Chart
+            </button>
+          </div>
+        </div>
+
+        {/* 52W range bar */}
+        {q?.high52w > q?.low52w && (
+          <div className="mt-3 pt-3 border-t border-slate-800/40">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-slate-600 w-14 text-right">{q.low52w.toLocaleString('en-IN')}</span>
+              <div className="flex-1 relative h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/40 via-amber-500/30 to-emerald-500/40 rounded-full" style={{ width: ((price - q.low52w) / (q.high52w - q.low52w) * 100) + '%' }} />
+                <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white border border-emerald-400 shadow" style={{ left: 'calc(' + ((price - q.low52w) / (q.high52w - q.low52w) * 100) + '% - 4px)' }} />
+              </div>
+              <span className="text-[9px] font-mono text-slate-600 w-14">{q.high52w.toLocaleString('en-IN')}</span>
+              <span className="text-[8px] text-slate-600 ml-1">52W</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ===== CHART (always visible) ===== */}
+      <P title="Price Chart with Signals" icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="Yahoo Finance" className="col-span-full">
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} />
+      </P>
+
+      {/* ===== DETAIL SECTIONS (collapsible, collapsed by default) ===== */}
+      <div className="grid grid-cols-12 gap-3">
+        <div className="col-span-12 lg:col-span-6">
+          <CSection title="Signal Analysis" icon={Gauge} badge={d.latestSignal ? <Badge className={cn('text-[8px] font-bold border', SIG_BG[sig])}>{sig.replace('_', ' ')}</Badge> : null} defaultOpen={false}>
+            {d.latestSignal ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
                   <MBox label="RSI" value={d.latestSignal.rsi?.toFixed(1) || '--'} color={(d.latestSignal.rsi || 50) > 70 ? 'text-red-400' : (d.latestSignal.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400'} />
                   <MBox label="Supertrend" value={d.latestSignal.supertrendDir === 1 ? 'BULL' : 'BEAR'} color={d.latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'} sub={fINR(d.latestSignal.supertrend)} />
                   <MBox label="MACD" value={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'BULL' : 'BEAR'} color={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400'} sub={(d.latestSignal.macdHistogram || 0).toFixed(2)} />
                 </div>
-                <div className="w-full p-2 rounded-lg bg-slate-800/15 border border-slate-800/30">
+                <div className="p-2 rounded-lg bg-slate-800/15 border border-slate-800/30">
                   <p className="text-[9px] text-slate-400 leading-relaxed">{d.latestSignal.reason}</p>
                 </div>
+                {d.backtest && <div className="grid grid-cols-3 gap-2">
+                  <MBox label="Win Rate" value={d.backtest.winRate.toFixed(0) + '%'} color={d.backtest.winRate > 50 ? 'text-emerald-400' : 'text-red-400'} />
+                  <MBox label="Profit Factor" value={d.backtest.profitFactor.toFixed(2)} color={d.backtest.profitFactor > 1.5 ? 'text-emerald-400' : 'text-amber-400'} />
+                  <MBox label="Total Return" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+                </div>}
               </div>
-            </P>
-          )}
-          {d.backtest && (
-            <P title="Backtest Results" icon={Trophy} source="200-day">
-              <div className="grid grid-cols-2 gap-2">
-                <MBox label="Total Return" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
-                <MBox label="Win Rate" value={d.backtest.winRate.toFixed(0) + '%'} color={d.backtest.winRate > 50 ? 'text-emerald-400' : 'text-red-400'} />
-                <MBox label="Trades" value={String(d.backtest.totalTrades)} />
-                <MBox label="Profit Factor" value={d.backtest.profitFactor.toFixed(2)} color={d.backtest.profitFactor > 1.5 ? 'text-emerald-400' : 'text-amber-400'} />
-                <MBox label="Max DD" value={'-' + d.backtest.maxDrawdownPct.toFixed(1) + '%'} color="text-red-400" />
-                <MBox label="Avg Win" value={'+' + d.backtest.avgWinPct.toFixed(1) + '%'} sub={'Loss: ' + d.backtest.avgLossPct.toFixed(1) + '%'} color="text-emerald-400" />
-              </div>
-            </P>
-          )}
-        </div>
-      </div>
-      {/* Row 2: Fundamentals + Technicals + Performance + Ownership */}
-      <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 md:col-span-6 xl:col-span-3">
-          <P title="Fundamentals" icon={PieChart} source="Tickertape / Moneycontrol">
-            <div className="space-y-0">
-              <MetricRow label="P/E Ratio" value={d.q.pe?.toFixed(1) || '--'} highlight />
-              <MetricRow label="Forward P/E" value={d.q.forwardPE?.toFixed(1) || '--'} />
-              <MetricRow label="P/B Ratio" value={d.q.pb?.toFixed(2) || '--'} />
-              <MetricRow label="EPS (TTM)" value={d.q.eps ? fINR(d.q.eps) : '--'} highlight />
-              <MetricRow label="Book Value" value={d.q.bookValue ? fINR(d.q.bookValue) : '--'} />
-              <MetricRow label="Div Yield" value={d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--'} />
-              <Separator className="bg-slate-800/40 my-1" />
-              <MetricRow label="ROE" value={d.q.roe ? d.q.roe.toFixed(1) + '%' : '--'} highlight />
-              <MetricRow label="ROA" value={d.q.roa ? d.q.roa.toFixed(1) + '%' : '--'} />
-              <MetricRow label="Net Margin" value={d.q.profitMargins ? d.q.profitMargins.toFixed(1) + '%' : '--'} />
-              <MetricRow label="OPM" value={d.q.operatingMargins ? d.q.operatingMargins.toFixed(1) + '%' : '--'} />
-              <MetricRow label="Rev Growth" value={pctVal(d.q.revenueGrowth)} highlight />
-              <MetricRow label="D/E Ratio" value={d.q.debtToEquity?.toFixed(2) || '--'} />
-            </div>
-            {d.q.targetMean && (
-              <><Separator className="bg-slate-800/40 my-1" />
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-slate-400 font-medium">Analyst Consensus</span>
-                <Badge variant="outline" className={cn('text-[8px] px-1 py-0', d.q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{d.q.recommendation}</Badge>
-              </div>
-              <MetricRow label="Target Mean" value={fINR(d.q.targetMean)} highlight />
-              <div className="text-[9px] text-slate-500 mt-0.5">
-                Upside: <span className={cn('font-mono font-bold', ((d.q.targetMean - d.q.price) / d.q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                  {((d.q.targetMean - d.q.price) / d.q.price * 100) >= 0 ? '+' : ''}{((d.q.targetMean - d.q.price) / d.q.price * 100).toFixed(1)}%
-                </span>
-                <span className="text-slate-600 ml-1">({d.q.analysts} analysts)</span>
-              </div></>
-            )}
-          </P>
-        </div>
-        <div className="col-span-12 md:col-span-6 xl:col-span-3">
-          <P title="Technical Analysis" icon={Activity} source="TradingView Style">
-            <div className="space-y-2.5">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-slate-400 font-medium">RSI (14)</span>
-                  <span className={cn('text-sm font-bold font-mono', (d.t.rsi || 50) > 70 ? 'text-red-400' : (d.t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{d.t.rsi?.toFixed(1) || '--'}</span>
-                </div>
-                <div className="h-2 bg-slate-800 rounded-full overflow-hidden flex">
-                  <div className="bg-emerald-500/40 h-full" style={{ width: '30%' }} />
-                  <div className="bg-amber-500/30 h-full" style={{ width: '40%' }} />
-                  <div className="bg-red-500/40 h-full" style={{ width: '30%' }} />
-                </div>
-                <div className="flex justify-between text-[7px] text-slate-600 mt-0.5"><span>OS: 30</span><span>OB: 70</span></div>
+            ) : <div className="text-center py-4 text-slate-500 text-xs">Loading signals...</div>}
+          </CSection>
+
+          <CSection title="Technical Analysis" icon={Activity} defaultOpen={false}>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
+                <span className="text-[10px] text-slate-400">RSI (14)</span>
+                <span className={cn('text-sm font-bold font-mono', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi?.toFixed(1) || '--'}</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
                 <span className="text-[10px] text-slate-400">Supertrend</span>
                 <div className="flex items-center gap-2">
-                  <span className={cn('text-xs font-bold', d.t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{d.t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">{d.t.supertrend ? fINR(d.t.supertrend) : '--'}</span>
+                  <span className={cn('text-xs font-bold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">{t.supertrend ? fINR(t.supertrend) : '--'}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
                 <span className="text-[10px] text-slate-400">MACD</span>
                 <div className="flex items-center gap-2">
-                  <span className={cn('text-xs font-bold', (d.t.macd || 0) > (d.t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(d.t.macd || 0) > (d.t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span>
-                  <span className="text-[10px] text-slate-500 font-mono">H: {(d.t.macdHistogram || 0).toFixed(2)}</span>
+                  <span className={cn('text-xs font-bold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">H: {(t.macdHistogram || 0).toFixed(2)}</span>
                 </div>
               </div>
               <Separator className="bg-slate-800/40" />
               <div className="space-y-1">
-                {[
-                  ['Resistance 2', d.t.resistance2, 'text-red-400/80'],
-                  ['Resistance 1', d.t.resistance1, 'text-orange-400/80'],
-                  ['Price', d.q?.price, 'text-white font-bold', true],
-                  ['Support 1', d.t.support1, 'text-emerald-400/80'],
-                  ['Support 2', d.t.support2, 'text-green-400/80'],
-                ].map(([label, val, color, isPrice]) => (
+                {[['Resistance 2', t.resistance2, 'text-red-400/80'], ['Resistance 1', t.resistance1, 'text-orange-400/80'], ['Price', q?.price, 'text-white font-bold', true], ['Support 1', t.support1, 'text-emerald-400/80'], ['Support 2', t.support2, 'text-green-400/80']].map(([label, val, color, isPrice]: any) => (
                   <div key={String(label)} className={cn('flex justify-between text-[10px]', isPrice && 'bg-slate-800/30 px-1.5 py-0.5 rounded')}>
                     <span className={String(color)}>{label}</span>
                     <span className={cn('font-mono', isPrice ? 'font-bold text-white' : 'text-slate-300')}>{val ? fINR(val) : '--'}</span>
                   </div>
                 ))}
               </div>
-              <Separator className="bg-slate-800/40" />
               <div className="grid grid-cols-2 gap-1.5">
-                {d.q.fiftyDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]">
-                  <div className="text-slate-500">50 DMA</div><div className="font-mono text-slate-200">{fINR(d.q.fiftyDMA)}</div>
-                  <div className={cn('font-mono font-semibold', (d.q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(d.q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{d.q.percentAbove50DMA?.toFixed(1)}%</div>
-                </div>}
-                {d.q.twoHundredDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]">
-                  <div className="text-slate-500">200 DMA</div><div className="font-mono text-slate-200">{fINR(d.q.twoHundredDMA)}</div>
-                  <div className={cn('font-mono font-semibold', (d.q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(d.q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{d.q.percentAbove200DMA?.toFixed(1)}%</div>
-                </div>}
+                {q?.fiftyDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">50 DMA</div><div className="font-mono text-slate-200">{fINR(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>}
+                {q?.twoHundredDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">200 DMA</div><div className="font-mono text-slate-200">{fINR(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>}
               </div>
             </div>
-          </P>
+          </CSection>
         </div>
-        <div className="col-span-12 md:col-span-6 xl:col-span-3">
-          <P title="Price Performance" icon={TrendingUp} source="Moneycontrol">
-            <div className="grid grid-cols-3 gap-2 mb-3">
+
+        <div className="col-span-12 lg:col-span-6">
+          <CSection title="Fundamentals & Financials" icon={PieChart} defaultOpen={false}>
+            <div className="space-y-0">
+              <MetricRow label="P/E Ratio" value={q?.pe?.toFixed(1) || '--'} highlight />
+              <MetricRow label="Forward P/E" value={q?.forwardPE?.toFixed(1) || '--'} />
+              <MetricRow label="P/B Ratio" value={q?.pb?.toFixed(2) || '--'} />
+              <MetricRow label="EPS (TTM)" value={q?.eps ? fINR(q.eps) : '--'} highlight />
+              <MetricRow label="ROE" value={q?.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
+              <MetricRow label="ROA" value={q?.roa ? q.roa.toFixed(1) + '%' : '--'} />
+              <MetricRow label="Net Margin" value={q?.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
+              <MetricRow label="Rev Growth" value={pctVal(q?.revenueGrowth)} highlight />
+              <MetricRow label="D/E Ratio" value={q?.debtToEquity?.toFixed(2) || '--'} />
+              <MetricRow label="Div Yield" value={q?.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
+              <Separator className="bg-slate-800/40 my-1" />
+              <MetricRow label="Revenue" value={d.fin.revenue ? fINR(d.fin.revenue) : '--'} />
+              <MetricRow label="EBITDA" value={d.fin.ebitda ? fINR(d.fin.ebitda) : '--'} />
+              <MetricRow label="Net Profit" value={d.fin.netProfit ? fINR(d.fin.netProfit) : '--'} highlight />
+            </div>
+            {q?.targetMean && (
+              <><Separator className="bg-slate-800/40 my-1" />
+              <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-800/15">
+                <span className="text-[10px] text-slate-400">Analyst Target</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-slate-200">{fINR(q.targetMean)}</span>
+                  <Badge variant="outline" className={cn('text-[8px] px-1 py-0', q.recommendation === 'buy' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30')}>{q.recommendation}</Badge>
+                  <span className={cn('text-[9px] font-mono font-bold', ((q.targetMean - q.price) / q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {((q.targetMean - q.price) / q.price * 100) >= 0 ? '+' : ''}{((q.targetMean - q.price) / q.price * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div></>
+            )}
+          </CSection>
+
+          <CSection title="Price Performance" icon={TrendingUp} defaultOpen={false}>
+            <div className="grid grid-cols-3 gap-2 mb-2">
               {(['1W', '1M', '3M', '6M', '1Y', 'YTD'] as const).map(p => {
                 const val = d.perf[p] ?? null;
                 const up = val !== null && val >= 0;
@@ -584,37 +648,15 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                 );
               })}
             </div>
-            <Separator className="bg-slate-800/40 my-2" />
-            <div className="text-[10px] text-slate-400 font-medium mb-2">52 Week Range</div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-slate-500 w-16 text-right">{d.q.low52w.toLocaleString('en-IN')}</span>
-              <div className="flex-1 relative h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/30 via-amber-500/30 to-emerald-500/30 rounded-full" style={{ width: (d.q.high52w > d.q.low52w ? ((d.q.price - d.q.low52w) / (d.q.high52w - d.q.low52w)) * 100 : 50) + '%' }} />
-                <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-emerald-500 shadow-lg shadow-emerald-500/20" style={{ left: 'calc(' + (d.q.high52w > d.q.low52w ? ((d.q.price - d.q.low52w) / (d.q.high52w - d.q.low52w)) * 100 : 50) + '% - 5px)' }} />
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 w-16">{d.q.high52w.toLocaleString('en-IN')}</span>
+            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Open</span><span className="font-mono text-slate-200">{fINR(q?.open)}</span></div>
+              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Prev Close</span><span className="font-mono text-slate-200">{fINR(q?.prevClose)}</span></div>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 text-[10px] mt-3">
-              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Open</span><span className="font-mono text-slate-200">{fINR(d.q.open)}</span></div>
-              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Prev Close</span><span className="font-mono text-slate-200">{fINR(d.q.prevClose)}</span></div>
-              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Day High</span><span className="font-mono text-emerald-400">{fINR(d.q.dayHigh)}</span></div>
-              <div className="flex justify-between p-1.5 bg-slate-800/15 rounded"><span className="text-slate-500">Day Low</span><span className="font-mono text-red-400">{fINR(d.q.dayLow)}</span></div>
-            </div>
-          </P>
-        </div>
-        <div className="col-span-12 md:col-span-6 xl:col-span-3">
-          <P title="Shareholding & Financials" icon={Users} source="Screener.in">
+          </CSection>
+
+          <CSection title="Shareholding" icon={Users} defaultOpen={false}>
             <OwnershipDonut data={d.own} />
-            <Separator className="bg-slate-800/40 my-2" />
-            <div className="text-[9px] text-slate-500 font-semibold mb-1">Financial Highlights</div>
-            <div className="space-y-0">
-              <MetricRow label="Revenue" value={d.fin.revenue ? fINR(d.fin.revenue) : '--'} />
-              <MetricRow label="EBITDA" value={d.fin.ebitda ? fINR(d.fin.ebitda) : '--'} />
-              <MetricRow label="Gross Profit" value={d.fin.grossProfits ? fINR(d.fin.grossProfits) : '--'} />
-              <MetricRow label="Free Cashflow" value={d.fin.freeCashflow ? fINR(d.fin.freeCashflow) : '--'} />
-              <MetricRow label="Net Profit" value={d.fin.netProfit ? fINR(d.fin.netProfit) : '--'} highlight />
-            </div>
-          </P>
+          </CSection>
         </div>
       </div>
       {/* Row 3: Screener + News */}
