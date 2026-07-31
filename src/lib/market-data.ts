@@ -299,8 +299,8 @@ function httpsGet(url: string, timeout = 8000): Promise<string> {
 // ==================== CACHING ====================
 const quoteCache = new Map<string, { data: LiveQuote; timestamp: number }>();
 const histCache = new Map<string, { data: HistoricalDataPoint[]; timestamp: number }>();
-const QUOTE_TTL = 10_000; // 10s for real-time data
-const HIST_TTL = 30_000; // 30s for historical data
+const QUOTE_TTL = 3_000; // 3s for real-time data
+const HIST_TTL = 15_000; // 15s for historical data
 
 // ==================== SYMBOL HELPERS ====================
 function getYahooSymbol(nseSymbol: string): string {

@@ -297,7 +297,7 @@ export function useDashboardData() {
       fetch('/api/quote?overview=true').then(r => r.ok ? r.json() : null).then((ov: any) => {
         if (ov) setOverview(ov);
       }).catch(() => {});
-    }, 60000);
+    }, 10000);
     return () => {
       clearInterval(detailInterval);
       clearInterval(overviewInterval);

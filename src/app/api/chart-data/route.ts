@@ -25,7 +25,7 @@ const INTERVAL_MAP: Record<string, { yahoo: string; days: number }> = {
 
 // Simple cache
 const cache = new Map<string, { data: any[]; ts: number; source: string }>();
-const CACHE_TTL = 30_000; // 30s for intraday, 5min for daily+
+const CACHE_TTL = 10_000; // 10s for intraday, 2min for daily+
 
 async function httpsGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
   const cfg = INTERVAL_MAP[interval] || INTERVAL_MAP['D'];
   const cacheKey = `${symbol}_${interval}`;
   const cached = cache.get(cacheKey);
-  const ttl = ['1m', '5m', '15m', '60', '240'].includes(interval) ? CACHE_TTL : 300_000;
+  const ttl = ['1m', '5m', '15m', '60', '240'].includes(interval) ? CACHE_TTL : 120_000;
 
   if (cached && Date.now() - cached.ts < ttl) {
     return NextResponse.json({ data: cached.data, interval, symbol, source: cached.source });
