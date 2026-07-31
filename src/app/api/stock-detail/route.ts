@@ -4,6 +4,7 @@ import { generateSignals } from "@/lib/trading-strategy";
 import { DEFAULT_PARAMS } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
 import { checkPE, checkPB, checkPriceBounds, checkRSI, validateAll, safeValue } from "@/lib/data-validation";
+import { db } from "@/lib/db";
 
 // GET /api/stock-detail?symbol=RELIANCE
 // Returns comprehensive stock data: quote, fundamentals, technicals, ownership, financials, peers, analyst targets
@@ -171,6 +172,39 @@ export async function GET(request: NextRequest) {
       _netProfitEstimated: true,
     };
 
+    // ==================== AUTO-ALERT ON STRONG SIGNALS ====================
+    // Auto-create an alert when a STRONG_BUY or STRONG_SELL signal appears.
+    // Avoids duplicates: only creates if no untriggered alert for this
+    // symbol+direction exists in the last 24 hours.
+    let autoAlertCreated = false;
+    if (latestSignal && (latestSignal.signal === 'STRONG_BUY' || latestSignal.signal === 'STRONG_SELL')) {
+      try {
+        const isBuy = latestSignal.signal === 'STRONG_BUY';
+        const direction = isBuy ? 'above' : 'below';
+        const signalLabel = isBuy ? 'Auto: Strong Buy Signal' : 'Auto: Strong Sell Signal';
+        const dayAgo = new Date(Date.now() - 24 * 3600_000);
+
+        const existing = await db.priceAlert.findFirst({
+          where: { symbol, condition: direction, triggered: false, createdAt: { gte: dayAgo } },
+        });
+
+        if (!existing) {
+          const buffer = isBuy ? 1.005 : 0.995;
+          const targetPrice = Math.round(quote.price * buffer * 100) / 100;
+          await db.priceAlert.create({
+            data: {
+              symbol, name: signalLabel, condition: direction,
+              targetPrice, note: `Auto: ${latestSignal.reason}`,
+            },
+          });
+          autoAlertCreated = true;
+          console.log(`[auto-alert] ${direction} ${symbol} @ ${targetPrice} (${latestSignal.signal})`);
+        }
+      } catch (e: any) {
+        console.warn(`[auto-alert] Failed for ${symbol}:`, e.message);
+      }
+    }
+
     // Price performance metrics
     const perf1w = histData.length >= 6
       ? Math.round(((quote.price - histData[histData.length - 6].close) / histData[histData.length - 6].close) * 10000) / 100
@@ -231,6 +265,7 @@ export async function GET(request: NextRequest) {
       peers,
       dataPoints: histData.length,
       lastDate: histData.length > 0 ? histData[histData.length - 1].date : null,
+      autoAlertCreated,
     }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
     return NextResponse.json(
