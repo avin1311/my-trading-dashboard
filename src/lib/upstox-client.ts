@@ -672,8 +672,11 @@ export interface UpstoxCandle {
 
 // Map our interval keys to Upstox historical API intervals
 const UPSTOX_INTERVAL_MAP: Record<string, string> = {
+  '1': '1minute',
   '1m': '1minute',
+  '5': '5minute',
   '5m': '5minute',
+  '15': '15minute',
   '15m': '15minute',
   '60': '30minute', // Upstox has 30min, not 1h — use 30min as closest
   '240': 'day',

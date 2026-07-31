@@ -13,8 +13,11 @@ function getYahooSymbol(nseSymbol: string): string {
 
 // Interval mapping from our UI keys to Yahoo Finance intervals
 const INTERVAL_MAP: Record<string, { yahoo: string; days: number }> = {
+  '1':   { yahoo: '1m',  days: 7 },
   '1m':  { yahoo: '1m',  days: 7 },
+  '5':   { yahoo: '5m',  days: 30 },
   '5m':  { yahoo: '5m',  days: 30 },
+  '15':  { yahoo: '15m', days: 30 },
   '15m': { yahoo: '15m', days: 30 },
   '60':  { yahoo: '1h',  days: 30 },
   '240': { yahoo: '1h',  days: 60 },
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
   const cfg = INTERVAL_MAP[interval] || INTERVAL_MAP['D'];
   const cacheKey = `${symbol}_${interval}`;
   const cached = cache.get(cacheKey);
-  const ttl = ['1m', '5m', '15m', '60', '240'].includes(interval) ? CACHE_TTL : 120_000;
+  const ttl = ['1', '1m', '5', '5m', '15', '15m', '60', '240'].includes(interval) ? CACHE_TTL : 120_000;
 
   if (cached && Date.now() - cached.ts < ttl) {
     return NextResponse.json({ data: cached.data, interval, symbol, source: cached.source });
