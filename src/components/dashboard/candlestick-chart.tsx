@@ -75,6 +75,16 @@ interface ChartData {
   volume: number;
 }
 
+export interface LiveTickProp {
+  ltp: number;
+  high: number;
+  low: number;
+  open: number;
+  close: number;
+  volume: number;
+  timestamp: number;
+}
+
 interface CandlestickChartProps {
   symbol: string;
   interval: string;
@@ -83,6 +93,7 @@ interface CandlestickChartProps {
   activeIndicators?: IndicatorId[];
   activeTool?: DrawingTool;
   onPatternsDetected?: (patterns: DetectedPattern[]) => void;
+  liveTick?: LiveTickProp | null;
 }
 
 // ==================== INDICATOR COMPUTATION ====================
@@ -144,13 +155,18 @@ function computeAllIndicators(data: OHLCV[], activeIds: IndicatorId[]): Computed
 
 export default function CandlestickChart({
   symbol, interval, height = 520, chartType = 'candle',
-  activeIndicators = [], activeTool: activeToolProp = 'crosshair', onPatternsDetected
+  activeIndicators = [], activeTool: activeToolProp = 'crosshair', onPatternsDetected, liveTick
 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const fetchIdRef = useRef(0);
+  // Refs to update live candle from outside the main useEffect
+  const priceSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
+  const isLineRef = useRef(false);
+  const lastCandleRef = useRef<{ time: Time; open: number; high: number; low: number; close: number; volume: number } | null>(null);
 
   // Drawing state
   const [activeTool, setActiveTool] = useState<DrawingTool>('crosshair');
@@ -211,6 +227,7 @@ export default function CandlestickChart({
     // ---- Create series ----
     const isLine = chartType === 'line';
     const isHollow = chartType === 'hollow_candle';
+    isLineRef.current = isLine;
     const priceSeries = chart.addSeries(isLine ? LineSeries : CandlestickSeries, {
       ...(isLine ? {
         color: '#3b82f6', lineWidth: 2, priceLineVisible: true,
@@ -222,10 +239,12 @@ export default function CandlestickChart({
         wickUpColor: '#10b981', wickDownColor: '#ef4444',
       }),
     });
+    priceSeriesRef.current = priceSeries;
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' }, priceScaleId: 'volume',
     });
+    volumeSeriesRef.current = volumeSeries;
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
 
     // ---- Indicator series ----
@@ -449,6 +468,18 @@ export default function CandlestickChart({
 
       onPatternsDetected?.(indicators.patterns);
       chart.timeScale().fitContent();
+      // Store last candle for live updates
+      const lastRaw = rawData[rawData.length - 1];
+      if (lastRaw) {
+        lastCandleRef.current = {
+          time: lastRaw.time as Time,
+          open: lastRaw.open,
+          high: lastRaw.high,
+          low: lastRaw.low,
+          close: lastRaw.close,
+          volume: lastRaw.volume,
+        };
+      }
       setLoading(false);
     });
 
@@ -563,6 +594,65 @@ export default function CandlestickChart({
       if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
     };
   }, [symbol, interval, chartType, activeIndicators, height, fetchData, onPatternsDetected]);
+
+  // ---- Live tick: update last candle in real-time ----
+  useEffect(() => {
+    if (!liveTick || !priceSeriesRef.current || !lastCandleRef.current || loading) return;
+    // Only update for intraday intervals
+    const isIntraday = ['1', '5', '15', '60', '240'].includes(interval);
+    if (!isIntraday) return;
+
+    const ps = priceSeriesRef.current;
+    const vs = volumeSeriesRef.current;
+    const prev = lastCandleRef.current;
+
+    // Determine candle time bucket from tick timestamp
+    const tickDate = new Date(liveTick.timestamp);
+    let candleTime: Time;
+    const intvMin = parseInt(interval) || 1;
+    if (intvMin <= 60) {
+      // Minute-based: round down to interval
+      const minutes = Math.floor(tickDate.getHours() * 60 + tickDate.getMinutes()) / intvMin;
+      const bucketMinutes = Math.floor(minutes) * intvMin;
+      const h = Math.floor(bucketMinutes / 60);
+      const m = bucketMinutes % 60;
+      candleTime = {
+        year: tickDate.getFullYear(),
+        month: tickDate.getMonth() + 1,
+        day: tickDate.getDate(),
+        hour: h, minute: m,
+      } as Time;
+    } else {
+      candleTime = prev.time;
+    }
+
+    if (candleTime === prev.time) {
+      // Same candle — update it
+      const updatedCandle = {
+        time: candleTime,
+        open: prev.open,
+        high: Math.max(prev.high, liveTick.high || liveTick.ltp),
+        low: Math.min(prev.low, liveTick.low || liveTick.ltp),
+        close: liveTick.ltp,
+        volume: liveTick.volume || prev.volume,
+      };
+      try {
+        if (isLineRef.current) {
+          (ps as ISeriesApi<'Line'>).update({ time: candleTime, value: liveTick.ltp });
+        } else {
+          (ps as ISeriesApi<'Candlestick'>).update(updatedCandle);
+        }
+        if (vs) {
+          (vs as ISeriesApi<'Histogram'>).update({
+            time: candleTime,
+            value: updatedCandle.volume,
+            color: liveTick.ltp >= prev.open ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+          });
+        }
+      } catch (_e) { /* ignore if time key mismatch */ }
+      lastCandleRef.current = updatedCandle;
+    }
+  }, [liveTick, interval, loading]);
 
   const clearDrawings = () => {
     drawingRef.current = [];

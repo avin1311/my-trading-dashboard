@@ -296,7 +296,7 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
 }
 
 // ==================== OVERVIEW VIEW ====================
-function OverviewView({ d, watchlist, onSetAlert }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void }) {
+function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null }) {
   // Market landing page when no stock is selected at all
   if (!d.selectedSymbol) {
     const topGainers = d.overview?.topGainers || [];
@@ -440,11 +440,11 @@ function OverviewView({ d, watchlist, onSetAlert }: { d: ReturnType<typeof useDa
   }
   return (
     <div className="space-y-3 view-enter">
-      <KPIStrip q={d.q} latestSignal={d.latestSignal} />
+      <KPIStrip q={liveTick ? { ...d.q, price: liveTick.ltp, changePct: liveTick.changePct, change: liveTick.change, volume: liveTick.volume } : d.q} latestSignal={d.latestSignal} />
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 xl:col-span-8">
           <P title="Price Chart with Signals" icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="Yahoo Finance">
-            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
+            <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} />
           </P>
         </div>
         <div className="col-span-12 xl:col-span-4 space-y-3">
@@ -913,7 +913,7 @@ function ScreenerView({ d, onSetAlert }: { d: ReturnType<typeof useDashboardData
 }
 
 // ==================== CHART VIEW (TradingView Style) ====================
-function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
+function ChartView({ d, liveTick }: { d: ReturnType<typeof useDashboardData>; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null }) {
   if (!d.selectedSymbol) return EMPTY_STOCK('price charts & indicators');
   if (!d.q) {
     if (d.initialLoadError && !d.detailLoading) return (
@@ -928,7 +928,7 @@ function ChartView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   return (
     <div className="space-y-3 view-enter">
       <P title={`${d.selectedSymbol} — Price Action & Indicators`} icon={Activity} badge={<ExportButton symbol={d.selectedSymbol} />} source="TradingView Style" className="col-span-full">
-        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} />
+        <ChartSection chartData={d.chartData} visibleData={d.visibleData} latestSignal={d.latestSignal} signalsLoading={d.signalsLoading} symbol={d.selectedSymbol} liveTick={liveTick} />
       </P>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
@@ -2202,9 +2202,9 @@ export default function Home() {
             </div>
 
             {/* View Content */}
-            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} />}
+            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} liveTick={liveTick} />}
             {view === 'screener' && <ScreenerView d={d} onSetAlert={handleSetAlert} />}
-            {view === 'chart' && <ChartView d={d} />}
+            {view === 'chart' && <ChartView d={d} liveTick={liveTick} />}
             {view === 'fundamentals' && <FundamentalsView d={d} />}
             {view === 'technicals' && <TechnicalsView d={d} />}
             {view === 'strategy' && <StrategyView d={d} />}

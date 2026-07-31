@@ -21,7 +21,7 @@ export function useDashboardData() {
 
   // Auto-refresh ON by default for real-time feel
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(15);
+  const [refreshInterval, setRefreshInterval] = useState(5);
   const [stockData, setStockData] = useState<OHLCV[]>([]);
   const [signals, setSignals] = useState<StrategySignal[]>([]);
   const [backtest, setBacktest] = useState<BacktestResult | null>(null);

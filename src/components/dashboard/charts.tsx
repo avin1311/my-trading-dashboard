@@ -349,13 +349,14 @@ function XIcon({ className }: { className?: string }) {
 
 // ==================== MAIN EXPORT ====================
 export default function StrategySection({
-  chartData, visibleData, latestSignal, signalsLoading, symbol,
+  chartData, visibleData, latestSignal, signalsLoading, symbol, liveTick,
 }: {
   chartData: ChartDataPoint[];
   visibleData: ChartDataPoint[];
   latestSignal: StrategySignal | null;
   signalsLoading: boolean;
   symbol?: string;
+  liveTick?: import('./candlestick-chart').LiveTickProp | null;
 }) {
   const [timeframe, setTimeframe] = useState<TimeframeKey>('1D');
   const [chartType, setChartType] = useState<ChartType>('candle');
@@ -422,6 +423,7 @@ export default function StrategySection({
             activeIndicators={activeIndicators}
             activeTool={activeTool}
             onPatternsDetected={handlePatternsDetected}
+            liveTick={liveTick}
           />
         )}
       </div>
