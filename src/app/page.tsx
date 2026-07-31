@@ -296,7 +296,7 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
 }
 
 // ==================== OVERVIEW VIEW ====================
-function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist> }) {
+function OverviewView({ d, watchlist, onSetAlert }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void }) {
   // Market landing page when no stock is selected at all
   if (!d.selectedSymbol) {
     const topGainers = d.overview?.topGainers || [];
@@ -653,7 +653,7 @@ function OverviewView({ d, watchlist }: { d: ReturnType<typeof useDashboardData>
                       <TableCell className="text-[10px] font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
                       <TableCell className="text-center">
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleSetAlert({ symbol: s.symbol, name: s.name, price: s.price, signal: s.signal }); }}
+                          onClick={(e) => { e.stopPropagation(); onSetAlert({ symbol: s.symbol, name: s.name, price: s.price, signal: s.signal }); }}
                           className="p-1 rounded hover:bg-amber-500/20 text-slate-600 hover:text-amber-400 transition-colors"
                           title="Set price alert"
                         ><Bell className="w-3 h-3" /></button>
@@ -2202,7 +2202,7 @@ export default function Home() {
             </div>
 
             {/* View Content */}
-            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} />}
+            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} />}
             {view === 'screener' && <ScreenerView d={d} onSetAlert={handleSetAlert} />}
             {view === 'chart' && <ChartView d={d} />}
             {view === 'fundamentals' && <FundamentalsView d={d} />}
