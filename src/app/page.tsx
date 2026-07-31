@@ -1911,11 +1911,14 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
   useEffect(() => {
     if (pendingAlert) {
       const isBearish = pendingAlert.signal === 'SELL' || pendingAlert.signal === 'STRONG_SELL';
+      // Add 2% buffer so the alert doesn't trigger instantly on creation
+      const bufferMultiplier = isBearish ? 0.98 : 1.02;
+      const bufferedPrice = Math.round(pendingAlert.price * bufferMultiplier * 100) / 100;
       setForm({
         symbol: pendingAlert.symbol,
         name: pendingAlert.name,
         condition: isBearish ? 'below' : 'above',
-        targetPrice: String(Math.round(pendingAlert.price * 100) / 100),
+        targetPrice: String(bufferedPrice),
         note: `From screener: ${pendingAlert.signal}`,
       });
       setShowAdd(true);
@@ -1935,10 +1938,11 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
 
   const handleAdd = async () => {
     if (!form.symbol || !form.targetPrice) return;
-    await fetch('/api/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const res = await fetch('/api/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    if (!res.ok) return;
     setForm({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
     setShowAdd(false);
-    reloadAlerts();
+    await reloadAlerts();
   };
 
   const handleDelete = async (id: string) => {

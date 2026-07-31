@@ -35,11 +35,15 @@ export async function GET() {
         } catch {}
       }
 
-      // Check alerts and auto-trigger
+      // Check alerts and auto-trigger (skip recently created to avoid instant trigger)
       const triggeredAlerts: any[] = [];
       for (const alert of activeAlerts) {
         const currentPrice = priceMap.get(alert.symbol);
         if (!currentPrice) continue;
+
+        // Grace period: don't trigger alerts created in the last 60 seconds
+        const ageMs = Date.now() - new Date(alert.createdAt).getTime();
+        if (ageMs < 60_000) continue;
 
         const triggered =
           (alert.condition === 'above' && currentPrice >= alert.targetPrice) ||
