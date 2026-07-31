@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1905,6 +1905,8 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
   const [justTriggered, setJustTriggered] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formError, setFormError] = useState('');
   const [form, setForm] = useState({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
 
   // Pre-fill form when navigated from screener
@@ -1921,10 +1923,18 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
         targetPrice: String(bufferedPrice),
         note: `From screener: ${pendingAlert.signal}`,
       });
+      setFormError('');
       setShowAdd(true);
       onPendingAlertConsumed();
     }
   }, [pendingAlert, onPendingAlertConsumed]);
+
+  // Auto-clear triggered notifications after 8 seconds
+  useEffect(() => {
+    if (justTriggered.length === 0) return;
+    const t = setTimeout(() => setJustTriggered([]), 8000);
+    return () => clearTimeout(t);
+  }, [justTriggered]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1937,12 +1947,32 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
   };
 
   const handleAdd = async () => {
-    if (!form.symbol || !form.targetPrice) return;
-    const res = await fetch('/api/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-    if (!res.ok) return;
-    setForm({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
-    setShowAdd(false);
-    await reloadAlerts();
+    if (!form.symbol || !form.targetPrice) {
+      setFormError('Symbol and target price are required');
+      return;
+    }
+    const price = parseFloat(form.targetPrice);
+    if (isNaN(price) || price <= 0) {
+      setFormError('Please enter a valid target price');
+      return;
+    }
+    setFormError('');
+    setCreating(true);
+    try {
+      const res = await fetch('/api/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setFormError(err.error || 'Failed to create alert');
+        return;
+      }
+      setForm({ symbol: '', name: '', condition: 'above', targetPrice: '', note: '' });
+      setShowAdd(false);
+      await reloadAlerts();
+    } catch {
+      setFormError('Network error — please try again');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -2006,9 +2036,12 @@ function AlertsView({ d, pendingAlert, onPendingAlertConsumed }: { d: ReturnType
               </Select>
               <Input placeholder="Target Price" type="number" value={form.targetPrice} onChange={e => setForm(f => ({ ...f, targetPrice: e.target.value }))} className="h-8 text-xs" />
               <Input placeholder="Note (optional)" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} className="h-8 text-xs" />
-              <Button className="h-8 text-xs bg-amber-600 hover:bg-amber-500" onClick={handleAdd}>Create</Button>
+              <Button className="h-8 text-xs bg-amber-600 hover:bg-amber-500" onClick={handleAdd} disabled={creating}>
+                {creating ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : null} {creating ? 'Creating...' : 'Create'}
+              </Button>
             </div>
           </div>
+          {formError && <div className="text-[10px] text-red-400 mt-1.5 px-1">{formError}</div>}
         )}
 
         {loading ? <div className="flex items-center justify-center py-12"><RefreshCw className="w-4 h-4 animate-spin text-amber-400 mr-2" /><span className="text-xs text-slate-400">Loading alerts...</span></div> :
@@ -2167,6 +2200,7 @@ export default function Home() {
     setPendingAlert(s);
     setView('alerts');
   };
+  const consumePendingAlert = useCallback(() => setPendingAlert(null), []);
 
   // Handle Upstox OAuth callback URL params
   useEffect(() => {
@@ -2256,7 +2290,7 @@ export default function Home() {
             {view === 'strategy' && <StrategyView d={d} />}
             {view === 'news' && <NewsView d={d} />}
             {view === 'portfolio' && <PortfolioView d={d} />}
-            {view === 'alerts' && <AlertsView d={d} pendingAlert={pendingAlert} onPendingAlertConsumed={() => setPendingAlert(null)} />}
+            {view === 'alerts' && <AlertsView d={d} pendingAlert={pendingAlert} onPendingAlertConsumed={consumePendingAlert} />}
             {view === 'watchlist' && <WatchlistView d={d} watchlist={watchlist} />}
             {view === 'oi' && <OpenInterestView d={d} upstoxConnected={rt.upstoxConnected} />}
           </main>
