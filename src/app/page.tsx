@@ -747,7 +747,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                     <TableHead className="text-[9px] text-slate-500 h-7 text-right">Rev Growth</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {d.detail.peers.map((p: PeerData) => (
+                    {d.detail.peers.filter((p: PeerData) => p.price > 0).map((p: PeerData) => (
                       <TableRow key={p.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(p.symbol, 'equity')}>
                         <TableCell className="text-[10px] py-1.5"><span className="font-semibold text-slate-200">{p.symbol}</span><span className="text-slate-500 ml-1 text-[8px]">{p.name}</span></TableCell>
                         <TableCell className="text-[10px] font-mono text-slate-200 text-right">{p.price.toLocaleString('en-IN')}</TableCell>

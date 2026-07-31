@@ -39,10 +39,13 @@ export function mergeChartData(stockData: OHLCV[], signals: StrategySignal[]): C
   });
 }
 
-function fINR(v: number): string {
-  if (v >= 1e12) return '\u20B9' + (v / 1e12).toFixed(2) + ' T';
-  if (v >= 1e7) return '\u20B9' + (v / 1e7).toFixed(2) + ' Cr';
-  if (v >= 1e5) return '\u20B9' + (v / 1e5).toFixed(2) + ' L';
+function fPriceAxis(v: number): string {
+  if (v >= 100000) return (v / 1000).toFixed(0) + 'K';
+  if (v >= 1000) return v.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  return v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fTooltipPrice(v: number): string {
   return '\u20B9' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -53,9 +56,9 @@ function ChartTooltipContent({ active, payload }: { active?: boolean; payload?: 
     <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl text-xs">
       <div className="font-semibold text-slate-200 mb-1.5">{new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}</div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-300">
-        <span>O: {fINR(d.open)}</span><span>H: {fINR(d.high)}</span>
-        <span>L: {fINR(d.low)}</span><span>C: {fINR(d.close)}</span>
-        {d.supertrend !== null && <span className="col-span-2">ST: <span className={d.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'}>{fINR(d.supertrend)}</span></span>}
+        <span>O: {fTooltipPrice(d.open)}</span><span>H: {fTooltipPrice(d.high)}</span>
+        <span>L: {fTooltipPrice(d.low)}</span><span>C: {fTooltipPrice(d.close)}</span>
+        {d.supertrend !== null && <span className="col-span-2">ST: <span className={d.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'}>{fTooltipPrice(d.supertrend)}</span></span>}
         {d.signal && d.signal !== 'HOLD' && <span className={cn('col-span-2 font-semibold', d.signal.includes('BUY') ? 'text-emerald-400' : 'text-red-400')}>{d.signal.replace('_', ' ')}</span>}
       </div>
     </div>
@@ -439,7 +442,7 @@ export default function StrategySection({
               <ComposedChart data={visibleData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="date" tickFormatter={d => { const dt = new Date(d); return dt.getDate() + '/' + (dt.getMonth() + 1); }} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} />
-                <YAxis domain={[priceMin, priceMax]} tickFormatter={v => fINR(v)} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} width={70} />
+                <YAxis domain={[priceMin, priceMax]} tickFormatter={v => fPriceAxis(v)} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} width={70} />
                 <RTooltip content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="close" stroke="#3b82f6" strokeWidth={1.5} fillOpacity={0.05} isAnimationActive={false} />
                 <Line type="monotone" dataKey="supertrend" stroke="#f59e0b" strokeWidth={1.2} dot={false} strokeDasharray="4 2" isAnimationActive={false} connectNulls />

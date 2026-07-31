@@ -160,7 +160,7 @@ export function SentimentBadge({ sentiment }: { sentiment: string }) {
 }
 
 // ==================== OwnershipDonut ====================
-export function OwnershipDonut({ data }: { data: Record<string, number | null> }) {
+export function OwnershipDonut({ data }: { data: Record<string, number | null> & { _synthetic?: boolean } }) {
   const segments = [
     { label: 'Promoter', value: data.promoter, color: '#3b82f6' },
     { label: 'FII', value: data.fii, color: '#10b981' },
@@ -187,6 +187,7 @@ export function OwnershipDonut({ data }: { data: Record<string, number | null> }
         </div>
       </div>
       <div className="space-y-1.5 flex-1">
+        {data._synthetic && <span className="text-[9px] text-amber-500/80 italic block mb-1">≈ Approximate — derived from inst. holding %</span>}
         {segments.map(s => (
           <div key={s.label} className="flex items-center gap-2 text-xs">
             <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: s.color }} />
