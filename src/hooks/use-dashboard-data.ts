@@ -19,9 +19,11 @@ export function useDashboardData() {
   const [detailLoading, setDetailLoading] = useState(true);
   const [initialLoadError, setInitialLoadError] = useState(false);
 
-  // Auto-refresh ON by default for real-time feel
+  // Auto-refresh ON by default — 30s for Yahoo delayed data (15min delayed source, no need to poll faster)
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(5);
+  const [refreshInterval, setRefreshInterval] = useState(30);
+  // Track consecutive 429s for exponential backoff
+  const backoffRef = useRef(1);
   const [stockData, setStockData] = useState<OHLCV[]>([]);
   const [signals, setSignals] = useState<StrategySignal[]>([]);
   const [backtest, setBacktest] = useState<BacktestResult | null>(null);
@@ -79,19 +81,21 @@ export function useDashboardData() {
     setTimeout(() => setSavePoints(prev => prev.filter(p => p.id !== sp.id)), 4000);
   }, []);
 
-  // Initial load — fetch stocks, indices, overview
+  // Initial load — fetch stocks, indices, overview (with 15s timeout)
   useEffect(() => {
+    const controller = new AbortController();
+    const overviewTimeout = setTimeout(() => controller.abort(), 15000);
     Promise.all([
       fetch('/api/stocks?type=equity').then(r => r.ok ? r.json() : Promise.reject(new Error(`Stocks API ${r.status}`))).catch(() => ({ instruments: [], sectors: [] })),
       fetch('/api/stocks?type=index').then(r => r.ok ? r.json() : Promise.reject(new Error(`Indices API ${r.status}`))).catch(() => ({ instruments: [] })),
-      fetch('/api/quote?overview=true').then(r => r.ok ? r.json() : Promise.reject(new Error(`Overview API ${r.status}`))).catch(() => null),
+      fetch('/api/quote?overview=true', { signal: controller.signal }).then(r => r.ok ? r.json() : Promise.reject(new Error(`Overview API ${r.status}`))).catch(() => null),
     ]).then(([eq, idx, ov]: any[]) => {
       setEquities(eq.instruments || []);
       setIndices(idx.instruments || []);
       setSectors(eq.sectors || []);
       if (ov) setOverview(ov);
       addSavePoint('Market Data Loaded', `${(eq.instruments || []).length} equities, ${(idx.instruments || []).length} indices loaded`);
-    }).catch(console.error);
+    }).catch(console.error).finally(() => clearTimeout(overviewTimeout));
   }, []);
 
   const fetchDetail = useCallback(async (sym: string) => {
@@ -114,10 +118,17 @@ export function useDashboardData() {
     } finally { setDetailLoading(false); }
   }, [addSavePoint]);
 
-  // Silent fetch — no save points, no loading spinner
+  // Silent fetch — no save points, no loading spinner. Includes 429 backoff.
   const silentFetchDetail = useCallback(async (sym: string) => {
     try {
       const res = await fetch('/api/stock-detail?symbol=' + sym);
+      if (res.status === 429) {
+        // Rate-limited — increase backoff, skip this cycle
+        backoffRef.current = Math.min(backoffRef.current * 2, 300);
+        console.warn(`[silentFetch] 429 rate-limited, backing off to ${backoffRef.current}s`);
+        return;
+      }
+      if (res.status === 200) backoffRef.current = 1; // Reset on success
       if (!res.ok) return;
       const data = await res.json();
       if (data.quote) {
@@ -325,19 +336,28 @@ export function useDashboardData() {
   // Re-fetch OI when expiry filter changes
   useEffect(() => { if (oiExpiryFilter && oiUnderlying) fetchOIData(oiUnderlying, oiExpiryFilter); }, [oiExpiryFilter]);
 
-  // Auto-refresh polling
+  // Auto-refresh polling — detail at 30s (with backoff), overview at 60s
   useEffect(() => {
     if (!autoRefresh || !selectedSymbol) return;
-    const detailInterval = setInterval(() => {
+    let detailTimer: ReturnType<typeof setTimeout>;
+    let overviewInterval: ReturnType<typeof setInterval>;
+
+    // Detail polling with adaptive backoff on 429s
+    const pollDetail = () => {
       silentFetchDetail(selectedSymbol);
-    }, refreshInterval * 1000);
-    const overviewInterval = setInterval(() => {
+      detailTimer = setTimeout(pollDetail, refreshInterval * 1000 * backoffRef.current);
+    };
+    pollDetail();
+
+    // Overview polling at 60s (indices change slowly)
+    overviewInterval = setInterval(() => {
       fetch('/api/quote?overview=true').then(r => r.ok ? r.json() : null).then((ov: any) => {
         if (ov) setOverview(ov);
       }).catch(() => {});
-    }, 10000);
+    }, 60000);
+
     return () => {
-      clearInterval(detailInterval);
+      clearTimeout(detailTimer);
       clearInterval(overviewInterval);
     };
   }, [autoRefresh, refreshInterval, selectedSymbol, silentFetchDetail]);

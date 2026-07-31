@@ -296,7 +296,7 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
             )}
           >
             <span className={cn('w-1.5 h-1.5 rounded-full transition-colors', d.autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600')} />
-            {d.autoRefresh ? 'LIVE' : 'OFF'}
+            {d.autoRefresh ? 'POLLING' : 'OFF'}
           </button>
           <StockSelectorSheet
             open={d.sheetOpen} onOpenChange={d.setSheetOpen}
@@ -435,7 +435,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             <WifiOff className="w-6 h-6 text-red-400" />
           </div>
           <h3 className="text-sm font-semibold text-slate-300 mb-1">Failed to load {d.selectedSymbol}</h3>
-          <p className="text-xs text-slate-500 mb-4">Could not fetch data from Yahoo Finance. Check your internet connection.</p>
+          <p className="text-xs text-slate-500 mb-4">Could not fetch data. The data source may be rate-limited or temporarily unavailable.</p>
           <div className="flex gap-2">
             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { d.setInitialLoadError(false); d.handleRefresh(); }}>
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
@@ -2202,28 +2202,53 @@ export default function Home() {
   };
   const consumePendingAlert = useCallback(() => setPendingAlert(null), []);
 
-  // Handle Upstox OAuth callback URL params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const upstoxStatus = params.get('upstox');
-    if (upstoxStatus === 'connected') {
-      // Clean the URL (remove query params)
-      window.history.replaceState({}, '', window.location.pathname);
-      // Immediately reconnect SSE to start receiving live ticks
-      rt.connectUpstox();
-    } else if (upstoxStatus?.startsWith('error')) {
-      window.history.replaceState({}, '', window.location.pathname);
-      console.error('[Upstox] OAuth error:', upstoxStatus);
-      alert(`Upstox connection failed: ${upstoxStatus.replace('error_', '')}. Check that UPSTOX_API_KEY and UPSTOX_API_SECRET are set in .env`);
-    }
-  }, []);
-
   // Real-time WebSocket data via Upstox
   const realtimeSymbols = [
     ...(d.selectedSymbol ? [d.selectedSymbol] : []),
     'NIFTY', 'BANKNIFTY', 'NIFTYIT', 'INDIAVIX',
   ];
   const rt = useRealtimeData(realtimeSymbols);
+
+  // Handle URL query params: ?symbol=RELIANCE&view=screener&upstox=connected
+  const queryApplied = useRef(false);
+  useEffect(() => {
+    if (queryApplied.current) return;
+    const sp = new URLSearchParams(window.location.search);
+    let applied = false;
+
+    // Handle ?symbol=RELIANCE
+    const sym = sp.get('symbol');
+    if (sym && /^[A-Z0-9]+$/i.test(sym)) {
+      const upper = sym.toUpperCase();
+      const indexNames = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTYIT', 'NIFTYMIDCAP', 'NIFTYNXT50', 'NIFTYPHARMA'];
+      d.handleSelect(upper, indexNames.includes(upper) ? 'index' : 'equity');
+      applied = true;
+    }
+
+    // Handle ?view=screener
+    const viewParam = sp.get('view');
+    if (viewParam && ['overview', 'screener', 'chart', 'fundamentals', 'technicals', 'strategy', 'news', 'portfolio', 'alerts', 'watchlist', 'oi'].includes(viewParam)) {
+      setView(viewParam as ViewType);
+      applied = true;
+    }
+
+    // Handle ?upstox=connected
+    const upstoxStatus = sp.get('upstox');
+    if (upstoxStatus === 'connected') {
+      rt.connectUpstox();
+      applied = true;
+    } else if (upstoxStatus?.startsWith('error')) {
+      console.error('[Upstox] OAuth error:', upstoxStatus);
+      alert(`Upstox connection failed: ${upstoxStatus.replace('error_', '')}. Check that UPSTOX_API_KEY and UPSTOX_API_SECRET are set in .env`);
+      applied = true;
+    }
+
+    // Clean URL — remove all query params after applying
+    if (applied) {
+      queryApplied.current = true;
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [d, rt]);
 
   // Re-fetch OI data when a live Upstox tick arrives for the OI underlying
   // This ensures the mock OI strikes use the live spot price, not stale bp/Yahoo
@@ -2241,6 +2266,17 @@ export default function Home() {
 
   // Get live price for current symbol
   const liveTick = d.selectedSymbol ? rt.getLivePrice(d.selectedSymbol) : null;
+
+  // Dynamic browser title for SEO and tab identification
+  useEffect(() => {
+    if (d.selectedSymbol && d.q) {
+      const name = d.q.longName || d.q.name || d.selectedSymbol;
+      const price = d.q.price?.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+      document.title = `${d.selectedSymbol} ${price ? '₹' + price + ' · ' : ''}${name} - NSE Analytics`;
+    } else {
+      document.title = 'NSE Analytics - Trading Strategy Dashboard';
+    }
+  }, [d.selectedSymbol, d.q?.price, d.q?.longName]);
 
   const activeNav = NAV_ITEMS.find(n => n.id === view);
 
@@ -2308,7 +2344,7 @@ export default function Home() {
                 ? <span className="flex items-center gap-1 text-emerald-500/70"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Upstox Live{rt.lastTickTime ? ` · ${rt.lastTickTime}` : ''}</span>
                 : <a href="/api/upstox/connect" className="flex items-center gap-1 text-amber-500/60 hover:text-amber-400 transition-colors"><WifiOff className="w-2 h-2" /> Connect Upstox</a>}
               <span className="text-slate-700">·</span>
-              <span className="text-slate-600">{rt.upstoxConnected ? 'Real-time via Upstox' : 'Yahoo Finance · 15min delayed'}</span>
+              <span className="text-slate-600">{rt.upstoxConnected ? 'Real-time via Upstox' : 'Yahoo Finance · 15 min delayed'}</span>
             </div>
           </div>
         </div>

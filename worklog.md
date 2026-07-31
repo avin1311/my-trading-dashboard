@@ -65,3 +65,28 @@ Stage Summary:
 - Wired validation layer into API
 - Build passes, zero new errors
 - RSI (Wilder's), backtest DD (equity curve), and signal logic were already correct — no changes needed
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix reviewer findings - polling, routing, LIVE/delayed, error states, SSR metadata
+
+Work Log:
+- Fixed polling interval from 5s to 30s for stock detail (Yahoo 15min delayed data)
+- Changed overview polling from 10s to 60s (indices change slowly)
+- Added exponential backoff on HTTP 429 rate-limit responses (doubles up to 300s)
+- Renamed header toggle from 'LIVE' to 'POLLING' when not connected to Upstox
+- Fixed footer '15min' → '15 min delayed' (added space)
+- Created /stock/[symbol] route with SSR generateMetadata (title, description, OG tags)
+- Created /screener route with SSR metadata
+- Added ?symbol= and ?view= query param handling on root page
+- Added 15s timeout to initial overview fetch with AbortController
+- Improved error state messaging (mentions rate-limiting)
+- Added dynamic document.title update when stock data loads
+- Verified all routes return correct status codes and redirect targets
+- Verified SSR metadata renders in HTML for /stock/RELIANCE
+- Verified POLLING, 30s, and '15 min delayed' in root page SSR HTML
+
+Stage Summary:
+- All 4 reviewer findings addressed: routing (done), LIVE/delayed (fixed), 5s polling regression (fixed to 30s), SSR + error state (done)
+- Build successful, all routes verified with curl
+- Server running on port 3000 via daemon.js
