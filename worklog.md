@@ -190,3 +190,21 @@ Stage Summary:
 - P1 items: HOLD band widened, chart axis improved, RSI unified to integer
 - Build passes: `✓ Compiled successfully in 13.2s`
 - All routes verified: /, /stock/*, /screener, /api/stock-detail
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: P2 Polish items — ultrawide layout, tooltips, richer verdict, backtest vs buy-and-hold
+
+Work Log:
+- **P2-1 Ultrawide**: Capped main content at max-w-[1600px] (was 1920px) for better readability on ultrawide monitors.
+- **P2-2 Tooltips**: Added `tooltip` prop to MetricRow component (renders ℹ icon with native title tooltip). Added tooltips to all 15 metrics in Fundamentals view (P/E, P/B, ROE, OPM, Beta, D/E, etc.) and 8 metrics in Overview quick-fundamentals.
+- **P2-3 Richer verdict**: Added ConfluenceBadges component showing individual indicator status (ST/RSI>50/MACD) as colored dots in the signal analysis section. RSI MBox now shows zone sub-label (Overbought/Oversold/Bullish zone/Bearish zone).
+- **P2-4 Backtest vs buy-and-hold**: Added Buy & Hold return and Alpha display below existing backtest metrics. Alpha shows 'Outperformed'/'Underperformed' sub-label. Added low-trade-count warning note.
+- **P2-5 Screener de-dupe**: Investigated — /api/stocks and /api/screener serve different purposes (lightweight inline signals vs full cached scan). Added documentation comment explaining the architecture and future optimization path.
+- Fixed Turbopack parse error with `as const` in JSX by extracting ConfluenceBadges to a separate component.
+
+Stage Summary:
+- All 5 P2 polish items completed
+- Build passes: `✓ Compiled successfully in 15.0s`
+- Total changes across 3 sessions: 5 P0 + 4 P1 + 5 P2 = 14 fixes delivered

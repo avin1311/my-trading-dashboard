@@ -47,16 +47,23 @@ export function KPICard({ label, value, sub, icon: Icon, trend, accent, indicato
 }
 
 // ==================== MetricRow ====================
-export function MetricRow({ label, value, highlight, badge, bar }: {
+export function MetricRow({ label, value, highlight, badge, bar, tooltip }: {
   label: string;
   value: React.ReactNode;
   highlight?: boolean;
   badge?: { text: string; color: string };
   bar?: { value: number; max: number; color: string };
+  tooltip?: string;
 }) {
+  const labelEl = (
+    <span className="text-xs text-slate-400 flex items-center gap-1">
+      {label}
+      {tooltip && <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] leading-none select-none" title={tooltip}>ℹ</span>}
+    </span>
+  );
   return (
     <div className="flex items-center justify-between py-2 border-b border-slate-800/25 last:border-0 hover:bg-slate-800/10 -mx-3.5 px-3.5 transition-colors duration-150">
-      <span className="text-xs text-slate-400">{label}</span>
+      {labelEl}
       <div className="flex items-center gap-2">
         {bar && (
           <div className="w-16 h-1.5 bg-slate-800/60 rounded-full overflow-hidden">

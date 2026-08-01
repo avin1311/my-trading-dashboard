@@ -313,6 +313,23 @@ function HeaderBar({ d, watchlist, liveTick, rtTicks, upstoxConnected }: { d: Re
 }
 
 // ==================== OVERVIEW VIEW ====================
+function ConfluenceBadges({ signal }: { signal: { supertrendDir: number; rsi: number; macd: number | null; macdSignal: number | null } }) {
+  const items = [
+    { label: 'ST', bullish: signal.supertrendDir === 1, tip: 'Supertrend direction' },
+    { label: 'RSI>50', bullish: signal.rsi > 50, tip: 'RSI above/below 50' },
+    { label: 'MACD', bullish: (signal.macd || 0) > (signal.macdSignal || 0), tip: 'MACD above/below signal line' },
+  ];
+  return (
+    <div className="flex items-center gap-3 text-[10px]">
+      {items.map(({ label, bullish, tip }) => (
+        <span key={label} className={cn('flex items-center gap-1 px-2 py-1 rounded-md border', bullish ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-red-500/10 border-red-500/25 text-red-400')} title={tip}>
+          <span className={cn('w-1.5 h-1.5 rounded-full', bullish ? 'bg-emerald-400' : 'bg-red-400')} />{label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null }) {
   // Market landing page when no stock is selected at all
   if (!d.selectedSymbol) {
@@ -549,17 +566,26 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             {d.latestSignal ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
-                  <MBox label="RSI" value={d.latestSignal.rsi?.toFixed(1) || '--'} color={(d.latestSignal.rsi || 50) > 70 ? 'text-red-400' : (d.latestSignal.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400'} />
+                  <MBox label="RSI" value={Math.round(d.latestSignal.rsi) || '--'} color={(d.latestSignal.rsi || 50) > 70 ? 'text-red-400' : (d.latestSignal.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400'} sub={d.latestSignal.rsi > 70 ? 'Overbought' : d.latestSignal.rsi < 30 ? 'Oversold' : d.latestSignal.rsi > 50 ? 'Bullish zone' : 'Bearish zone'} />
                   <MBox label="Supertrend" value={d.latestSignal.supertrendDir === 1 ? 'BULL' : 'BEAR'} color={d.latestSignal.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400'} sub={fPerShare(d.latestSignal.supertrend)} />
-                  <MBox label="MACD" value={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'BULL' : 'BEAR'} color={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400'} sub={(d.latestSignal.macdHistogram || 0).toFixed(2)} />
+                  <MBox label="MACD" value={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'BULL' : 'BEAR'} color={(d.latestSignal.macd || 0) > (d.latestSignal.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400'} sub={'Hist: ' + (d.latestSignal.macdHistogram || 0).toFixed(2)} />
                 </div>
+                {/* Indicator confluence breakdown */}
+                <ConfluenceBadges signal={d.latestSignal} />
                 <div className="p-2 rounded-lg bg-slate-800/15 border border-slate-800/30">
                   <p className="text-[9px] text-slate-400 leading-relaxed">{d.latestSignal.reason}</p>
                 </div>
-                {d.backtest && <div className="grid grid-cols-3 gap-2">
-                  <MBox label="Win Rate" value={d.backtest.winRate.toFixed(0) + '%'} color={d.backtest.winRate > 50 ? 'text-emerald-400' : 'text-red-400'} />
-                  <MBox label="Profit Factor" value={d.backtest.profitFactor.toFixed(2)} color={d.backtest.profitFactor > 1.5 ? 'text-emerald-400' : 'text-amber-400'} />
-                  <MBox label="Total Return" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+                {d.backtest && <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <MBox label="Win Rate" value={d.backtest.winRate.toFixed(0) + '%'} color={d.backtest.winRate > 50 ? 'text-emerald-400' : 'text-red-400'} />
+                    <MBox label="Profit Factor" value={d.backtest.profitFactor.toFixed(2)} color={d.backtest.profitFactor > 1.5 ? 'text-emerald-400' : 'text-amber-400'} />
+                    <MBox label="Strategy" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <MBox label="Buy & Hold" value={(d.backtest.benchmarkReturnPct >= 0 ? '+' : '') + d.backtest.benchmarkReturnPct.toFixed(1) + '%'} color={d.backtest.benchmarkReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} sub='Same period' />
+                    <MBox label="Alpha" value={(d.backtest.alphaPct >= 0 ? '+' : '') + d.backtest.alphaPct.toFixed(1) + '%'} color={d.backtest.alphaPct >= 0 ? 'text-emerald-400' : 'text-red-400'} sub={d.backtest.alphaPct >= 0 ? 'Outperformed' : 'Underperformed'} />
+                  </div>
+                  {d.backtest.note && <p className="text-[8px] text-amber-500/70 italic">{d.backtest.note}</p>}
                 </div>}
               </div>
             ) : <div className="text-center py-4 text-slate-500 text-xs">Loading signals...</div>}
@@ -605,14 +631,14 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
         <div className="col-span-12 lg:col-span-6">
           <CSection title="Fundamentals & Financials" icon={PieChart} defaultOpen={false}>
             <div className="space-y-0">
-              <MetricRow label="P/E Ratio" value={q?.pe?.toFixed(1) || '--'} highlight />
-              <MetricRow label="Forward P/E" value={q?.forwardPE?.toFixed(1) || '--'} />
-              <MetricRow label="P/B Ratio" value={q?.pb?.toFixed(2) || '--'} />
-              <MetricRow label="EPS (TTM)" value={q?.eps ? fPerShare(q.eps) : '--'} highlight />
-              <MetricRow label="ROE" value={q?.roe ? q.roe.toFixed(1) + '%' : '--'} highlight />
-              <MetricRow label="ROA" value={q?.roa ? q.roa.toFixed(1) + '%' : '--'} />
-              <MetricRow label="Net Margin" value={q?.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} />
-              <MetricRow label="Rev Growth" value={pctVal(q?.revenueGrowth)} highlight />
+              <MetricRow label="P/E Ratio" value={q?.pe?.toFixed(1) || '--'} highlight tooltip="Price / EPS. Lower = cheaper." />
+              <MetricRow label="Forward P/E" value={q?.forwardPE?.toFixed(1) || '--'} tooltip="Price / expected EPS next 12 months." />
+              <MetricRow label="P/B Ratio" value={q?.pb?.toFixed(2) || '--'} tooltip="Price / Book Value. <1 may signal undervaluation." />
+              <MetricRow label="EPS (TTM)" value={q?.eps ? fPerShare(q.eps) : '--'} highlight tooltip="Trailing 12-month earnings per share." />
+              <MetricRow label="ROE" value={q?.roe ? q.roe.toFixed(1) + '%' : '--'} highlight tooltip="Return on Equity — capital efficiency." />
+              <MetricRow label="ROA" value={q?.roa ? q.roa.toFixed(1) + '%' : '--'} tooltip="Return on Assets — includes leverage effect." />
+              <MetricRow label="Net Margin" value={q?.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} tooltip="Net profit / revenue (bottom line)." />
+              <MetricRow label="Rev Growth" value={pctVal(q?.revenueGrowth)} highlight tooltip="Year-over-year revenue change." />
               <MetricRow label="D/E Ratio" value={q?.debtToEquity?.toFixed(2) || '--'} />
               <MetricRow label="Div Yield" value={q?.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
               <Separator className="bg-slate-800/40 my-1" />
@@ -1006,18 +1032,18 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   }
   const fundSections = [
     { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
-      { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
-      { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--' }, { l: 'EPS (TTM)', v: d.q.eps ? fPerShare(d.q.eps) : '--', h: true },
-      { l: 'Book Value' + (d.q._bvDerived ? ' (derived)' : ''), v: d.q.bookValue ? fPerShare(d.q.bookValue) : '--' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--' },
-      { l: 'Payout Ratio', v: d.q.payoutRatio ? (d.q.payoutRatio * 100).toFixed(1) + '%' : '--' },
+      { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true, t: 'Price / Earnings per Share. Lower = cheaper relative to earnings.' }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--', t: 'Price / Expected EPS (next 12 months). Useful for growth stocks.' },
+      { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--', t: 'Price / Book Value per Share. <1 may indicate undervaluation.' }, { l: 'EPS (TTM)', v: d.q.eps ? fPerShare(d.q.eps) : '--', h: true, t: 'Earnings Per Share — trailing twelve months net profit / shares outstanding.' },
+      { l: 'Book Value' + (d.q._bvDerived ? ' (derived)' : ''), v: d.q.bookValue ? fPerShare(d.q.bookValue) : '--', t: d.q._bvDerived ? 'Derived from EPS / ROE — raw book value was inconsistent with other fundamentals.' : 'Total equity / shares outstanding. Also called net asset value per share.' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--', t: 'Annual dividend per share / current price.' },
+      { l: 'Payout Ratio', v: d.q.payoutRatio ? (d.q.payoutRatio * 100).toFixed(1) + '%' : '--', t: 'Dividends / Net Profit. >100% means paying from reserves.' },
     ]},
     { title: 'Profitability', icon: TrendingUp, source: 'Moneycontrol', items: [
-      { l: 'ROE', v: d.q.roe ? d.q.roe.toFixed(1) + '%' : '--', h: true }, { l: 'ROA', v: d.q.roa ? d.q.roa.toFixed(1) + '%' : '--' },
-      { l: 'Net Profit Margin', v: d.q.profitMargins ? d.q.profitMargins.toFixed(1) + '%' : '--' },
-      { l: 'Operating Margin (OPM)', v: d.q.operatingMargins ? d.q.operatingMargins.toFixed(1) + '%' : '--' },
-      { l: 'Revenue Growth', v: d.q.revenueGrowth ? d.q.revenueGrowth.toFixed(1) + '%' : '--', h: true },
-      { l: 'Beta', v: d.q.beta?.toFixed(2) || '--' }, { l: 'D/E Ratio', v: d.q.debtToEquity?.toFixed(2) || '--' },
-      { l: 'Current Ratio', v: d.q.currentRatio?.toFixed(2) || '--' },
+      { l: 'ROE', v: d.q.roe ? d.q.roe.toFixed(1) + '%' : '--', h: true, t: 'Return on Equity — net profit / shareholders equity. Measures capital efficiency.' }, { l: 'ROA', v: d.q.roa ? d.q.roa.toFixed(1) + '%' : '--', t: 'Return on Assets — net profit / total assets. Lower than ROE when debt is used.' },
+      { l: 'Net Profit Margin', v: d.q.profitMargins ? d.q.profitMargins.toFixed(1) + '%' : '--', t: 'Net profit / revenue. What percentage of revenue becomes bottom-line profit.' },
+      { l: 'Operating Margin (OPM)', v: d.q.operatingMargins ? d.q.operatingMargins.toFixed(1) + '%' : '--', t: 'Operating profit / revenue. Excludes interest and taxes. Not the same as EBITDA margin.' },
+      { l: 'Revenue Growth', v: d.q.revenueGrowth ? d.q.revenueGrowth.toFixed(1) + '%' : '--', h: true, t: 'Year-over-year revenue growth rate.' },
+      { l: 'Beta', v: d.q.beta?.toFixed(2) || '--', t: 'Volatility relative to NIFTY 50. >1 = more volatile than market, <1 = less.' }, { l: 'D/E Ratio', v: d.q.debtToEquity?.toFixed(2) || '--', t: 'Total debt / shareholders equity. Higher = more leveraged.' },
+      { l: 'Current Ratio', v: d.q.currentRatio?.toFixed(2) || '--', t: 'Current assets / current liabilities. >1.5 = healthy short-term liquidity.' },
     ]},
     { title: 'Financial Highlights', icon: DollarSign, source: 'Moneycontrol', items: (() => {
       const finVals = [d.fin.revenue, d.fin.ebitda, d.fin.grossProfits, d.fin.freeCashflow, d.fin.netProfit].filter((v): v is number => v != null && v > 0);
@@ -1038,7 +1064,7 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
         {fundSections.map(sec => (
           <P key={sec.title} title={sec.title} icon={sec.icon} source={sec.source}>
             <div className="space-y-0">
-              {sec.items.map(item => <MetricRow key={item.l} label={item.l} value={item.v} highlight={item.h} />)}
+              {sec.items.map(item => <MetricRow key={item.l} label={item.l} value={item.v} highlight={item.h} tooltip={item.t} />)}
             </div>
           </P>
         ))}
@@ -2311,7 +2337,7 @@ export default function Home() {
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
         <div className={cn('flex-1 min-w-0 flex flex-col', rt.upstoxConnected && 'bg-[#060a08]')}>
           <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} upstoxConnected={rt.upstoxConnected} />
-          <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
+          <main className="flex-1 p-3 max-w-[1600px] w-full mx-auto">
             {/* View breadcrumb */}
             <div className="flex items-center gap-2 mb-3 view-enter" key={view}>
               <div className={cn('w-6 h-6 rounded-md bg-gradient-to-br flex items-center justify-center shadow-sm', activeNav?.color)}>

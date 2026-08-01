@@ -282,7 +282,12 @@ export function useDashboardData() {
     }
   }, [selectedSymbol]);
 
-  // Fetch screener on first load — delay 3s to not compete with initial stock data fetches
+  // Fetch screener on first load — delay 3s to not compete with initial stock data fetches.
+  // Note: /api/screener computes signals independently from /api/stocks (which also
+  // runs generateSignals inline). These are NOT duplicated — stocks API returns
+  // lightweight inline signals for the overview table, while screener API runs a
+  // full cached scan with Prisma persistence. Future optimization: share the
+  // screener cache with stocks API so signals are computed once.
   useEffect(() => { const t = setTimeout(() => fetchScreener(), 3000); return () => clearTimeout(t); }, []);
 
   // Fetch options on demand
