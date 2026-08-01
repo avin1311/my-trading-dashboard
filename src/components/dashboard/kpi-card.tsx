@@ -58,7 +58,16 @@ export function MetricRow({ label, value, highlight, badge, bar, tooltip }: {
   const labelEl = (
     <span className="text-xs text-slate-400 flex items-center gap-1">
       {label}
-      {tooltip && <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] leading-none select-none" title={tooltip}>ℹ</span>}
+      {tooltip && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] leading-none select-none transition-colors">ⓘ</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px] bg-slate-900 border-slate-700 max-w-[220px] leading-relaxed">
+            {tooltip}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </span>
   );
   return (

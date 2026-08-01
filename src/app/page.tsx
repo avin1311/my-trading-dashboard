@@ -330,7 +330,7 @@ function ConfluenceBadges({ signal }: { signal: { supertrendDir: number; rsi: nu
   );
 }
 
-function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null }) {
+function OverviewView({ d, watchlist, onSetAlert, liveTick, onViewScreener }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null; onViewScreener: () => void }) {
   // Market landing page when no stock is selected at all
   if (!d.selectedSymbol) {
     const topGainers = d.overview?.topGainers || [];
@@ -512,12 +512,24 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             </div>
           </div>
 
-          {/* Center: Signal Badge + Gauge */}
-          <div className="flex flex-col items-center gap-2 lg:min-w-[180px]">
+          {/* Center: Signal Badge + Gauge + Verdict */}
+          <div className="flex flex-col items-center gap-2 lg:min-w-[220px]">
             {d.latestSignal ? (
               <>
                 <SignalGauge signal={d.latestSignal} />
                 <Badge className={cn('text-[11px] font-bold border px-3 py-1', SIG_BG[sig])}>{sig.replace('_', ' ')}</Badge>
+                {/* Richer verdict summary */}
+                <div className="w-full space-y-1.5 mt-1">
+                  <ConfluenceBadges signal={d.latestSignal} />
+                  <div className="text-[8px] text-slate-500 text-center leading-relaxed">{d.latestSignal.reason}</div>
+                  {d.backtest && (
+                    <div className="flex items-center justify-center gap-3 text-[9px]">
+                      <span className={cn('font-mono font-bold', d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>Str: {(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1)}%</span>
+                      <span className="text-slate-700">|</span>
+                      <span className={cn('font-mono', d.backtest.alphaPct >= 0 ? 'text-emerald-400/70' : 'text-red-400/70')}>α: {(d.backtest.alphaPct >= 0 ? '+' : '') + d.backtest.alphaPct.toFixed(1)}%</span>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <div className="text-xs text-slate-500">Calculating signal...</div>
@@ -594,18 +606,18 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
           <CSection title="Technical Analysis" icon={Activity} defaultOpen={false}>
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
-                <span className="text-[10px] text-slate-400">RSI ({d.params.rsiPeriod})</span>
+                <span className="text-[10px] text-slate-400">RSI ({d.params.rsiPeriod}) <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] transition-colors" title="Relative Strength Index: momentum oscillator (0-100). Above 70 = overbought, below 30 = oversold.">ⓘ</span></span>
                 <span className={cn('text-sm font-bold font-mono', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi ? Math.round(t.rsi) : '--'}</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
-                <span className="text-[10px] text-slate-400">Supertrend</span>
+                <span className="text-[10px] text-slate-400">Supertrend <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] transition-colors" title="Trend-following indicator using ATR. Price above ST = bullish, below = bearish.">ⓘ</span></span>
                 <div className="flex items-center gap-2">
                   <span className={cn('text-xs font-bold', t.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{t.supertrendDir === 1 ? 'BULLISH' : 'BEARISH'}</span>
                   <span className="text-[10px] text-slate-500 font-mono">{t.supertrend ? fPerShare(t.supertrend) : '--'}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
-                <span className="text-[10px] text-slate-400">MACD</span>
+                <span className="text-[10px] text-slate-400">MACD <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] transition-colors" title="Moving Average Convergence Divergence. MACD > Signal line = bullish crossover.">ⓘ</span></span>
                 <div className="flex items-center gap-2">
                   <span className={cn('text-xs font-bold', (t.macd || 0) > (t.macdSignal || 0) ? 'text-emerald-400' : 'text-red-400')}>{(t.macd || 0) > (t.macdSignal || 0) ? 'BULLISH' : 'BEARISH'}</span>
                   <span className="text-[10px] text-slate-500 font-mono">Hist: {(t.macdHistogram || 0).toFixed(2)}</span>
@@ -621,8 +633,8 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                {q?.fiftyDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">50 DMA</div><div className="font-mono text-slate-200">{fPerShare(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>}
-                {q?.twoHundredDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">200 DMA</div><div className="font-mono text-slate-200">{fPerShare(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>}
+                {q?.fiftyDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">50 DMA <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] transition-colors" title="50-day simple moving average. Price above = short-term bullish.">ⓘ</span></div><div className="font-mono text-slate-200">{fPerShare(q.fiftyDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove50DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove50DMA || 0) >= 0 ? '+' : ''}{q.percentAbove50DMA?.toFixed(1)}%</div></div>}
+                {q?.twoHundredDMA && <div className="rounded-lg bg-slate-800/20 p-1.5 text-[10px]"><div className="text-slate-500">200 DMA <span className="text-slate-600 hover:text-slate-400 cursor-help text-[9px] transition-colors" title="200-day simple moving average. Price above = long-term bullish.">ⓘ</span></div><div className="font-mono text-slate-200">{fPerShare(q.twoHundredDMA)}</div><div className={cn('font-mono font-semibold', (q.percentAbove200DMA || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(q.percentAbove200DMA || 0) >= 0 ? '+' : ''}{q.percentAbove200DMA?.toFixed(1)}%</div></div>}
               </div>
             </div>
           </CSection>
@@ -639,12 +651,17 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
               <MetricRow label="ROA" value={q?.roa ? q.roa.toFixed(1) + '%' : '--'} tooltip="Return on Assets — includes leverage effect." />
               <MetricRow label="Net Margin" value={q?.profitMargins ? q.profitMargins.toFixed(1) + '%' : '--'} tooltip="Net profit / revenue (bottom line)." />
               <MetricRow label="Rev Growth" value={pctVal(q?.revenueGrowth)} highlight tooltip="Year-over-year revenue change." />
-              <MetricRow label="D/E Ratio" value={q?.debtToEquity?.toFixed(2) || '--'} />
-              <MetricRow label="Div Yield" value={q?.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} />
+              <MetricRow label="D/E Ratio" value={q?.debtToEquity?.toFixed(2) || '--'} tooltip="Total debt / shareholders equity. Higher = more leveraged."
+              />
+              <MetricRow label="Div Yield" value={q?.dividendYield ? q.dividendYield.toFixed(2) + '%' : '--'} tooltip="Annual dividend per share / current price."
+              />
               <Separator className="bg-slate-800/40 my-1" />
-              <MetricRow label="Revenue" value={d.fin.revenue ? fINR(d.fin.revenue) : '--'} />
-              <MetricRow label="EBITDA" value={d.fin.ebitda ? fINR(d.fin.ebitda) : '--'} />
-              <MetricRow label="Net Profit (est.)" value={d.fin.netProfit ? '~' + fINR(d.fin.netProfit) : '--'} highlight />
+              <MetricRow label="Revenue" value={d.fin.revenue ? fINR(d.fin.revenue) : '--'} tooltip="Total revenue (TTM) from income statement."
+              />
+              <MetricRow label="EBITDA" value={d.fin.ebitda ? fINR(d.fin.ebitda) : '--'} tooltip="Earnings Before Interest, Taxes, Depreciation & Amortization."
+              />
+              <MetricRow label="Net Profit (est.)" value={d.fin.netProfit ? '~' + fINR(d.fin.netProfit) : '--'} highlight tooltip="Estimated net profit (TTM) from Screener.in fundamentals DB."
+              />
             </div>
             {q?.targetMean && (
               <><Separator className="bg-slate-800/40 my-1" />
@@ -687,13 +704,13 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
       </div>
       {/* Row 3: Screener + News */}
       <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 xl:col-span-7">
-          <P title="Multi-Stock Signal Screener" icon={Search} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">{d.filteredScreener.length} stocks</Badge>} source="Screener.in">
+        <div className="col-span-12 xl:col-span-7 2xl:col-span-8">
+          <P title="Actionable Signals" icon={Zap} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400">{d.filteredScreener.filter((s: ScreenerResult) => s.signal !== 'HOLD').length} signals</Badge>} source="Signal Engine">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Button size="sm" className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener} disabled={d.screenerLoading}>
                 {d.screenerLoading ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}{d.screenerLoading ? 'Scanning...' : 'Run Scan'}
               </Button>
-              <Input placeholder="Search stock..." value={d.screenerSearched} onChange={e => d.setScreenerSearched(e.target.value)} className="h-7 w-[140px] text-[10px]" />
+              <button onClick={onViewScreener} className="text-[9px] text-emerald-400/70 hover:text-emerald-400 underline underline-offset-2 transition-colors">View full screener →</button>
             </div>
             <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
               <Table>
@@ -711,9 +728,9 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                     : d.screenerError && d.screenerData.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-6"><div className="text-amber-400 text-xs mb-2">Scan failed or timed out</div><Button size="sm" className="h-6 text-[10px] bg-emerald-600 hover:bg-emerald-500" onClick={d.fetchScreener}><RefreshCw className="w-3 h-3 mr-1" />Retry Scan</Button></TableCell></TableRow>
                   )
-                    : d.filteredScreener.map((s: ScreenerResult) => (
-                    <TableRow key={s.symbol} className="border-slate-800/50 hover:bg-slate-800/30 cursor-pointer" onClick={() => d.handleSelect(s.symbol, 'equity')}>
-                      <TableCell className="text-[10px] py-1.5"><span className="font-semibold text-slate-200">{s.symbol}</span><span className="text-slate-500 ml-1 text-[9px]">{s.sector}</span></TableCell>
+                    : d.filteredScreener.filter((s: ScreenerResult) => s.signal !== 'HOLD').slice(0, 15).map((s: ScreenerResult) => (
+                    <TableRow key={s.symbol} className={cn('border-slate-800/50 hover:bg-slate-800/30 cursor-pointer', s.symbol === d.selectedSymbol && 'bg-emerald-500/5 border-emerald-500/20')} onClick={() => d.handleSelect(s.symbol, 'equity')}>
+                      <TableCell className="text-[10px] py-1.5"><span className="font-semibold text-slate-200">{s.symbol}</span>{s.symbol === d.selectedSymbol && <span className="text-emerald-400 ml-1 text-[8px]">← you</span>}<span className="text-slate-500 ml-1 text-[9px]">{s.sector}</span></TableCell>
                       <TableCell className="text-[10px] font-mono text-slate-200 text-right">{s.price.toLocaleString('en-IN')}</TableCell>
                       <TableCell className="text-[10px] font-mono text-right">{pctVal(s.changePct)}</TableCell>
                       <TableCell className="text-[10px] font-mono text-right">{s.rsi ? Math.round(s.rsi) : '--'}</TableCell>
@@ -733,7 +750,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             </div>
           </P>
         </div>
-        <div className="col-span-12 xl:col-span-5">
+        <div className="col-span-12 xl:col-span-5 2xl:col-span-4">
           <P title="News & Headlines" icon={Newspaper} badge={d.news.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{d.news.length}</Badge>} source="Moneycontrol / Google News">
             <ScrollArea className="h-[320px]">
               <div className="space-y-1.5">
@@ -757,7 +774,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
       </div>
       {/* Row 4: Peers + Volume */}
       <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 xl:col-span-7">
+        <div className="col-span-12 xl:col-span-7 2xl:col-span-8">
           <P title="Sector Peer Comparison" icon={Users} source="Screener.in">
             {d.detail?.peers && d.detail.peers.length > 0 ? (
               <div className="overflow-x-auto">
@@ -791,7 +808,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             ) : <div className="text-center py-8 text-slate-500 text-xs">No peer data available</div>}
           </P>
         </div>
-        <div className="col-span-12 xl:col-span-5">
+        <div className="col-span-12 xl:col-span-5 2xl:col-span-4">
           <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
             {d.signalsLoading ? <div className="flex items-center justify-center py-6"><RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400 mr-2" /><span className="text-[10px] text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q?.price} />}
           </P>
@@ -1217,16 +1234,16 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   return (
     <div className="space-y-3 view-enter">
       <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 lg:col-span-5">
+        <div className="col-span-12 lg:col-span-5 2xl:col-span-4">
           <P title="Signal Gauge & Analysis" icon={Gauge} source="Signal Engine">
             {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /> <span className="text-xs text-slate-400">Analyzing signals...</span></div> : d.latestSignal ? <SignalGauge signal={d.latestSignal} /> : <div className="text-center py-8 text-slate-500 text-xs">No signals generated. Try Recalculate.</div>}
           </P>
         </div>
-        <div className="col-span-12 lg:col-span-7">
+        <div className="col-span-12 lg:col-span-7 2xl:col-span-8">
           <P title="Backtest Performance" icon={Trophy} source="200-day Historical">
             {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /> <span className="text-xs text-slate-400">Running backtest...</span></div> : d.backtest ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 2xl:grid-cols-6 gap-2">
                   <MBox label="Total Return" value={(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1) + '%'} color={d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} />
                   <MBox label="Win Rate" value={d.backtest.winRate.toFixed(0) + '%'} color={d.backtest.winRate > 50 ? 'text-emerald-400' : 'text-red-400'} />
                   <MBox label="Total Trades" value={String(d.backtest.totalTrades)} />
@@ -1237,6 +1254,29 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                 <div className="grid grid-cols-2 gap-2">
                   <MBox label="Avg Win" value={'+' + d.backtest.avgWinPct.toFixed(1) + '%'} color="text-emerald-400" />
                   <MBox label="Avg Loss" value={d.backtest.avgLossPct.toFixed(1) + '%'} color="text-red-400" />
+                </div>
+                {/* Strategy vs Buy & Hold visual comparison */}
+                <div className="p-3 rounded-lg bg-slate-800/15 border border-slate-800/30 space-y-2">
+                  <div className="text-[10px] text-slate-400 font-semibold">Strategy vs Buy & Hold</div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400">Strategy</span>
+                      <span className={cn('font-mono font-bold', d.backtest.totalReturnPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(d.backtest.totalReturnPct >= 0 ? '+' : '') + d.backtest.totalReturnPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800/60 rounded-full overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all duration-500', d.backtest.totalReturnPct >= 0 ? 'bg-emerald-500' : 'bg-red-500')} style={{ width: Math.min(100, Math.abs(d.backtest.totalReturnPct)) + '%' }} />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400">Buy & Hold</span>
+                      <span className={cn('font-mono font-bold', d.backtest.benchmarkReturnPct >= 0 ? 'text-slate-300' : 'text-red-400/70')}>{(d.backtest.benchmarkReturnPct >= 0 ? '+' : '') + d.backtest.benchmarkReturnPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800/60 rounded-full overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all duration-500', d.backtest.benchmarkReturnPct >= 0 ? 'bg-slate-500' : 'bg-red-500/60')} style={{ width: Math.min(100, Math.abs(d.backtest.benchmarkReturnPct)) + '%' }} />
+                    </div>
+                  </div>
+                  <div className={cn('text-center text-[10px] font-semibold pt-1 border-t border-slate-800/30', d.backtest.alphaPct >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {d.backtest.alphaPct >= 0 ? 'Outperformed B&H by ' + d.backtest.alphaPct.toFixed(1) + '%' : 'Underperformed B&H by ' + Math.abs(d.backtest.alphaPct).toFixed(1) + '%'}
+                  </div>
                 </div>
                 {d.backtest.trades.length > 0 && (
                   <div className="overflow-auto max-h-[200px]">
@@ -2337,7 +2377,7 @@ export default function Home() {
         <Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} d={d} watchlist={watchlist} />
         <div className={cn('flex-1 min-w-0 flex flex-col', rt.upstoxConnected && 'bg-[#060a08]')}>
           <HeaderBar d={d} watchlist={watchlist} liveTick={liveTick} rtTicks={rt.liveTicks} upstoxConnected={rt.upstoxConnected} />
-          <main className="flex-1 p-3 max-w-[1600px] w-full mx-auto">
+          <main className="flex-1 p-3 max-w-[1920px] w-full mx-auto">
             {/* View breadcrumb */}
             <div className="flex items-center gap-2 mb-3 view-enter" key={view}>
               <div className={cn('w-6 h-6 rounded-md bg-gradient-to-br flex items-center justify-center shadow-sm', activeNav?.color)}>
@@ -2349,7 +2389,7 @@ export default function Home() {
             </div>
 
             {/* View Content */}
-            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} liveTick={liveTick} />}
+            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} liveTick={liveTick} onViewScreener={() => setView('screener')} />}
             {view === 'screener' && <ScreenerView d={d} onSetAlert={handleSetAlert} />}
             {view === 'chart' && <ChartView d={d} liveTick={liveTick} />}
             {view === 'fundamentals' && <FundamentalsView d={d} />}

@@ -194,17 +194,16 @@ Stage Summary:
 ---
 Task ID: 6
 Agent: Main Agent
-Task: P2 Polish items — ultrawide layout, tooltips, richer verdict, backtest vs buy-and-hold
+Task: P2 Polish items — ultrawide layout, tooltips, richer verdict, backtest vs B&H, screener de-dupe
 
 Work Log:
-- **P2-1 Ultrawide**: Capped main content at max-w-[1600px] (was 1920px) for better readability on ultrawide monitors.
-- **P2-2 Tooltips**: Added `tooltip` prop to MetricRow component (renders ℹ icon with native title tooltip). Added tooltips to all 15 metrics in Fundamentals view (P/E, P/B, ROE, OPM, Beta, D/E, etc.) and 8 metrics in Overview quick-fundamentals.
-- **P2-3 Richer verdict**: Added ConfluenceBadges component showing individual indicator status (ST/RSI>50/MACD) as colored dots in the signal analysis section. RSI MBox now shows zone sub-label (Overbought/Oversold/Bullish zone/Bearish zone).
-- **P2-4 Backtest vs buy-and-hold**: Added Buy & Hold return and Alpha display below existing backtest metrics. Alpha shows 'Outperformed'/'Underperformed' sub-label. Added low-trade-count warning note.
-- **P2-5 Screener de-dupe**: Investigated — /api/stocks and /api/screener serve different purposes (lightweight inline signals vs full cached scan). Added documentation comment explaining the architecture and future optimization path.
-- Fixed Turbopack parse error with `as const` in JSX by extracting ConfluenceBadges to a separate component.
+- **P2-1 Ultrawide layout**: Raised main content max-width from 1600px to 1920px. Added `2xl:` (1536px+) breakpoints to: overview Row 3 (screener 7→8 col, news 5→4 col), Row 4 (peers 7→8 col, volume 5→4 col), strategy view (signal gauge 5→4 col, backtest 7→8 col with 6-col MBox grid on ultrawide).
+- **P2-2 Tooltips**: Upgraded MetricRow from native `title` to proper shadcn Tooltip (TooltipProvider was already wrapping the page). Changed icon from ℹ to ⓘ. Added tooltips to: D/E Ratio, Div Yield, Revenue, EBITDA, Net Profit (overview fundamentals). Added ⓘ with native title to: RSI, Supertrend, MACD, 50 DMA, 200 DMA (overview technicals).
+- **P2-3 Richer verdict**: Expanded hero signal area from just Gauge+Badge to include ConfluenceBadges (per-indicator bullish/bearish), signal reason text, and strategy return + alpha mini-stats from backtest data. Widened min-w from 180px to 220px.
+- **P2-4 Backtest vs buy-and-hold**: Added visual comparison section in Strategy view's backtest panel — dual progress bars (strategy vs buy-and-hold) with percentage labels and a summary verdict line ('Outperformed/Underperformed B&H by X%').
+- **P2-5 Screener de-dupe**: Renamed overview table from 'Multi-Stock Signal Screener' to 'Actionable Signals' (different title, different icon: Zap vs Search). Filters to BUY/SELL only (excludes HOLD), caps at 15 rows, highlights selected stock with '← you' marker, removed search input, added 'View full screener →' link. Full ScreenerView retains all columns (Mkt Cap, P/E) and all signals.
 
 Stage Summary:
 - All 5 P2 polish items completed
-- Build passes: `✓ Compiled successfully in 15.0s`
-- Total changes across 3 sessions: 5 P0 + 4 P1 + 5 P2 = 14 fixes delivered
+- Build passes: `✓ Compiled successfully in 15.5s`
+- Total across all sessions: 5 P0 + 4 P1 + 5 P2 = 14 fixes delivered
