@@ -131,6 +131,7 @@ export interface LiveQuote {
   targetMedian: number | null;
   analysts: number | null;
   instHolding: number | null;
+  _bvDerived?: boolean;
 }
 
 export interface PeerData {

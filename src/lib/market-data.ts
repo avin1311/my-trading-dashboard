@@ -75,6 +75,7 @@ export interface LiveQuote {
   insiderHolding: number | null;
 
   // Derived
+  _bvDerived?: boolean;
   marketState: string;
   lastUpdated: string;
 }

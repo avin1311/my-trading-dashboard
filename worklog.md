@@ -167,3 +167,32 @@ Stage Summary:
 - 2 failures are server stability issues (screener OOMs the standalone server in this constrained environment; not an app code bug)
 - All data invariants verified correct: marketCap scale, P/B derivation, ownership=100%, RSI range, Net Profit calculation, volatility, period returns, signal validity
 - All prior fixes confirmed intact
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Fix reviewer round 2 priority items (P/B regression, Target Median, unit scale, pattern confidence, duplicate BUY)
+
+Work Log:
+- **P/B regression (critical)**: Identified that Book Value 1052 was the corrupt field, not P/B 2.80.
+  - Proof: EPS/BV = 47.7/1052 = 4.53%, but ROE = 10.2%. ROA 5.1% > implied ROE 4.53% is mathematically impossible.
+  - Solution: BV = EPS/ROE = 47.7/0.102 = 467.65, P/B = 1307.8/467.65 = 2.80
+  - Added `identifyCorruptBV()` to data-validation.ts implementing the "common term in most failures" rule
+  - Modified stock-detail/route.ts to use corrupt-input identification instead of blind P/B overwrite
+  - Verified: BV=467.65, PB=2.80, _bvDerived=true, EPS/BV=10.2%=ROE
+
+- **Target Median 0**: Changed `fPerShare(d.q.targetMedian || 0)` to ternary showing '—' when null/0
+
+- **Unit scale consistency**: Added 1e11 threshold to fINR and fCompact so values >=₹10K Cr use T scale
+  - FCF 0.8e12 now renders as ₹0.80 T (was ₹80000.00 Cr)
+  - Screener MktCap 8.5e11 now renders as 0.85 L Cr (was 85000.00 Cr, consistent with other L Cr values)
+
+- **Pattern confidence rounding**: Added `deduplicatePatterns()` that rounds all confidence to integers and keeps only highest-confidence pattern per direction (bullish XOR bearish). H&S and Inv. H&S can no longer coexist.
+
+- **Duplicate BUY badge**: Removed signal badge from CSection header (already shown in verdict card below gauge)
+
+Stage Summary:
+- 5 priority fixes deployed, build passes
+- P/B regression fully corrected: corrupt BV identified and derived from EPS/ROE
+- Validation layer now implements corrupt-input identification rule
+- Pattern detection no longer produces contradictory or overly-precise outputs

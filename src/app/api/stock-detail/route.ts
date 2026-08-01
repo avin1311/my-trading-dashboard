@@ -3,7 +3,7 @@ import { getLiveQuote, getHistoricalData, getSectorPeers } from "@/lib/market-da
 import { generateSignals } from "@/lib/trading-strategy";
 import { DEFAULT_PARAMS } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
-import { checkPE, checkPB, checkPriceBounds, checkRSI, validateAll, safeValue } from "@/lib/data-validation";
+import { checkPE, checkPB, checkPriceBounds, checkRSI, validateAll, safeValue, identifyCorruptBV } from "@/lib/data-validation";
 import { db } from "@/lib/db";
 
 // GET /api/stock-detail?symbol=RELIANCE
@@ -32,9 +32,21 @@ export async function GET(request: NextRequest) {
     const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
 
     // ==================== DERIVED FIELDS ====================
-    // Always recompute P/B from live price / bookValue.
-    // FUNDAMENTALS_DB pb can be stale (bookValue changes quarterly).
-    if (quote.bookValue && quote.bookValue > 0 && quote.price) {
+    // Corrupt-input identification: when BV/ROE/ROA/EPS form an inconsistent
+    // quadruple, identify the corrupt field (usually BV) and derive it from
+    // the two most reliable fields (EPS and ROE). Never blindly overwrite
+    // a field that appears in only one failure — the field appearing in the
+    // most simultaneous failures is the corrupt one.
+    const corruptFix = identifyCorruptBV({
+      eps: quote.eps, roe: quote.roe, roa: quote.roa,
+      bookValue: quote.bookValue, price: quote.price, pb: quote.pb,
+    });
+    if (corruptFix) {
+      quote.bookValue = corruptFix.bookValue;
+      quote.pb = corruptFix.pb;
+      quote._bvDerived = corruptFix._bvDerived;
+    } else if (quote.bookValue && quote.bookValue > 0 && quote.price) {
+      // No corruption detected — recompute P/B from live price / BV
       quote.pb = Math.round((quote.price / quote.bookValue) * 100) / 100;
     }
 

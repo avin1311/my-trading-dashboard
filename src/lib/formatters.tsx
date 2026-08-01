@@ -21,8 +21,9 @@ export function fINR(v: number, opts?: { scale?: INRScale; decimals?: number; si
   if (scale === 'Cr') return prefix + rupee + (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
   if (scale === 'T') return prefix + rupee + (v / 1e12).toFixed(decimals ?? 2) + ' T';
 
-  // Auto scale with smooth transitions
+  // Auto scale: T for >₹10K Cr, Cr for >₹1L, L for >₹10K
   if (Math.abs(v) >= 1e12) return prefix + rupee + (v / 1e12).toFixed(decimals ?? 2) + ' T';
+  if (Math.abs(v) >= 1e11) return prefix + rupee + (v / 1e12).toFixed(decimals ?? 2) + ' T';
   if (Math.abs(v) >= 1e7) return prefix + rupee + (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
   if (Math.abs(v) >= 1e5) return prefix + rupee + (v / 1e5).toFixed(decimals ?? 2) + ' L';
   if (Math.abs(v) >= 1e3) return prefix + rupee + (v / 1e3).toFixed(decimals ?? 1) + 'K';
@@ -65,6 +66,7 @@ export function fCompact(v: number, opts?: { decimals?: number }): string {
   if (v == null || isNaN(v)) return '—';
   const { decimals } = opts || {};
   if (Math.abs(v) >= 1e12) return (v / 1e12).toFixed(decimals ?? 2) + ' L Cr';
+  if (Math.abs(v) >= 1e11) return (v / 1e12).toFixed(decimals ?? 2) + ' L Cr';
   if (Math.abs(v) >= 1e7) return (v / 1e7).toFixed(decimals ?? 2) + ' Cr';
   if (Math.abs(v) >= 1e5) return (v / 1e5).toFixed(decimals ?? 2) + ' L';
   if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(decimals ?? 1) + 'K';

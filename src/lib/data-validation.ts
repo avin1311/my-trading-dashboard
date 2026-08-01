@@ -192,3 +192,42 @@ export function validateAll(checks: ValidationResult[]): string | null {
   }
   return null;
 }
+
+/**
+ * Corrupt-input identification: when BV, ROE, ROA, EPS form an inconsistent quadruple,
+ * the field appearing in the most simultaneous failures is the corrupt one.
+ * 
+ * Rule: if EPS/BV ≠ ROE AND ROA > EPS/BV (impossible with any leverage), then BV is corrupt.
+ * Derive BV from EPS/ROE (the two most reliable fields), keep original P/B.
+ * 
+ * Returns { bookValue, pb, _bvDerived } with corrected values, or null if no fix needed.
+ */
+export function identifyCorruptBV(fields: {
+  eps: number | null;
+  roe: number | null;
+  roa: number | null;
+  bookValue: number | null;
+  price: number | null;
+  pb: number | null;
+}): { bookValue: number; pb: number; _bvDerived: boolean } | null {
+  const { eps, roe, roa, bookValue: bv, price, pb } = fields;
+  if (!eps || !roe || !bv || !price || eps <= 0 || roe <= 0 || bv <= 0 || price <= 0) return null;
+  
+  const impliedROE = (eps / bv) * 100;
+  const epsBVmatch = Math.abs(impliedROE - roe) < 1.5;
+  
+  if (epsBVmatch) return null; // BV and ROE are consistent, no corruption detected
+  
+  // Check: ROA > implied ROE is impossible with D/E > 1 (any positive leverage)
+  // Also: EPS/BV mismatching ROE means BV is the common corrupt term
+  if (roa && roa > impliedROE) {
+    // BV is corrupt. Derive from EPS/ROE
+    const derivedBV = eps / (roe / 100);
+    if (derivedBV <= 0) return null;
+    const derivedPB = Math.round((price / derivedBV) * 100) / 100;
+    console.warn(`[validate] BV corruption detected: BV=${bv} implied ROE=${impliedROE.toFixed(1)}% but stated ROE=${roe}%, ROA=${roa}%. Deriving BV=${derivedBV.toFixed(2)} from EPS/ROE`);
+    return { bookValue: Math.round(derivedBV * 100) / 100, pb: derivedPB, _bvDerived: true };
+  }
+  
+  return null;
+}

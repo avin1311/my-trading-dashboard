@@ -545,7 +545,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
       {/* ===== DETAIL SECTIONS (collapsible, collapsed by default) ===== */}
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-6">
-          <CSection title="Signal Analysis" icon={Gauge} badge={d.latestSignal ? <Badge className={cn('text-[8px] font-bold border', SIG_BG[sig])}>{sig.replace('_', ' ')}</Badge> : null} defaultOpen={false}>
+          <CSection title="Signal Analysis" icon={Gauge} defaultOpen={false}>
             {d.latestSignal ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
@@ -1023,7 +1023,7 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       { l: 'Total Revenue', v: d.fin.revenue ? fINR(d.fin.revenue) : '--', h: true },
       { l: 'EBITDA', v: d.fin.ebitda ? fINR(d.fin.ebitda) : '--' },
       { l: 'Gross Profit', v: d.fin.grossProfits ? fINR(d.fin.grossProfits) : '--' },
-      { l: 'Free Cashflow', v: d.fin.freeCashflow ? fINR(d.fin.freeCashflow) : '--' },
+      { l: 'Free Cashflow', v: d.fin.freeCashflow ? fINR(d.fin.freeCashflow, { scale: 'auto' }) : '--' },
       { l: 'Net Profit (est.)', v: d.fin.netProfit ? '~' + fINR(d.fin.netProfit) : '--', h: true },
     ]},
   ];
@@ -1044,7 +1044,7 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <MBox label="Target High" value={fPerShare(d.q.targetHigh || 0)} color="text-emerald-400" />
             <MBox label="Target Mean" value={fPerShare(d.q.targetMean)} color="text-cyan-400" />
-            <MBox label="Target Median" value={fPerShare(d.q.targetMedian || 0)} color="text-blue-400" />
+            <MBox label="Target Median" value={d.q.targetMedian ? fPerShare(d.q.targetMedian) : '—'} color="text-blue-400" />
             <MBox label="Target Low" value={fPerShare(d.q.targetLow || 0)} color="text-red-400" />
             <MBox label="Upside" value={((d.q.targetMean - d.q.price) / d.q.price * 100).toFixed(1) + '%'} color={((d.q.targetMean - d.q.price) / d.q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400'} sub={`${d.q.analysts} analysts`} />
           </div>

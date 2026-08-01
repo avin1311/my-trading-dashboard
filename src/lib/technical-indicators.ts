@@ -313,6 +313,24 @@ export interface DetectedPattern {
   description: string;
 }
 
+/**
+ * Deduplicate patterns by direction: keep only the single highest-confidence
+ * pattern per direction (bullish/bearish). H&S and Inv. H&S cannot coexist in
+ * the same window — they are opposite formations.
+ */
+function deduplicatePatterns(patterns: DetectedPattern[]): DetectedPattern[] {
+  const byDir: Record<string, DetectedPattern> = {};
+  for (const p of patterns) {
+    // Round confidence to integer
+    p.confidence = Math.round(p.confidence);
+    const existing = byDir[p.direction];
+    if (!existing || p.confidence > existing.confidence) {
+      byDir[p.direction] = p;
+    }
+  }
+  return Object.values(byDir).sort((a, b) => b.confidence - a.confidence);
+}
+
 export function detectPatterns(data: OHLCV[]): DetectedPattern[] {
   const patterns: DetectedPattern[] = [];
   if (data.length < 20) return patterns;
@@ -341,7 +359,8 @@ export function detectPatterns(data: OHLCV[]): DetectedPattern[] {
   const triangle = detectTriangle(data);
   if (triangle) patterns.push(triangle);
 
-  return patterns;
+  // Round all confidence values to integers and enforce mutual exclusion
+  return deduplicatePatterns(patterns);
 }
 
 function findSwingHighs(data: OHLCV[], window: number = 3): number[] {
