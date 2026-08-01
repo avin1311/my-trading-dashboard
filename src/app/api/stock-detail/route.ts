@@ -31,6 +31,13 @@ export async function GET(request: NextRequest) {
 
     const latestSignal = signals.length > 0 ? signals[signals.length - 1] : null;
 
+    // ==================== DERIVED FIELDS ====================
+    // Always recompute P/B from live price / bookValue.
+    // FUNDAMENTALS_DB pb can be stale (bookValue changes quarterly).
+    if (quote.bookValue && quote.bookValue > 0 && quote.price) {
+      quote.pb = Math.round((quote.price / quote.bookValue) * 100) / 100;
+    }
+
     // ==================== DATA VALIDATION ====================
     // Run invariants — invalidate fields that fail, log warnings
     const valPE = checkPE(quote.pe, quote.price, quote.eps || 0);
@@ -178,7 +185,7 @@ export async function GET(request: NextRequest) {
       opm: quote.operatingMargins ?? null,
       netMargin: quote.profitMargins ?? null,
       netProfit: quote.profitMargins && quote.totalRevenue
-        ? Math.round(quote.totalRevenue * quote.profitMargins / 100) / 100
+        ? Math.round(quote.totalRevenue * quote.profitMargins / 100)
         : null,
       _netProfitEstimated: true,
     };

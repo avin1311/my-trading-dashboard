@@ -90,3 +90,23 @@ Stage Summary:
 - All 4 reviewer findings addressed: routing (done), LIVE/delayed (fixed), 5s polling regression (fixed to 30s), SSR + error state (done)
 - Build successful, all routes verified with curl
 - Server running on port 3000 via daemon.js
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Full verification of all fixes + additional bug fixes found during check
+
+Work Log:
+- Verified server health, all page routes (/, /stock/*, /screener), all API endpoints
+- Confirmed SSR content: POLLING (not LIVE), Auto-refresh: 30s, 15 min delayed
+- Found and fixed Net Profit 100x bug (extra /100 in Math.round expression)
+- Found and fixed P/B stale data bug (FUNDAMENTALS_DB pb=2.8 vs live calc=1.24)
+- Added dynamic P/B recomputation from price/bookValue before validation
+- Ran full reviewer invariant suite on RELIANCE and TCS — all pass
+- Verified SSR metadata on /stock/RELIANCE (title, og:title, description)
+- Verified invalid symbol /stock/BAD<>xyz redirects safely to /
+
+Stage Summary:
+- All 13 reviewer invariants now PASS for RELIANCE and TCS
+- 3 total bugs fixed in this session: Net Profit calc, P/B staleness, P/B derivation
+- 7 total fixes deployed: polling, routing, LIVE label, SSR metadata, query params, Net Profit, P/B
