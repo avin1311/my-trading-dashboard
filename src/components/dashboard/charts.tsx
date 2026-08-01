@@ -442,8 +442,8 @@ export default function StrategySection({
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={visibleData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="date" tickFormatter={d => { const dt = new Date(d); return dt.getDate() + '/' + (dt.getMonth() + 1); }} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} />
-                <YAxis domain={[priceMin, priceMax]} tickFormatter={v => fPriceAxis(v)} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} width={70} />
+                <XAxis dataKey="date" tickFormatter={d => { const dt = new Date(d); return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }); }} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} minTickGap={40} />
+                <YAxis domain={[priceMin, priceMax]} tickFormatter={v => fPriceAxis(v)} tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={{ stroke: '#1e293b' }} width={70} tickCount={6} />
                 <RTooltip content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="close" stroke="#3b82f6" strokeWidth={1.5} fillOpacity={0.05} isAnimationActive={false} />
                 <Line type="monotone" dataKey="supertrend" stroke="#f59e0b" strokeWidth={1.2} dot={false} strokeDasharray="4 2" isAnimationActive={false} connectNulls />

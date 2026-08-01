@@ -354,11 +354,13 @@ export function generateSignals(
       signal = "SELL";
       reason = "All indicators bearish (Supertrend + RSI + MACD)";
     } else if (bullishCount >= 2) {
-      signal = "BUY";
-      reason = "2 of 3 indicators bullish";
+      // HOLD band: 2/3 bullish is not enough for a BUY — wait for full confluence
+      signal = "HOLD";
+      reason = `${bullishCount} of 3 indicators bullish — below buy threshold`;
     } else if (bearishCount >= 2) {
-      signal = "SELL";
-      reason = "2 of 3 indicators bearish";
+      // HOLD band: 2/3 bearish is not enough for a SELL — wait for full confluence
+      signal = "HOLD";
+      reason = `${bearishCount} of 3 indicators bearish — below sell threshold`;
     } else {
       reason = "Mixed signals, wait for confirmation";
     }

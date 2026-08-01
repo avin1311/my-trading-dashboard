@@ -45,22 +45,32 @@ export async function GET(request: NextRequest) {
       quote.bookValue = corruptFix.bookValue;
       quote.pb = corruptFix.pb;
       quote._bvDerived = corruptFix._bvDerived;
+      // After BV derivation, P/B was computed from derived BV — skip P/B cross-check
+      // because checkPB uses the same derived BV, so it will always pass.
     } else if (quote.bookValue && quote.bookValue > 0 && quote.price) {
-      // No corruption detected — recompute P/B from live price / BV
-      quote.pb = Math.round((quote.price / quote.bookValue) * 100) / 100;
+      // No corruption detected — keep vendor P/B as-is (it was computed at
+      // market-close price, not live price).  Only recompute P/B from live
+      // price / BV when we lack a vendor value altogether.
+      if (!quote.pb || quote.pb <= 0) {
+        quote.pb = Math.round((quote.price / quote.bookValue) * 100) / 100;
+      }
     }
 
     // ==================== DATA VALIDATION ====================
     // Run invariants — invalidate fields that fail, log warnings
     const valPE = checkPE(quote.pe, quote.price, quote.eps || 0);
-    const valPB = checkPB(quote.pb, quote.price, quote.bookValue || 0);
+    // Only check P/B if BV was NOT derived (derived BV always passes by construction)
+    const valPB = corruptFix
+      ? { valid: true as const }
+      : checkPB(quote.pb, quote.price, quote.bookValue || 0);
     const valPrice = checkPriceBounds(quote.price, quote.dayLow, quote.dayHigh, quote.low52w, quote.high52w);
     const valRSI = checkRSI(latestSignal?.rsi ?? null);
     const valError = validateAll([valPE, valPB, valPrice, valRSI]);
     if (valError) console.warn(`[validate] ${symbol}: ${valError}`);
-    // Null out PE/PB if they fail cross-check (prevents showing misleading ratios)
+    // Null out PE if it fails cross-check (prevents showing misleading ratios)
     if (!valPE.valid) quote.pe = null;
-    if (!valPB.valid) quote.pb = null;
+    // Null out P/B ONLY when BV was not derived and P/B fails cross-check
+    if (!corruptFix && !valPB.valid) quote.pb = null;
 
     // Calculate support/resistance levels from recent data
     const recentData = histData.slice(-60);

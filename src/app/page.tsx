@@ -569,7 +569,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
             <div className="space-y-2">
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
                 <span className="text-[10px] text-slate-400">RSI ({d.params.rsiPeriod})</span>
-                <span className={cn('text-sm font-bold font-mono', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi?.toFixed(1) || '--'}</span>
+                <span className={cn('text-sm font-bold font-mono', (t.rsi || 50) > 70 ? 'text-red-400' : (t.rsi || 50) < 30 ? 'text-emerald-400' : 'text-amber-400')}>{t.rsi ? Math.round(t.rsi) : '--'}</span>
               </div>
               <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/20 border border-slate-800/30">
                 <span className="text-[10px] text-slate-400">Supertrend</span>
@@ -690,7 +690,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick }: { d: ReturnType<ty
                       <TableCell className="text-[10px] py-1.5"><span className="font-semibold text-slate-200">{s.symbol}</span><span className="text-slate-500 ml-1 text-[9px]">{s.sector}</span></TableCell>
                       <TableCell className="text-[10px] font-mono text-slate-200 text-right">{s.price.toLocaleString('en-IN')}</TableCell>
                       <TableCell className="text-[10px] font-mono text-right">{pctVal(s.changePct)}</TableCell>
-                      <TableCell className="text-[10px] font-mono text-right">{s.rsi?.toFixed(1) || '--'}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-right">{s.rsi ? Math.round(s.rsi) : '--'}</TableCell>
                       <TableCell className="text-center"><Badge className={cn('text-[8px] font-bold border px-1 py-0', SIG_BG[s.signal as keyof typeof SIG_BG] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
                       <TableCell className="text-[10px] font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
                       <TableCell className="text-center">
@@ -933,7 +933,7 @@ function ScreenerView({ d, onSetAlert }: { d: ReturnType<typeof useDashboardData
                 <TableCell className="text-xs py-2"><div className="font-bold text-slate-200">{s.symbol}</div><div className="text-[9px] text-slate-500">{s.name} &middot; {s.sector}</div></TableCell>
                 <TableCell className="text-xs font-mono text-slate-200 text-right font-semibold">{s.price.toLocaleString('en-IN')}</TableCell>
                 <TableCell className="text-xs font-mono text-right">{pctVal(s.changePct)}</TableCell>
-                <TableCell className="text-xs font-mono text-right">{s.rsi?.toFixed(1) || '--'}</TableCell>
+                <TableCell className="text-xs font-mono text-right">{s.rsi ? Math.round(s.rsi) : '--'}</TableCell>
                 <TableCell className="text-center"><Badge className={cn('text-[9px] font-bold border px-1.5 py-0.5', SIG_BG[s.signal as keyof typeof SIG_BG] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
                 <TableCell className="text-xs font-mono text-slate-400 text-right">{fNum(s.volume)}</TableCell>
                 <TableCell className="text-xs font-mono text-slate-300 text-right">{fCompact(s.marketCap)}</TableCell>
@@ -1008,24 +1008,29 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
       { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--' },
       { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--' }, { l: 'EPS (TTM)', v: d.q.eps ? fPerShare(d.q.eps) : '--', h: true },
-      { l: 'Book Value', v: d.q.bookValue ? fPerShare(d.q.bookValue) : '--' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--' },
+      { l: 'Book Value' + (d.q._bvDerived ? ' (derived)' : ''), v: d.q.bookValue ? fPerShare(d.q.bookValue) : '--' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--' },
       { l: 'Payout Ratio', v: d.q.payoutRatio ? (d.q.payoutRatio * 100).toFixed(1) + '%' : '--' },
     ]},
     { title: 'Profitability', icon: TrendingUp, source: 'Moneycontrol', items: [
       { l: 'ROE', v: d.q.roe ? d.q.roe.toFixed(1) + '%' : '--', h: true }, { l: 'ROA', v: d.q.roa ? d.q.roa.toFixed(1) + '%' : '--' },
       { l: 'Net Profit Margin', v: d.q.profitMargins ? d.q.profitMargins.toFixed(1) + '%' : '--' },
-      { l: 'Operating Margin', v: d.q.operatingMargins ? d.q.operatingMargins.toFixed(1) + '%' : '--' },
+      { l: 'Operating Margin (OPM)', v: d.q.operatingMargins ? d.q.operatingMargins.toFixed(1) + '%' : '--' },
       { l: 'Revenue Growth', v: d.q.revenueGrowth ? d.q.revenueGrowth.toFixed(1) + '%' : '--', h: true },
       { l: 'Beta', v: d.q.beta?.toFixed(2) || '--' }, { l: 'D/E Ratio', v: d.q.debtToEquity?.toFixed(2) || '--' },
       { l: 'Current Ratio', v: d.q.currentRatio?.toFixed(2) || '--' },
     ]},
-    { title: 'Financial Highlights', icon: DollarSign, source: 'Moneycontrol', items: [
-      { l: 'Total Revenue', v: d.fin.revenue ? fINR(d.fin.revenue) : '--', h: true },
-      { l: 'EBITDA', v: d.fin.ebitda ? fINR(d.fin.ebitda) : '--' },
-      { l: 'Gross Profit', v: d.fin.grossProfits ? fINR(d.fin.grossProfits) : '--' },
-      { l: 'Free Cashflow', v: d.fin.freeCashflow ? fINR(d.fin.freeCashflow, { scale: 'auto' }) : '--' },
-      { l: 'Net Profit (est.)', v: d.fin.netProfit ? '~' + fINR(d.fin.netProfit) : '--', h: true },
-    ]},
+    { title: 'Financial Highlights', icon: DollarSign, source: 'Moneycontrol', items: (() => {
+      const finVals = [d.fin.revenue, d.fin.ebitda, d.fin.grossProfits, d.fin.freeCashflow, d.fin.netProfit].filter((v): v is number => v != null && v > 0);
+      const finMax = finVals.length > 0 ? Math.max(...finVals) : 0;
+      const fs = finMax >= 1e11 ? 'T' as const : finMax >= 1e7 ? 'Cr' as const : finMax >= 1e5 ? 'L' as const : 'raw' as const;
+      return [
+      { l: 'Total Revenue', v: d.fin.revenue ? fINR(d.fin.revenue, { scale: fs }) : '--', h: true },
+      { l: 'EBITDA', v: d.fin.ebitda ? fINR(d.fin.ebitda, { scale: fs }) : '--' },
+      { l: 'Gross Profit', v: d.fin.grossProfits ? fINR(d.fin.grossProfits, { scale: fs }) : '--' },
+      { l: 'Free Cashflow', v: d.fin.freeCashflow ? fINR(d.fin.freeCashflow, { scale: fs }) : '--' },
+      { l: 'Net Profit (est.)', v: d.fin.netProfit ? '~' + fINR(d.fin.netProfit, { scale: fs }) : '--', h: true },
+      ];
+    })() },
   ];
   return (
     <div className="space-y-3 view-enter">
@@ -1042,10 +1047,10 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
       {d.q.targetMean && (
         <P title="Analyst Price Target" icon={Target} source="Tickertape">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <MBox label="Target High" value={fPerShare(d.q.targetHigh || 0)} color="text-emerald-400" />
+            <MBox label="Target High" value={d.q.targetHigh ? fPerShare(d.q.targetHigh) : '—'} color="text-emerald-400" />
             <MBox label="Target Mean" value={fPerShare(d.q.targetMean)} color="text-cyan-400" />
             <MBox label="Target Median" value={d.q.targetMedian ? fPerShare(d.q.targetMedian) : '—'} color="text-blue-400" />
-            <MBox label="Target Low" value={fPerShare(d.q.targetLow || 0)} color="text-red-400" />
+            <MBox label="Target Low" value={d.q.targetLow ? fPerShare(d.q.targetLow) : '—'} color="text-red-400" />
             <MBox label="Upside" value={((d.q.targetMean - d.q.price) / d.q.price * 100).toFixed(1) + '%'} color={((d.q.targetMean - d.q.price) / d.q.price * 100) >= 0 ? 'text-emerald-400' : 'text-red-400'} sub={`${d.q.analysts} analysts`} />
           </div>
         </P>
