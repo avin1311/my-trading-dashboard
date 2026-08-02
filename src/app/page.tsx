@@ -1047,8 +1047,10 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
     );
     return <div className="flex items-center justify-center h-[50vh]"><RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading {d.selectedSymbol}...</span></div>;
   }
+  // Detect if fundamental data is completely unavailable (stock not in DB + Yahoo enrichment failed)
+  const hasFundamentals = !!(d.q.pe || d.q.pb || d.q.eps || d.q.roe || d.fin.revenue);
   const fundSections = [
-    { title: 'Valuation Ratios', icon: PieChart, source: 'Tickertape', items: [
+    { title: 'Valuation Ratios', icon: PieChart, source: hasFundamentals ? 'Tickertape' : 'Yahoo Finance unavailable', items: [
       { l: 'P/E Ratio', v: d.q.pe?.toFixed(1) || '--', h: true, t: 'Price / Earnings per Share. Lower = cheaper relative to earnings.' }, { l: 'Forward P/E', v: d.q.forwardPE?.toFixed(1) || '--', t: 'Price / Expected EPS (next 12 months). Useful for growth stocks.' },
       { l: 'P/B Ratio', v: d.q.pb?.toFixed(2) || '--', t: 'Price / Book Value per Share. <1 may indicate undervaluation.' }, { l: 'EPS (TTM)', v: d.q.eps ? fPerShare(d.q.eps) : '--', h: true, t: 'Earnings Per Share — trailing twelve months net profit / shares outstanding.' },
       { l: 'Book Value' + (d.q._bvDerived ? ' (derived)' : ''), v: d.q.bookValue ? fPerShare(d.q.bookValue) : '--', t: d.q._bvDerived ? 'Derived from EPS / ROE — raw book value was inconsistent with other fundamentals.' : 'Total equity / shares outstanding. Also called net asset value per share.' }, { l: 'Dividend Yield', v: d.q.dividendYield ? d.q.dividendYield.toFixed(2) + '%' : '--', t: 'Annual dividend per share / current price.' },
@@ -1077,6 +1079,11 @@ function FundamentalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
   ];
   return (
     <div className="space-y-3 view-enter">
+      {!hasFundamentals && (
+        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-300 leading-relaxed">
+          <span className="font-semibold">Limited fundamental data</span> — {d.selectedSymbol} is not in the local fundamentals database and the Yahoo Finance enrichment call failed (likely rate-limited). Price and chart data should still work. Try again in a minute or select a major stock like RELIANCE or TCS for full data.
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {fundSections.map(sec => (
           <P key={sec.title} title={sec.title} icon={sec.icon} source={sec.source}>

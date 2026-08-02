@@ -373,8 +373,9 @@ async function enrichWithYahooQuote(quote: LiveQuote, yahooSymbol: string): Prom
     if (result.regularMarketVolume != null && quote.volume === 0) quote.volume = result.regularMarketVolume;
     if (result.averageDailyVolume3Month != null && quote.avgVolume === 0) quote.avgVolume = result.averageDailyVolume3Month;
     if (quote.avgVolume > 0) quote.volumeRatio = Math.round((quote.volume / quote.avgVolume) * 100) / 100;
-  } catch {
-    // Silently fail — enrichment is best-effort
+  } catch (e: any) {
+    // Log enrichment failure — helps diagnose blank fundamentals
+    console.warn(`[enrich] Yahoo v6 quote failed for ${yahooSymbol}:`, e.message?.substring(0, 80));
   }
 }
 
