@@ -330,7 +330,7 @@ function ConfluenceBadges({ signal }: { signal: { supertrendDir: number; rsi: nu
   );
 }
 
-function OverviewView({ d, watchlist, onSetAlert, liveTick, onViewScreener }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null; onViewScreener: () => void }) {
+function OverviewView({ d, watchlist, onSetAlert, liveTick, onViewScreener, onViewChart }: { d: ReturnType<typeof useDashboardData>; watchlist: ReturnType<typeof useWatchlist>; onSetAlert: (s: { symbol: string; name: string; price: number; signal: string }) => void; liveTick?: import('@/hooks/use-realtime-data').LiveTick | null; onViewScreener: () => void; onViewChart: () => void }) {
   // Market landing page when no stock is selected at all
   if (!d.selectedSymbol) {
     const topGainers = d.overview?.topGainers || [];
@@ -544,7 +544,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick, onViewScreener }: { 
             <button onClick={() => isInWatchlist ? watchlist.removeFromWatchlist(d.selectedSymbol) : watchlist.addToWatchlist(d.selectedSymbol, 'equity')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-semibold transition-colors', isInWatchlist ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/20' : 'bg-slate-800/30 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600')}>
               {isInWatchlist ? <><Star className="w-3.5 h-3.5 fill-current" /> Watching</> : <><Star className="w-3.5 h-3.5" /> Watchlist</>}
             </button>
-            <button onClick={() => handleViewChange('chart')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/40 text-slate-400 text-[10px] font-semibold hover:text-slate-200 hover:border-slate-600 transition-colors">
+            <button onClick={onViewChart} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/40 text-slate-400 text-[10px] font-semibold hover:text-slate-200 hover:border-slate-600 transition-colors">
               <Activity className="w-3.5 h-3.5" /> Full Chart
             </button>
           </div>
@@ -2438,7 +2438,7 @@ export default function Home() {
             </div>
 
             {/* View Content */}
-            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} liveTick={liveTick} onViewScreener={() => setView('screener')} />}
+            {view === 'overview' && <OverviewView d={d} watchlist={watchlist} onSetAlert={handleSetAlert} liveTick={liveTick} onViewScreener={() => setView('screener')} onViewChart={() => setView('chart')} />}
             {view === 'screener' && <ScreenerView d={d} onSetAlert={handleSetAlert} />}
             {view === 'chart' && <ChartView d={d} liveTick={liveTick} />}
             {view === 'fundamentals' && <FundamentalsView d={d} />}
