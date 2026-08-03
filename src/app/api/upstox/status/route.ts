@@ -31,7 +31,6 @@ export async function GET() {
     wsConnected: mgr.connected,
     wsAuthorized: mgr.authorized,
     apiKeyConfigured: !!process.env.UPSTOX_API_KEY,
-    apiSecretConfigured: !!process.env.UPSTOX_API_SECRET,
     user: profile ? {
       name: profile.user_name || profile.name || '',
       userId: profile.user_id || '',

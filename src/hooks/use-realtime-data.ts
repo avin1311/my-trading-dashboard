@@ -71,6 +71,8 @@ export function useRealtimeData(symbols: string[]) {
         const tick: LiveTick = JSON.parse(event.data);
         setLiveTicks(prev => {
           const next = new Map(prev);
+          // Delete and re-insert to update insertion order for LRU eviction
+          next.delete(tick.symbol);
           next.set(tick.symbol, tick);
           if (next.size > 200) {
             const oldest = next.keys().next().value;
@@ -178,9 +180,12 @@ export function useRealtimeData(symbols: string[]) {
   }, [attachSSEHandlers]);
 
   // Get live price for a symbol
+  // Use ref to avoid recreating this callback on every tick
+  const liveTicksRef = useRef(liveTicks);
+  liveTicksRef.current = liveTicks;
   const getLivePrice = useCallback((symbol: string): LiveTick | null => {
-    return liveTicks.get(symbol) || null;
-  }, [liveTicks]);
+    return liveTicksRef.current.get(symbol) || null;
+  }, []);
 
   return {
     connected,

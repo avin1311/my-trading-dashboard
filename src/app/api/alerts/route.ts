@@ -78,7 +78,8 @@ export async function GET() {
 
     return NextResponse.json({ alerts, justTriggered: [] });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[alerts]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -103,7 +104,8 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ alert });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[alerts]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -115,7 +117,8 @@ export async function DELETE(request: NextRequest) {
     await db.priceAlert.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[alerts]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -134,6 +137,7 @@ export async function PATCH(request: NextRequest) {
     const alert = await db.priceAlert.update({ where: { id }, data: update });
     return NextResponse.json({ alert });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[alerts]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

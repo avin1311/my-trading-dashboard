@@ -36,7 +36,7 @@ export interface TradeRecord {
   exitDate: string;
   entryPrice: number;
   exitPrice: number;
-  type: string;
+  type: 'LONG' | 'SHORT';
   pnl: number;
   pnlPct: number;
   signal: SignalType;
@@ -45,6 +45,7 @@ export interface TradeRecord {
 export interface BacktestResult {
   totalReturn: number;
   totalReturnPct: number;
+  totalReturnPctArithmetic: number;
   winRate: number;
   totalTrades: number;
   winningTrades: number;
@@ -53,6 +54,9 @@ export interface BacktestResult {
   avgLossPct: number;
   maxDrawdownPct: number;
   profitFactor: number;
+  benchmarkReturnPct: number;
+  alphaPct: number;
+  note?: string;
   trades: TradeRecord[];
 }
 

@@ -78,17 +78,26 @@ export async function GET(request: NextRequest) {
     const recentLows = recentData.map((d) => d.low);
     const recentCloses = recentData.map((d) => d.close);
 
-    const resistance2 = Math.round(Math.max(...recentHighs) * 100) / 100;
-    const support2 = Math.round(Math.min(...recentLows) * 100) / 100;
-    const resistance1 = Math.round((quote.price + (resistance2 - quote.price) * 0.382) * 100) / 100;
-    const support1 = Math.round((quote.price - (quote.price - support2) * 0.382) * 100) / 100;
+    // Safe min/max that returns null for empty arrays instead of Infinity/-Infinity
+    const safeMax = (arr: number[]) => arr.length > 0 ? Math.max(...arr) : null;
+    const safeMin = (arr: number[]) => arr.length > 0 ? Math.min(...arr) : null;
 
-    // Pivot points (classic)
-    const pivot = Math.round(((quote.dayHigh + quote.dayLow + quote.prevClose) / 3) * 100) / 100;
-    const r1 = Math.round((2 * pivot - quote.dayLow) * 100) / 100;
-    const s1 = Math.round((2 * pivot - quote.dayHigh) * 100) / 100;
-    const r2 = Math.round((pivot + (quote.dayHigh - quote.dayLow)) * 100) / 100;
-    const s2 = Math.round((pivot - (quote.dayHigh - quote.dayLow)) * 100) / 100;
+    const rawHigh = safeMax(recentHighs);
+    const rawLow = safeMin(recentLows);
+    const resistance2 = rawHigh != null ? Math.round(rawHigh * 100) / 100 : null;
+    const support2 = rawLow != null ? Math.round(rawLow * 100) / 100 : null;
+    const resistance1 = (resistance2 != null && quote.price) ? Math.round((quote.price + (resistance2 - quote.price) * 0.382) * 100) / 100 : null;
+    const support1 = (support2 != null && quote.price) ? Math.round((quote.price - (quote.price - support2) * 0.382) * 100) / 100 : null;
+
+    // Pivot points (classic) — guard against null quote fields
+    const h = quote.dayHigh || 0;
+    const l = quote.dayLow || 0;
+    const c = quote.prevClose || 0;
+    const pivot = (h || l || c) ? Math.round(((h + l + c) / 3) * 100) / 100 : null;
+    const r1 = pivot != null ? Math.round((2 * pivot - l) * 100) / 100 : null;
+    const s1 = pivot != null ? Math.round((2 * pivot - h) * 100) / 100 : null;
+    const r2 = pivot != null ? Math.round((pivot + (h - l)) * 100) / 100 : null;
+    const s2 = pivot != null ? Math.round((pivot - (h - l)) * 100) / 100 : null;
 
     // Simple moving averages from historical data
     const sma20 = recentCloses.length >= 20
@@ -158,19 +167,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Annualized volatility from 60-day sample (label should say 60D, not 20D)
-    const returns = [];
-    for (let i = 1; i < recentCloses.length; i++) {
-      returns.push(Math.log(recentCloses[i] / recentCloses[i - 1]));
+    let volatility60d: number | null = null;
+    if (recentCloses.length >= 2) {
+      const returns = [];
+      for (let i = 1; i < recentCloses.length; i++) {
+        const prev = recentCloses[i - 1];
+        if (prev > 0) returns.push(Math.log(recentCloses[i] / prev));
+      }
+      if (returns.length > 0) {
+        const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+        const variance = returns.reduce((a, r) => a + (r - avgReturn) ** 2, 0) / returns.length;
+        volatility60d = Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100;
+      }
     }
-    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-    const variance = returns.reduce((a, r) => a + (r - avgReturn) ** 2, 0) / returns.length;
-    const volatility60d = Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100; // annualized %
 
     // Volume analysis
     const avgVol20 = recentData.length >= 20
       ? recentData.slice(-20).reduce((a, d) => a + d.volume, 0) / 20
       : 0;
-    const volumeRatio = avgVol20 > 0 ? Math.round((quote.volume / avgVol20) * 100) / 100 : 0;
+    const volumeRatio = (avgVol20 > 0 && quote.volume) ? Math.round((quote.volume / avgVol20) * 100) / 100 : null;
 
     // Ownership breakdown (approximate — labeled as such)
     // NOTE: This is synthetic from instHolding. Real ownership requires exchange filings.

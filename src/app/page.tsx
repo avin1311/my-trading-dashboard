@@ -73,7 +73,7 @@ function EmptyState({ label, onBrowse }: { label: string; onBrowse?: () => void 
   );
 }
 function EMPTY_STOCK(label: string) {
-  return <EmptyState label={label} />;
+  return <EmptyState label={label} onBrowse={() => {}} />;
 }
 function P({ title, icon: Icon, badge, children, className, source, accent }: {
   title: string; icon?: React.ElementType; badge?: React.ReactNode;
@@ -544,20 +544,20 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick, onViewScreener }: { 
             <button onClick={() => isInWatchlist ? watchlist.removeFromWatchlist(d.selectedSymbol) : watchlist.addToWatchlist(d.selectedSymbol, 'equity')} className={cn('flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-semibold transition-colors', isInWatchlist ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/20' : 'bg-slate-800/30 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600')}>
               {isInWatchlist ? <><Star className="w-3.5 h-3.5 fill-current" /> Watching</> : <><Star className="w-3.5 h-3.5" /> Watchlist</>}
             </button>
-            <button onClick={() => {}} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/40 text-slate-400 text-[10px] font-semibold hover:text-slate-200 hover:border-slate-600 transition-colors">
+            <button onClick={() => handleViewChange('chart')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800/30 border border-slate-700/40 text-slate-400 text-[10px] font-semibold hover:text-slate-200 hover:border-slate-600 transition-colors">
               <Activity className="w-3.5 h-3.5" /> Full Chart
             </button>
           </div>
         </div>
 
         {/* 52W range bar */}
-        {q?.high52w > q?.low52w && (
+        {q?.high52w && q?.low52w && q.high52w > q.low52w && (
           <div className="mt-3 pt-3 border-t border-slate-800/40">
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono text-slate-600 w-14 text-right">{q.low52w.toLocaleString('en-IN')}</span>
               <div className="flex-1 relative h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/40 via-amber-500/30 to-emerald-500/40 rounded-full" style={{ width: ((price - q.low52w) / (q.high52w - q.low52w) * 100) + '%' }} />
-                <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white border border-emerald-400 shadow" style={{ left: 'calc(' + ((price - q.low52w) / (q.high52w - q.low52w) * 100) + '% - 4px)' }} />
+                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500/40 via-amber-500/30 to-emerald-500/40 rounded-full" style={{ width: Math.min(100, Math.max(0, ((price - q.low52w) / (q.high52w - q.low52w)) * 100)) + '%' }} />
+                <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white border border-emerald-400 shadow" style={{ left: 'calc(' + Math.min(100, Math.max(0, ((price - q.low52w) / (q.high52w - q.low52w)) * 100)) + '% - 4px)' }} />
               </div>
               <span className="text-[9px] font-mono text-slate-600 w-14">{q.high52w.toLocaleString('en-IN')}</span>
               <span className="text-[8px] text-slate-600 ml-1">52W</span>
@@ -810,7 +810,7 @@ function OverviewView({ d, watchlist, onSetAlert, liveTick, onViewScreener }: { 
         </div>
         <div className="col-span-12 xl:col-span-5 2xl:col-span-4">
           <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
-            {d.signalsLoading ? <div className="flex items-center justify-center py-6"><RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400 mr-2" /><span className="text-[10px] text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q?.price} />}
+            {d.signalsLoading ? <div className="flex items-center justify-center py-6"><RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400 mr-2" /><span className="text-[10px] text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q?.price || 0} />}
           </P>
         </div>
       </div>
@@ -1030,7 +1030,7 @@ function ChartView({ d, liveTick }: { d: ReturnType<typeof useDashboardData>; li
         </div>
         <div className="col-span-12 lg:col-span-6">
           <P title="Volume Profile" icon={BarChart3} source="Technical Analysis">
-            {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q.price} />}
+            {d.signalsLoading ? <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading volume data...</span></div> : <VolumeProfile data={d.stockData} currentPrice={d.q?.price || 0} />}
           </P>
         </div>
       </div>
@@ -1214,13 +1214,13 @@ function TechnicalsView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
             <div className="text-[10px] text-slate-500 mb-1">52W High</div>
             <div className="text-lg font-bold font-mono text-slate-200">{fPerShare(d.q.high52w)}</div>
-            <div className="text-sm font-bold font-mono text-red-400">{d.q.percentFrom52wHigh.toFixed(1)}%</div>
+            <div className="text-sm font-bold font-mono text-red-400">{(d.q.percentFrom52wHigh ?? 0).toFixed(1)}%</div>
             <div className="text-[9px] text-slate-600 mt-0.5">From 52W High</div>
           </div>
           <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-800/40 text-center">
             <div className="text-[10px] text-slate-500 mb-1">52W Low</div>
             <div className="text-lg font-bold font-mono text-slate-200">{fPerShare(d.q.low52w)}</div>
-            <div className="text-sm font-bold font-mono text-emerald-400">+{d.q.percentFrom52wLow.toFixed(1)}%</div>
+            <div className="text-sm font-bold font-mono text-emerald-400">+{(d.q.percentFrom52wLow ?? 0).toFixed(1)}%</div>
             <div className="text-[9px] text-slate-600 mt-0.5">From 52W Low</div>
           </div>
         </div>
@@ -1314,6 +1314,37 @@ function StrategyView({ d }: { d: ReturnType<typeof useDashboardData> }) {
           </P>
         </div>
       </div>
+      {/* Signal History — all BUY/SELL/HOLD signals over time */}
+      <P title="Signal History" icon={History} badge={d.signals.length > 0 && <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-slate-800 border-slate-700 text-slate-400">{d.signals.filter(s => s.signal !== 'HOLD').length} action signals</Badge>} source="Signal Engine">
+        {d.signalsLoading ? <div className="flex items-center justify-center py-6"><RefreshCw className="w-4 h-4 animate-spin text-emerald-400 mr-2" /><span className="text-xs text-slate-400">Loading signals...</span></div> : d.signals.length > 0 ? (
+          <div className="overflow-auto max-h-[320px]">
+            <Table>
+              <TableHeader><TableRow className="border-slate-800 hover:bg-transparent">
+                <TableHead className="text-[9px] text-slate-500 h-7">Date</TableHead>
+                <TableHead className="text-[9px] text-slate-500 h-7 text-right">Close</TableHead>
+                <TableHead className="text-[9px] text-slate-500 h-7 text-center">Signal</TableHead>
+                <TableHead className="text-[9px] text-slate-500 h-7 text-right">RSI</TableHead>
+                <TableHead className="text-[9px] text-slate-500 h-7 text-center">Supertrend</TableHead>
+                <TableHead className="text-[9px] text-slate-500 h-7 text-right">MACD Hist</TableHead>
+                <TableHead className="text-[9px] text-slate-500 h-7">Reason</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {[...d.signals].reverse().map((s, i) => (
+                  <TableRow key={i} className="border-slate-800/50">
+                    <TableCell className="text-[9px] py-1 text-slate-400 whitespace-nowrap">{s.date}</TableCell>
+                    <TableCell className="text-[9px] py-1 font-mono text-slate-300 text-right">{s.close.toFixed(0)}</TableCell>
+                    <TableCell className="text-center"><Badge className={cn('text-[8px] font-bold border px-1.5 py-0', SIG_BG[s.signal as keyof typeof SIG_BG] || SIG_BG.HOLD)}>{s.signal.replace('_', ' ')}</Badge></TableCell>
+                    <TableCell className={cn('text-[9px] py-1 font-mono text-right', (s.rsi || 50) > 70 ? 'text-red-400' : (s.rsi || 50) < 30 ? 'text-emerald-400' : 'text-slate-300')}>{Math.round(s.rsi)}</TableCell>
+                    <TableCell className="text-center"><span className={cn('text-[8px] font-bold', s.supertrendDir === 1 ? 'text-emerald-400' : 'text-red-400')}>{s.supertrendDir === 1 ? 'BULL' : 'BEAR'}</span></TableCell>
+                    <TableCell className={cn('text-[9px] py-1 font-mono text-right', (s.macdHistogram || 0) >= 0 ? 'text-emerald-400' : 'text-red-400')}>{(s.macdHistogram || 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-[8px] py-1 text-slate-500 max-w-[200px] truncate" title={s.reason}>{s.reason}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : <div className="text-center py-8 text-slate-500 text-xs">No signal history available</div>}
+      </P>
       {/* AI Trading Advisor */}
       <P title="AI Trading Advisor" icon={Bot} badge={<Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-violet-500/10 border-violet-500/20 text-violet-400">By Vrushal Bhilpawar</Badge>} source="5 Workflows" className="min-h-[400px]">
         {d.q ? (
@@ -1924,7 +1955,7 @@ function PortfolioView({ d }: { d: ReturnType<typeof useDashboardData> }) {
                       <TableCell className="text-xs font-mono text-slate-300">{fINR(h.currentValue)}</TableCell>
                       <TableCell className="text-xs font-mono">
                         <div className={h.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                          {fINR(h.pnl)} <span className="text-[9px]">({h.pnlPct}%)</span>
+                          {fINR(h.pnl)} <span className="text-[9px]">({h.pnlPct != null ? h.pnlPct.toFixed(1) : '--'}%)</span>
                         </div>
                       </TableCell>
                       <TableCell className={cn('text-xs font-mono', h.dayPnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
@@ -2205,26 +2236,37 @@ function WatchlistView({ d, watchlist }: { d: ReturnType<typeof useDashboardData
   const [watchlistQuotes, setWatchlistQuotes] = useState<Record<string, { price: number; changePct: number; name: string; loading: boolean }>>({});
   useEffect(() => {
     if (watchlist.watchlist.length === 0) return;
+    let cancelled = false;
     const fetchQuotes = async () => {
       const results: typeof watchlistQuotes = {};
       for (const item of watchlist.watchlist) {
         results[item.symbol] = { price: 0, changePct: 0, name: item.symbol, loading: true };
       }
-      setWatchlistQuotes({ ...results });
-      for (const item of watchlist.watchlist) {
+      if (!cancelled) setWatchlistQuotes({ ...results });
+      // Fetch all in parallel, batch state update
+      const promises = watchlist.watchlist.map(async (item) => {
         try {
           const res = await fetch('/api/stock-detail?symbol=' + item.symbol);
           const data = await res.json();
           if (data.quote) {
-            results[item.symbol] = { price: data.quote.price, changePct: data.quote.changePct, name: data.quote.longName || data.quote.name, loading: false };
+            return { symbol: item.symbol, price: data.quote.price, changePct: data.quote.changePct, name: data.quote.longName || data.quote.name, loading: false };
           }
-        } catch { results[item.symbol] = { ...results[item.symbol], loading: false }; }
-        setWatchlistQuotes({ ...results });
+        } catch {}
+        return { symbol: item.symbol, ...results[item.symbol], loading: false };
+      });
+      const settled = await Promise.allSettled(promises);
+      if (cancelled) return;
+      const updated = { ...results };
+      for (const r of settled) {
+        if (r.status === 'fulfilled' && r.value) {
+          updated[r.value.symbol] = r.value;
+        }
       }
+      setWatchlistQuotes(updated);
     };
     fetchQuotes();
     const interval = setInterval(fetchQuotes, 30000);
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [watchlist.watchlist]);
   return (
     <P title="My Watchlist" icon={Star} badge={<Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-amber-500/10 border-amber-500/30 text-amber-400">{watchlist.watchlist.length} stocks</Badge>} source="Custom">
@@ -2340,7 +2382,7 @@ export default function Home() {
     if (prevSpot > 0 && Math.abs(tick.ltp - prevSpot) / prevSpot < 0.001) return;
     prevOiSpotRef.current = tick.ltp;
     d.fetchOIData(d.oiUnderlying, d.oiExpiryFilter, tick.ltp);
-  }, [rt.liveTicks, rt.upstoxConnected, d.oiUnderlying]);
+  }, [rt.liveTicks, rt.upstoxConnected, d.oiUnderlying, d.fetchOIData, d.oiExpiryFilter]);
 
   // Get live price for current symbol
   const liveTick = d.selectedSymbol ? rt.getLivePrice(d.selectedSymbol) : null;

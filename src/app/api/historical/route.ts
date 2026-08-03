@@ -56,8 +56,9 @@ export async function GET(request: NextRequest) {
       lastDate: stockData[stockData.length - 1]?.date,
     }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
+    console.error('[historical]', err);
     return NextResponse.json(
-      { error: "Failed to fetch data: " + err.message },
+      { error: "Internal server error" },
       { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }

@@ -68,8 +68,9 @@ export async function GET(request: NextRequest) {
       liveQuote,
     }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
+    console.error('[signals]', err);
     return NextResponse.json(
-      { error: "Failed to fetch data: " + err.message },
+      { error: "Internal server error" },
       { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }

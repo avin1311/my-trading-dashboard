@@ -14,8 +14,9 @@ export async function GET(request: NextRequest) {
       const data = await getMarketOverview();
       return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
     } catch (err: any) {
+      console.error('[quote]', err);
       return NextResponse.json(
-        { error: "Failed to fetch market overview: " + err.message },
+        { error: "Internal server error" },
         { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
       );
     }
@@ -39,8 +40,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ quote, peers }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
+    console.error('[quote]', err);
     return NextResponse.json(
-      { error: "Failed to fetch quote: " + err.message },
+      { error: "Internal server error" },
       { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } }
     );
   }

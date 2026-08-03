@@ -9,6 +9,7 @@ interface NewsItem {
   sentiment: "positive" | "negative" | "neutral";
 }
 
+const CACHE_MAX = 500;
 const newsCache = new Map<string, { data: NewsItem[]; timestamp: number; error?: string }>();
 const CACHE_TTL = 5 * 60_000; // 5 min (reduced from 10 for freshness)
 
@@ -224,9 +225,15 @@ export async function GET(request: NextRequest) {
     const finalNews = unique.slice(0, 20);
 
     newsCache.set(symbol, { data: finalNews, timestamp: Date.now() });
+    if (newsCache.size > CACHE_MAX) {
+      // Evict oldest 50% of entries
+      const keysToDelete = Array.from(newsCache.keys()).slice(0, Math.floor(CACHE_MAX / 2));
+      keysToDelete.forEach(k => newsCache.delete(k));
+    }
     return NextResponse.json({ news: finalNews, cached: false, source: 'live' }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   } catch (err: any) {
-    newsCache.set(symbol, { data: [], timestamp: Date.now(), error: err.message });
-    return NextResponse.json({ error: err.message, news: [], source: 'error' }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    console.error('[news]', err);
+    newsCache.set(symbol, { data: [], timestamp: Date.now(), error: 'Internal server error' });
+    return NextResponse.json({ error: 'Internal server error', news: [], source: 'error' }, { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 }

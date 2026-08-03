@@ -68,7 +68,8 @@ export async function GET() {
       trades,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[portfolio]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -102,12 +103,21 @@ export async function POST(request: NextRequest) {
     if (!symbol || !qty || !avgPrice) {
       return NextResponse.json({ error: 'symbol, qty, avgPrice required' }, { status: 400 });
     }
+    const qtyNum = Number(qty);
+    const priceNum = Number(avgPrice);
+    if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
+      return NextResponse.json({ error: 'qty must be a positive number' }, { status: 400 });
+    }
+    if (!Number.isFinite(priceNum) || priceNum < 0) {
+      return NextResponse.json({ error: 'avgPrice must be a non-negative number' }, { status: 400 });
+    }
     const holding = await db.holding.create({
-      data: { symbol: symbol.toUpperCase(), name: name || symbol, qty: Number(qty), avgPrice: Number(avgPrice), sector: sector || '' },
+      data: { symbol: symbol.toUpperCase(), name: name || symbol, qty: qtyNum, avgPrice: priceNum, sector: sector || '' },
     });
     return NextResponse.json({ holding });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[portfolio]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -126,7 +136,8 @@ export async function DELETE(request: NextRequest) {
     }
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[portfolio]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -141,6 +152,7 @@ export async function PATCH(request: NextRequest) {
     const holding = await db.holding.update({ where: { id }, data: update });
     return NextResponse.json({ holding });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[portfolio]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

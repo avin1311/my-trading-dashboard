@@ -19,9 +19,11 @@ export async function GET(request: NextRequest) {
   const errorDesc = searchParams.get('error_description');
 
   // Determine the frontend base URL from the request headers or env
+  const ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS || 'localhost:3000').split(',').map(h => h.trim());
   const forwarded = request.headers.get('x-forwarded-host');
   const proto = request.headers.get('x-forwarded-proto') || 'http';
-  const host = forwarded || request.headers.get('host') || 'localhost:3000';
+  const rawHost = forwarded || request.headers.get('host') || 'localhost:3000';
+  const host = ALLOWED_HOSTS.some(ah => rawHost === ah || rawHost.endsWith(':' + ah) || ah.endsWith('.' + rawHost.split(':')[0])) ? rawHost : 'localhost:3000';
   const baseUrl = `${proto}://${host}`;
 
   if (error) {
@@ -34,10 +36,17 @@ export async function GET(request: NextRequest) {
   }
 
   if (state !== 'upstox_oauth') {
-    console.warn('[Upstox] State mismatch, but proceeding anyway');
+    console.warn('[Upstox] State mismatch, rejecting');
+    return NextResponse.redirect(new URL('/?upstox=error_state_mismatch', request.url));
   }
 
-  const tokenData = await exchangeCodeForToken(code);
+  let tokenData;
+  try {
+    tokenData = await exchangeCodeForToken(code);
+  } catch (err: any) {
+    console.error('[Upstox] Token exchange failed:', err.message);
+    return NextResponse.redirect(new URL('/?upstox=error_token_exchange', request.url));
+  }
 
   if (!tokenData?.access_token) {
     console.error('[Upstox] Token exchange returned no access_token');

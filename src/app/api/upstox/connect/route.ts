@@ -13,9 +13,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   // Build base URL from request headers (supports reverse proxy / non-localhost)
+  const ALLOWED_HOSTS = (process.env.ALLOWED_HOSTS || 'localhost:3000').split(',').map(h => h.trim());
   const forwarded = request.headers.get('x-forwarded-host');
   const proto = request.headers.get('x-forwarded-proto') || 'http';
-  const host = forwarded || request.headers.get('host') || 'localhost:3000';
+  const rawHost = forwarded || request.headers.get('host') || 'localhost:3000';
+  const host = ALLOWED_HOSTS.some(ah => rawHost === ah || rawHost.endsWith(':' + ah) || ah.endsWith('.' + rawHost.split(':')[0])) ? rawHost : 'localhost:3000';
   const baseUrl = `${proto}://${host}`;
 
   // If we somehow already have a token, skip re-auth

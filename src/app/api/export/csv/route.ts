@@ -3,6 +3,14 @@ import { getHistoricalData } from "@/lib/market-data";
 import { generateSignals, runBacktest } from "@/lib/trading-strategy";
 import type { OHLCV } from "@/lib/stock-data";
 
+function csvSafe(val: string | number | null | undefined): string {
+  if (val == null) return '""';
+  const s = String(val);
+  // Prevent formula injection in Excel/Sheets
+  if (/^[=+\-@\t\r]/.test(s)) return "'" + s.replace(/"/g, '""') + '"';
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
 // GET /api/export/csv?symbol=RELIANCE&days=200&type=signals|backtest|both
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -37,19 +45,18 @@ export async function GET(request: NextRequest) {
     if (type === "signals" || type === "both") {
       lines.push("Date,Close,Signal,Supertrend,SupertrendDir,RSI,MACD,MACDSignal,MACDHistogram,Reason");
       for (const s of signals) {
-        const reason = `"${s.reason.replace(/"/g, '""')}"`;
         lines.push(
           [
-            s.date,
-            s.close,
-            s.signal,
-            s.supertrend,
-            s.supertrendDir,
-            s.rsi,
-            s.macd,
-            s.macdSignal,
-            s.macdHistogram,
-            reason,
+            csvSafe(s.date),
+            csvSafe(s.close),
+            csvSafe(s.signal),
+            csvSafe(s.supertrend),
+            csvSafe(s.supertrendDir),
+            csvSafe(s.rsi),
+            csvSafe(s.macd),
+            csvSafe(s.macdSignal),
+            csvSafe(s.macdHistogram),
+            csvSafe(s.reason),
           ].join(",")
         );
       }
@@ -64,14 +71,14 @@ export async function GET(request: NextRequest) {
       for (const t of backtest.trades) {
         lines.push(
           [
-            t.entryDate,
-            t.exitDate,
-            t.type,
-            t.entryPrice,
-            t.exitPrice,
-            t.pnl,
-            t.pnlPct,
-            t.signal,
+            csvSafe(t.entryDate),
+            csvSafe(t.exitDate),
+            csvSafe(t.type),
+            csvSafe(t.entryPrice),
+            csvSafe(t.exitPrice),
+            csvSafe(t.pnl),
+            csvSafe(t.pnlPct),
+            csvSafe(t.signal),
           ].join(",")
         );
       }
@@ -88,8 +95,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[export/csv] Error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[export/csv]", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

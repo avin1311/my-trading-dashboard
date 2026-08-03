@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(history) && history.length > 0) {
       const recent = history.slice(-10);
       for (const msg of recent) {
-        messages.push({ role: msg.role, content: msg.content });
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          messages.push({ role: msg.role, content: msg.content });
+        }
       }
     }
 
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
     const zai = await ZAI.create();
 
     const completion = await zai.chat.completions.create({
-      messages: messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      messages: messages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       thinking: { type: 'disabled' }
     });
 
@@ -64,9 +66,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, response });
   } catch (error: any) {
-    console.error('AI Strategy error:', error?.message || error);
+    console.error('[ai-strategy]', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to get AI response' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

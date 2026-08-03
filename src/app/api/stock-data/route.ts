@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
     const data = await getHistoricalData(symbol, days);
     return NextResponse.json({ stockInfo: { symbol }, data });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('[stock-data]', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

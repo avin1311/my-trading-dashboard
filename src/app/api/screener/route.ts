@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
       const saved = await db.savedScreener.findMany({ orderBy: { createdAt: 'desc' } });
       return NextResponse.json({ saved: saved.map(s => ({ id: s.id, name: s.name, filters: JSON.parse(s.filters), createdAt: s.createdAt })) });
     } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 500 });
+      console.error('[screener]', e);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   }
 
@@ -206,7 +207,8 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ saved: { id: saved.id, name: saved.name, filters: JSON.parse(saved.filters), createdAt: saved.createdAt } });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[screener]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -218,17 +220,26 @@ export async function DELETE(request: NextRequest) {
     await db.savedScreener.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[screener]', e);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+function csvSafe(val: string | number | null | undefined): string {
+  if (val == null) return '""';
+  const s = String(val);
+  // Prevent formula injection in Excel/Sheets
+  if (/^[=+\-@\t\r]/.test(s)) return "'" + s.replace(/"/g, '""') + '"';
+  return '"' + s.replace(/"/g, '""') + '"';
 }
 
 function csvResponse(results: any[]): NextResponse {
   const headers = ['Symbol', 'Name', 'Sector', 'Price', 'Change%', 'RSI', 'Signal', 'Volume', 'Market Cap', 'P/E', 'Reason'];
   const rows = results.map(r => [
-    r.symbol, r.name, r.sector, r.price, r.changePct?.toFixed(2),
-    r.rsi?.toFixed(1) || '', r.signal, r.volume, r.marketCap, r.pe?.toFixed(1) || '', r.signalReason
+    csvSafe(r.symbol), csvSafe(r.name), csvSafe(r.sector), csvSafe(r.price), csvSafe(r.changePct?.toFixed(2)),
+    csvSafe(r.rsi?.toFixed(1) || ''), csvSafe(r.signal), csvSafe(r.volume), csvSafe(r.marketCap), csvSafe(r.pe?.toFixed(1) || ''), csvSafe(r.signalReason)
   ]);
-  const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv',

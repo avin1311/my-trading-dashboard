@@ -93,13 +93,13 @@ export function RSI(data: number[], period: number = 14): (number | null)[] {
   for (let i = 0; i < period; i++) result.push(null);
   for (let i = period; i < data.length; i++) {
     if (i === period) {
-      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+      const rs = avgLoss === 0 ? Infinity : avgGain / avgLoss;
       result.push(100 - 100 / (1 + rs));
     } else {
       const change = data[i] - data[i - 1];
       avgGain = (avgGain * (period - 1) + (change > 0 ? change : 0)) / period;
       avgLoss = (avgLoss * (period - 1) + (change < 0 ? Math.abs(change) : 0)) / period;
-      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+      const rs = avgLoss === 0 ? Infinity : avgGain / avgLoss;
       result.push(100 - 100 / (1 + rs));
     }
   }
@@ -114,6 +114,36 @@ export interface MACDResult {
   histogram: (number | null)[];
 }
 
+// EMA that produces full-length output aligned with input, skipping null values
+function EMASkipNulls(data: (number | null)[], period: number): (number | null)[] {
+  const result: (number | null)[] = [];
+  const k = 2 / (period + 1);
+  let prev: number | null = null;
+  let countSinceSeed = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] === null) { result.push(null); continue; }
+    if (prev === null) {
+      // Collect until we have enough non-null values for SMA seed
+      countSinceSeed++;
+      if (countSinceSeed >= period) {
+        // Collect last `period` non-null values for SMA seed
+        const nonNulls: number[] = [];
+        for (let j = i; j >= 0 && nonNulls.length < period; j--) {
+          if (data[j] !== null) nonNulls.unshift(data[j]!);
+        }
+        prev = nonNulls.reduce((a, b) => a + b, 0) / nonNulls.length;
+        result.push(prev);
+      } else {
+        result.push(null);
+      }
+    } else {
+      prev = data[i]! * k + prev * (1 - k);
+      result.push(prev);
+    }
+  }
+  return result;
+}
+
 export function MACD(data: number[], fastPeriod: number = 12, slowPeriod: number = 26, signalPeriod: number = 9): MACDResult {
   const fastEMA = EMA(data, fastPeriod);
   const slowEMA = EMA(data, slowPeriod);
@@ -122,15 +152,13 @@ export function MACD(data: number[], fastPeriod: number = 12, slowPeriod: number
     if (fastEMA[i] === null || slowEMA[i] === null) { macdLine.push(null); continue; }
     macdLine.push(fastEMA[i]! - slowEMA[i]!);
   }
-  const validMacd = macdLine.filter((v): v is number => v !== null);
-  const signalLine = EMA(validMacd, signalPeriod);
+  // Compute signal line on FULL-LENGTH macdLine, skipping nulls in EMA calc
+  // but returning a full-length array aligned with the input
+  const signalLine: (number | null)[] = EMASkipNulls(macdLine, signalPeriod);
   const histogram: (number | null)[] = [];
-  let sigIdx = 0;
   for (let i = 0; i < data.length; i++) {
-    if (macdLine[i] === null) { histogram.push(null); continue; }
-    const sig = signalLine[sigIdx] ?? null;
-    histogram.push(sig !== null ? macdLine[i]! - sig : null);
-    sigIdx++;
+    if (macdLine[i] === null || signalLine[i] === null) { histogram.push(null); continue; }
+    histogram.push(macdLine[i]! - signalLine[i]!);
   }
   return { macd: macdLine, signal: signalLine, histogram };
 }
@@ -154,16 +182,8 @@ export function Stochastic(highs: number[], lows: number[], closes: number[], kP
     const range = hh - ll;
     rawK.push(range === 0 ? 50 : ((closes[i] - ll) / range) * 100);
   }
-  const validK = rawK.filter((v): v is number => v !== null);
-  const dLine = SMA(validK, dPeriod);
-  let dIdx = 0;
-  const finalD: (number | null)[] = [];
-  for (let i = 0; i < closes.length; i++) {
-    if (rawK[i] === null) { finalD.push(null); continue; }
-    finalD.push(dLine[dIdx] ?? null);
-    dIdx++;
-  }
-  return { k: rawK, d: finalD };
+  const dLine = EMASkipNulls(rawK, dPeriod);
+  return { k: rawK, d: dLine };
 }
 
 // ==================== SUPERTREND ====================
@@ -179,16 +199,22 @@ export function Supertrend(highs: number[], lows: number[], closes: number[], pe
   const directions: (number | null)[] = [];
   let prevST: number | null = null;
   let prevDir: number = 1;
+  // Wilder's smoothed ATR
+  let atr: number | null = null;
   for (let i = 0; i < n; i++) {
-    if (i < period - 1) { values.push(null); directions.push(null); continue; }
-    let hl2 = 0, atr = 0;
-    for (let j = i - period + 1; j <= i; j++) {
-      const tr = Math.max(highs[j] - lows[j], Math.abs(highs[j] - (closes[j - 1] ?? closes[j])), Math.abs(lows[j] - (closes[j - 1] ?? closes[j])));
-      hl2 += (highs[j] + lows[j]) / 2;
-      atr += tr;
+    if (i < period) { values.push(null); directions.push(null); continue; }
+    const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - (closes[i - 1] ?? closes[i])), Math.abs(lows[i] - (closes[i - 1] ?? closes[i])));
+    if (atr === null) {
+      // Seed ATR with simple average of first `period` true ranges
+      let sum = 0;
+      for (let j = 1; j <= period; j++) {
+        sum += Math.max(highs[j] - lows[j], Math.abs(highs[j] - closes[j - 1]), Math.abs(lows[j] - closes[j - 1]));
+      }
+      atr = sum / period;
+    } else {
+      atr = (atr * (period - 1) + tr) / period;
     }
-    hl2 /= period;
-    atr /= period;
+    const hl2 = (highs[i] + lows[i]) / 2;
     const upperBand = hl2 + multiplier * atr;
     const lowerBand = hl2 - multiplier * atr;
     let st: number, dir: number;

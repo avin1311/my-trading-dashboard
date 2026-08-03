@@ -247,9 +247,8 @@ function calculateMACD(
     }
   }
 
-  // Signal line: EMA of MACD line
-  const validMACD = macdLine.filter((v) => !isNaN(v));
- const signalLineFull = calculateEMA(macdLine, signalPeriod);
+  // Signal line: EMA of MACD line (full-length, handles NaN)
+  const signalLineFull = calculateEMA(macdLine, signalPeriod);
 
   const histogram: number[] = [];
   for (let i = 0; i < closes.length; i++) {
@@ -496,9 +495,9 @@ export function runBacktest(
     if (dd > maxDrawdown) maxDrawdown = dd;
   }
 
-  // Benchmark: buy-and-hold return over the same window
-  const benchmarkReturnPct = (data.length >= 2 && trades.length > 0)
-    ? Math.round(((data[data.length - 1].close - data[0].close) / data[0].close) * 10000) / 100
+  // Benchmark: buy-and-hold return over the STRATEGY's active window (not the full data window)
+  const benchmarkReturnPct = (trades.length > 0)
+    ? Math.round(((data[data.length - 1].close - trades[0].entryPrice) / trades[0].entryPrice) * 10000) / 100
     : 0;
   const alphaPct = Math.round((totalReturnPctCompounded - benchmarkReturnPct) * 100) / 100;
 

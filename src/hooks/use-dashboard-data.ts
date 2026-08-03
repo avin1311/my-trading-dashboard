@@ -114,7 +114,7 @@ export function useDashboardData() {
     } catch (err: any) {
       console.warn('[fetchDetail]', err?.name === 'AbortError' ? 'Request timed out' : err);
       // Only mark initial load error if we have no detail yet (first load attempt)
-      setDetail(prev => { if (!prev) setInitialLoadError(true); return prev; });
+      if (!detail) setInitialLoadError(true);
     } finally { setDetailLoading(false); }
   }, [addSavePoint]);
 
@@ -187,7 +187,7 @@ export function useDashboardData() {
       const timeout = setTimeout(() => controller.abort(), 300000); // 5 min max
       // Always fetch ALL signals — filtering is done client-side via filteredScreener
       const sp = new URLSearchParams({ limit: '0' });
-      if (screenerSector !== 'all') sp.append('sector', screenerSector);
+      // Sector filtering is client-side only — do not send to API
       const res = await fetch('/api/screener?' + sp.toString(), { signal: controller.signal });
       clearTimeout(timeout);
       if (!res.ok) throw new Error(`screener API ${res.status}`);
@@ -223,7 +223,7 @@ export function useDashboardData() {
                   symbol: s.symbol,
                   name: s.name,
                   condition: s.signal === 'STRONG_BUY' ? 'above' : 'below',
-                  targetPrice: Math.round(s.price * 100) / 100,
+                  targetPrice: Math.round(s.price * (s.signal === 'STRONG_BUY' ? 1.02 : 0.98) * 100) / 100,
                   note: `Auto-alert: ${s.signal} | RSI: ${s.rsi?.toFixed(1) || 'N/A'} | ${s.signalReason || ''}`,
                 }),
               });
@@ -255,6 +255,11 @@ export function useDashboardData() {
 
   // When symbol changes (or on first mount): fetch detail + news + signals
   const initialFetchDone = useRef(false);
+  // Use refs for params/backtestDays so the effect always has latest values
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const backtestDaysRef = useRef(backtestDays);
+  backtestDaysRef.current = backtestDays;
   useEffect(() => {
     if (!selectedSymbol) return;
     setInitialLoadError(false);
@@ -263,12 +268,12 @@ export function useDashboardData() {
       initialFetchDone.current = true;
       fetchDetail(selectedSymbol);
       fetchNews(selectedSymbol);
-      fetchSignals(selectedSymbol, params, backtestDays);
+      fetchSignals(selectedSymbol, paramsRef.current, backtestDaysRef.current);
       return;
     }
     fetchDetail(selectedSymbol);
     fetchNews(selectedSymbol);
-    fetchSignals(selectedSymbol, params, backtestDays);
+    fetchSignals(selectedSymbol, paramsRef.current, backtestDaysRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSymbol]);
 
@@ -314,7 +319,7 @@ export function useDashboardData() {
       if (data.lastUpdated) setOiLastUpdated(data.lastUpdated);
       addSavePoint('OI Data Loaded', `${underlying} | PCR: ${data.option?.pcr?.toFixed(2) || 'N/A'} | MaxPain: ${data.option?.maxPain?.toLocaleString('en-IN') || 'N/A'}`);
     } catch (err) { console.warn('[fetchOIData]', err); } finally { setOiLoading(false); }
-  }, [addSavePoint, oiExpiryFilter]);
+  }, [addSavePoint]);
 
   // Fetch OI on underlying change
   useEffect(() => {
@@ -381,8 +386,7 @@ export function useDashboardData() {
     setSheetOpen(false);
     setNews([]);
     // Don't clear screenerData — it's independent of selected stock
-    // Re-fetch screener in background to keep it fresh
-    fetchScreener();
+    // Screener is already fetched on mount and auto-refreshed; no need to re-fetch on every stock change
   };
 
   const chartData = useMemo(() => {

@@ -27,6 +27,7 @@ const INTERVAL_MAP: Record<string, { yahoo: string; days: number }> = {
 };
 
 // Simple cache
+const CACHE_MAX = 500;
 const cache = new Map<string, { data: any[]; ts: number; source: string }>();
 const CACHE_TTL = 10_000; // 10s for intraday, 2min for daily+
 
@@ -75,6 +76,11 @@ export async function GET(request: NextRequest) {
       const upstoxData = await fetchUpstoxHistorical(symbol, interval, cfg.days);
       if (upstoxData && upstoxData.length > 0) {
         cache.set(cacheKey, { data: upstoxData, ts: Date.now(), source: 'upstox_live' });
+        if (cache.size > CACHE_MAX) {
+          // Evict oldest 50% of entries
+          const keysToDelete = Array.from(cache.keys()).slice(0, Math.floor(CACHE_MAX / 2));
+          keysToDelete.forEach(k => cache.delete(k));
+        }
         return NextResponse.json({
           data: upstoxData,
           interval,
@@ -130,6 +136,11 @@ export async function GET(request: NextRequest) {
     }
 
     cache.set(cacheKey, { data, ts: Date.now(), source: 'yahoo_finance' });
+    if (cache.size > CACHE_MAX) {
+      // Evict oldest 50% of entries
+      const keysToDelete = Array.from(cache.keys()).slice(0, Math.floor(CACHE_MAX / 2));
+      keysToDelete.forEach(k => cache.delete(k));
+    }
 
     return NextResponse.json({
       data,
@@ -141,6 +152,7 @@ export async function GET(request: NextRequest) {
       source: 'yahoo_finance',
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('[chart-data]', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

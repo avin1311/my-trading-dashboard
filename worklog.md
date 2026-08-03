@@ -207,3 +207,24 @@ Stage Summary:
 - All 5 P2 polish items completed
 - Build passes: `✓ Compiled successfully in 15.5s`
 - Total across all sessions: 5 P0 + 4 P1 + 5 P2 = 14 fixes delivered
+
+---
+Task ID: 1
+Agent: main
+Task: Full audit + fix all identified issues + add Signal History panel
+
+Work Log:
+- Ran 3 parallel audit agents covering 22 API routes, 2431-line page.tsx, hooks, lib files, Prisma schema
+- Identified 44 issues total: 6 P0, 13 P1, 15 P2, 10 P3
+- Fixed all P0 issues (MACD array mismatch, NaN guards, 52W bar, toFixed, VolumeProfile)
+- Fixed all P1 issues (OAuth security, prompt injection, type sync, stale params, auto-alert buffer, screener sector filter, OI deps, Map eviction)
+- Fixed key P2 issues (unified Supertrend/RSI, bounded caches, CSV injection, portfolio validation, alpha benchmark, WatchlistView N+1)
+- Fixed key P3 issues (dead button, NaN display, EMPTY_STOCK onBrowse)
+- Added Signal History table to Strategy view showing all BUY/SELL/HOLD signals with date, close, RSI, Supertrend direction, MACD histogram, and reason
+- Build passes with zero errors
+
+Stage Summary:
+- 40+ files modified across API routes, hooks, lib, types, and main page
+- Signal History panel added to Strategy view with full 200-day signal table
+- All chart and signal algorithms now use unified implementations (Wilder's ATR for Supertrend, Infinity for RSI zero-loss)
+- Security: OAuth CSRF fixed, prompt injection blocked, open redirect prevented, CSV injection prevented, error messages genericized
