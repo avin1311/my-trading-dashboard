@@ -498,7 +498,7 @@ export default function CandlestickChart({
         }
         if (markers.length > 0) {
           const seriesMarkers = createSeriesMarkers(priceSeries, markers);
-          chart.addPrimitive(seriesMarkers);
+          priceSeries.attachPrimitive(seriesMarkers);
         }
       }
 
