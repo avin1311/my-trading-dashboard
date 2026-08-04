@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import {
   createChart,
+  createSeriesMarkers,
   type IChartApi,
   ColorType,
   CrosshairMode,
@@ -496,7 +497,8 @@ export default function CandlestickChart({
           });
         }
         if (markers.length > 0) {
-          (priceSeries as any).setMarkers(markers);
+          const seriesMarkers = createSeriesMarkers(priceSeries, markers);
+          chart.addPrimitive(seriesMarkers);
         }
       }
 
