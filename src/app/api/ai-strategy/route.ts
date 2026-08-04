@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
+    if (message.length > 4000) {
+      return NextResponse.json({ error: 'Message too long (max 4000 chars)' }, { status: 400 });
+    }
 
     let contextPrompt = SYSTEM_PROMPT;
     if (stockContext) {
@@ -46,8 +49,12 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(history) && history.length > 0) {
       const recent = history.slice(-10);
       for (const msg of recent) {
-        if (msg.role === 'user' || msg.role === 'assistant') {
-          messages.push({ role: msg.role, content: msg.content });
+        // Strict role validation — only allow user/assistant, never system
+        const role = typeof msg.role === 'string' ? msg.role.trim().toLowerCase() : '';
+        if (role === 'user' || role === 'assistant') {
+          // Truncate content to prevent oversized payloads
+          const content = String(msg.content || '').slice(0, 4000);
+          messages.push({ role, content });
         }
       }
     }

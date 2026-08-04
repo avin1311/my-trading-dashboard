@@ -367,6 +367,7 @@ export default function StrategySection({
   const [activeIndicators, setActiveIndicators] = useState<IndicatorId[]>(['sma_20', 'sma_50']);
   const [activeTool, setActiveTool] = useState<DrawingTool>('crosshair');
   const [showIndicatorPanel, setShowIndicatorPanel] = useState(false);
+  const [showSignals, setShowSignals] = useState(true);
   const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
   const tfConfig = TIMEFRAMES.find(t => t.key === timeframe) || TIMEFRAMES[5];
 
@@ -402,6 +403,20 @@ export default function StrategySection({
           showPanel={showIndicatorPanel}
           onTogglePanel={() => setShowIndicatorPanel(p => !p)}
         />
+        {/* Buy/Sell Signal Toggle */}
+        <button
+          onClick={() => setShowSignals(v => !v)}
+          title={showSignals ? 'Hide Buy/Sell Signals' : 'Show Buy/Sell Signals'}
+          className={cn(
+            'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all border',
+            showSignals
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              : 'bg-slate-800/40 text-slate-400 border-slate-700/50 hover:text-slate-300 hover:bg-slate-700/30'
+          )}
+        >
+          <Zap className="w-3 h-3" />
+          <span className="hidden xl:inline">Signals</span>
+        </button>
       </div>
 
       {/* Active indicator chips */}
@@ -428,6 +443,7 @@ export default function StrategySection({
             activeTool={activeTool}
             onPatternsDetected={handlePatternsDetected}
             liveTick={liveTick}
+            signalData={showSignals ? visibleData : undefined}
           />
         )}
       </div>

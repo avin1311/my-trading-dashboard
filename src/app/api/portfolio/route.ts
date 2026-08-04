@@ -128,6 +128,13 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
     const type = searchParams.get('type') || 'holding';
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    // Validate ID format — must be a valid Prisma ID (CUID or UUID)
+    if (!/^[a-zA-Z0-9_-]{1,30}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid id format' }, { status: 400 });
+    }
+    if (type !== 'holding' && type !== 'trade') {
+      return NextResponse.json({ error: 'type must be holding or trade' }, { status: 400 });
+    }
 
     if (type === 'trade') {
       await db.tradeJournal.delete({ where: { id } });
@@ -136,6 +143,10 @@ export async function DELETE(request: NextRequest) {
     }
     return NextResponse.json({ success: true });
   } catch (e: any) {
+    // P2025 = record not found — return 404 instead of 500
+    if (e?.code === 'P2025') {
+      return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    }
     console.error('[portfolio]', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -146,12 +157,30 @@ export async function PATCH(request: NextRequest) {
   try {
     const { id, qty, avgPrice } = await request.json();
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!/^[a-zA-Z0-9_-]{1,30}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid id format' }, { status: 400 });
+    }
     const update: any = {};
-    if (qty != null) update.qty = Number(qty);
-    if (avgPrice != null) update.avgPrice = Number(avgPrice);
+    if (qty != null) {
+      const qtyNum = Number(qty);
+      if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
+        return NextResponse.json({ error: 'qty must be a positive number' }, { status: 400 });
+      }
+      update.qty = qtyNum;
+    }
+    if (avgPrice != null) {
+      const priceNum = Number(avgPrice);
+      if (!Number.isFinite(priceNum) || priceNum < 0) {
+        return NextResponse.json({ error: 'avgPrice must be a non-negative number' }, { status: 400 });
+      }
+      update.avgPrice = priceNum;
+    }
     const holding = await db.holding.update({ where: { id }, data: update });
     return NextResponse.json({ holding });
   } catch (e: any) {
+    if (e?.code === 'P2025') {
+      return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    }
     console.error('[portfolio]', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

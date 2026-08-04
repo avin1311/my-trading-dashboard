@@ -85,6 +85,13 @@ export interface LiveTickProp {
   timestamp: number;
 }
 
+interface SignalDataPoint {
+  date: string;
+  signal: string | null;
+  low: number;
+  high: number;
+}
+
 interface CandlestickChartProps {
   symbol: string;
   interval: string;
@@ -94,6 +101,7 @@ interface CandlestickChartProps {
   activeTool?: DrawingTool;
   onPatternsDetected?: (patterns: DetectedPattern[]) => void;
   liveTick?: LiveTickProp | null;
+  signalData?: SignalDataPoint[];
 }
 
 // ==================== INDICATOR COMPUTATION ====================
@@ -155,7 +163,7 @@ function computeAllIndicators(data: OHLCV[], activeIds: IndicatorId[]): Computed
 
 export default function CandlestickChart({
   symbol, interval, height = 520, chartType = 'candle',
-  activeIndicators = [], activeTool: activeToolProp = 'crosshair', onPatternsDetected, liveTick
+  activeIndicators = [], activeTool: activeToolProp = 'crosshair', onPatternsDetected, liveTick, signalData
 }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -464,6 +472,32 @@ export default function CandlestickChart({
           price: patData.high, color, lineWidth: 1, lineStyle: LineStyle.Dashed,
           axisLabelVisible: true, title: ` ${pat.name} `,
         });
+      }
+
+      // Buy/Sell signal markers from strategy engine
+      if (signalData && signalData.length > 0) {
+        // Build a date→signal map for O(1) lookup
+        const signalMap = new Map<string, { signal: string; low: number; high: number }>();
+        for (const sd of signalData) {
+          if (sd.signal && sd.signal !== 'HOLD') signalMap.set(sd.date, { signal: sd.signal, low: sd.low, high: sd.high });
+        }
+        const markers: any[] = [];
+        for (let i = 0; i < rawData.length; i++) {
+          const dateStr = new Date(rawData[i].time * 1000).toISOString().split('T')[0];
+          const sig = signalMap.get(dateStr);
+          if (!sig) continue;
+          const isBuy = sig.signal === 'STRONG_BUY' || sig.signal === 'BUY';
+          markers.push({
+            time: rawData[i].time as Time,
+            position: isBuy ? 'belowBar' as const : 'aboveBar' as const,
+            color: isBuy ? '#10b981' : '#ef4444',
+            shape: isBuy ? 'arrowUp' as const : 'arrowDown' as const,
+            text: sig.signal.replace('_', ' '),
+          });
+        }
+        if (markers.length > 0) {
+          (priceSeries as any).setMarkers(markers);
+        }
       }
 
       onPatternsDetected?.(indicators.patterns);

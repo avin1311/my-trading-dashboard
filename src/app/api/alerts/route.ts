@@ -114,9 +114,15 @@ export async function DELETE(request: NextRequest) {
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!/^[a-zA-Z0-9_-]{1,30}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid id format' }, { status: 400 });
+    }
     await db.priceAlert.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {
+    if (e?.code === 'P2025') {
+      return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    }
     console.error('[alerts]', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -127,6 +133,9 @@ export async function PATCH(request: NextRequest) {
   try {
     const { id, triggered, active } = await request.json();
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!/^[a-zA-Z0-9_-]{1,30}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid id format' }, { status: 400 });
+    }
     const update: any = {};
     if (typeof triggered === 'boolean') {
       update.triggered = triggered;
@@ -137,6 +146,9 @@ export async function PATCH(request: NextRequest) {
     const alert = await db.priceAlert.update({ where: { id }, data: update });
     return NextResponse.json({ alert });
   } catch (e: any) {
+    if (e?.code === 'P2025') {
+      return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    }
     console.error('[alerts]', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

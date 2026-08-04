@@ -205,15 +205,22 @@ export function useDashboardData() {
         (async () => {
           // First fetch existing alerts to avoid duplicates
           let existingSymbols = new Set<string>();
+          let recentAlertSymbols = new Set<string>();
           try {
             const alertsRes = await fetch('/api/alerts');
             const alertsData = await alertsRes.json();
             const activeAlerts = (alertsData.alerts || []).filter((a: any) => a.active && !a.triggered);
             existingSymbols = new Set(activeAlerts.map((a: any) => a.symbol));
+            // 30s buffer to prevent re-creating recently added alerts
+            const recentCutoff = new Date(Date.now() - 30_000).toISOString();
+            recentAlertSymbols = new Set(
+              (alertsData.alerts || [])
+                .filter((a: any) => new Date(a.createdAt).toISOString() >= recentCutoff)
+                .map((a: any) => a.symbol.toUpperCase())
+            );
           } catch {}
 
-          // Create alerts only for stocks not already tracked
-          const newAlerts = strongSignals.filter(s => !existingSymbols.has(s.symbol.toUpperCase()));
+          const newAlerts = strongSignals.filter(s => !existingSymbols.has(s.symbol.toUpperCase()) && !recentAlertSymbols.has(s.symbol.toUpperCase()));
           for (const s of newAlerts) {
             try {
               await fetch('/api/alerts', {
@@ -375,9 +382,10 @@ export function useDashboardData() {
   const handleRefresh = () => {
     if (!selectedSymbol) return;
     fetchDetail(selectedSymbol);
-    fetchSignals(selectedSymbol, params);
+    fetchSignals(selectedSymbol, paramsRef.current, backtestDaysRef.current);
     fetchNews(selectedSymbol);
-    fetchScreener();
+    // Don't re-fetch screener on every manual refresh — it's independent of selected stock
+    // and already fetched on mount + auto-refreshed. User can manually refresh screener.
   };
 
   const handleSelect = (sym: string, type: string) => {

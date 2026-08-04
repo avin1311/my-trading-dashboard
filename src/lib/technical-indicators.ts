@@ -570,7 +570,15 @@ function detectTriangle(data: OHLCV[]): DetectedPattern | null {
 export function VWAP(data: OHLCV[]): (number | null)[] {
   const result: (number | null)[] = [];
   let cumTPV = 0, cumVol = 0;
+  let lastDate = '';
   for (let i = 0; i < data.length; i++) {
+    // Reset VWAP at each new trading day (detected by date change or large gap)
+    const currentDate = data[i].time ? new Date(data[i].time * 1000).toDateString() : '';
+    const prevDate = i > 0 && data[i-1].time ? new Date(data[i-1].time * 1000).toDateString() : '';
+    if (i > 0 && currentDate && prevDate && currentDate !== prevDate) {
+      cumTPV = 0;
+      cumVol = 0;
+    }
     const tp = (data[i].high + data[i].low + data[i].close) / 3;
     cumTPV += tp * data[i].volume;
     cumVol += data[i].volume;

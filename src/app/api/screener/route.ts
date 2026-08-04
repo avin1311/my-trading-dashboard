@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 
 // Cache screener results for 10 minutes (longer TTL for 1000+ stocks)
 let screenerCache: { data: any; timestamp: number; params: string } | null = null;
+let screenerInProgress = false; // Prevent concurrent screener scans
 const SCREENER_TTL = 10 * 60_000;
 
 const PER_STOCK_TIMEOUT = 12_000; // 12s per stock
@@ -55,6 +56,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(resp, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
   }
 
+  // Prevent concurrent screener scans — return stale cache if scan is in progress
+  if (screenerInProgress) {
+    if (screenerCache) {
+      return NextResponse.json({ ...screenerCache.data, stale: true }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+    }
+    return NextResponse.json({ error: 'Screener scan already in progress', status: 429 });
+  }
+  screenerInProgress = true;
+
+  try {
   // Get equities to scan
   let equities = stockList.equities as readonly any[];
   if (sectorFilter && sectorFilter !== "all") {
@@ -140,6 +151,9 @@ export async function GET(request: NextRequest) {
 
   if (exportFormat === 'csv') return csvResponse(final);
   return NextResponse.json(response, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+  } finally {
+    screenerInProgress = false;
+  }
 }
 
 // ==================== HELPER FUNCTIONS ====================

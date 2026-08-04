@@ -41,6 +41,10 @@ export const DEFAULT_PARAMS: StrategyParams = {
 };
 
 // ==================== INDICATORS ====================
+// NOTE: These are signal-generation copies of the canonical indicators in
+// technical-indicators.ts. They use NaN instead of null because the signal
+// engine needs numeric arrays. The algorithms are kept in sync — if you
+// change one, change both.
 
 function calculateATR(data: OHLCV[], period: number): number[] {
   const trueRanges: number[] = [];
@@ -60,11 +64,13 @@ function calculateATR(data: OHLCV[], period: number): number[] {
 
   const atr: number[] = [];
   for (let i = 0; i < data.length; i++) {
-    if (i < period - 1) {
+    if (i < period) {
       atr.push(NaN);
-    } else if (i === period - 1) {
+    } else if (i === period) {
+      // Seed ATR with simple average of first `period` true ranges (indices 1..period)
+      // Aligned with technical-indicators.ts Supertrend ATR seed
       let sum = 0;
-      for (let j = 0; j < period; j++) sum += trueRanges[j];
+      for (let j = 1; j <= period; j++) sum += trueRanges[j];
       atr.push(sum / period);
     } else {
       atr.push((atr[i - 1] * (period - 1) + trueRanges[i]) / period);

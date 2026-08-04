@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   if (state !== 'upstox_oauth') {
     console.warn('[Upstox] State mismatch, rejecting');
-    return NextResponse.redirect(new URL('/?upstox=error_state_mismatch', request.url));
+    return NextResponse.redirect(new URL('/?upstox=error_state_mismatch', baseUrl));
   }
 
   let tokenData;

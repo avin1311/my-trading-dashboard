@@ -2243,13 +2243,15 @@ function WatchlistView({ d, watchlist }: { d: ReturnType<typeof useDashboardData
         results[item.symbol] = { price: 0, changePct: 0, name: item.symbol, loading: true };
       }
       if (!cancelled) setWatchlistQuotes({ ...results });
-      // Fetch all in parallel, batch state update
+      // Use lightweight /api/quote endpoint instead of /api/stock-detail to avoid
+      // fetching full fundamental data for each watchlist stock
       const promises = watchlist.watchlist.map(async (item) => {
         try {
-          const res = await fetch('/api/stock-detail?symbol=' + item.symbol);
+          // Fallback to stock-detail if /api/quote doesn't have the symbol
+          const res = await fetch('/api/quote?symbol=' + item.symbol);
           const data = await res.json();
-          if (data.quote) {
-            return { symbol: item.symbol, price: data.quote.price, changePct: data.quote.changePct, name: data.quote.longName || data.quote.name, loading: false };
+          if (data.quote?.price) {
+            return { symbol: item.symbol, price: data.quote.price, changePct: data.quote.changePct || 0, name: data.quote.longName || data.quote.name || item.symbol, loading: false };
           }
         } catch {}
         return { symbol: item.symbol, ...results[item.symbol], loading: false };
