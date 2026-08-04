@@ -70,6 +70,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data: cached.data, interval, symbol, source: cached.source });
   }
 
+  // Evict ALL expired entries (both intraday TTL and daily TTL)
+  if (cache.size > 50) {
+    const now = Date.now();
+    for (const [key, val] of cache) {
+      const entryTtl = key.endsWith('_D') || key.endsWith('_W') || key.endsWith('_M') ? 120_000 : CACHE_TTL;
+      if (now - val.ts > entryTtl) cache.delete(key);
+    }
+  }
+
   // ===== Try Upstox first when connected =====
   if (isUpstoxConnected()) {
     try {

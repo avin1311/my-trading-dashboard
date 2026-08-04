@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getLiveQuote } from "@/lib/market-data";
 import { isUpstoxConnected, fetchUpstoxLiveQuotes } from '@/lib/upstox-client';
+import { requireWriteAuth } from '@/lib/api-auth';
 
 // GET /api/portfolio — list holdings with live P&L + trade journal
 export async function GET() {
@@ -75,6 +76,8 @@ export async function GET() {
 
 // POST /api/portfolio — add holding OR add trade journal entry
 export async function POST(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const body = await request.json();
 
@@ -123,6 +126,8 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/portfolio?id=xxx&type=holding|trade
 export async function DELETE(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -154,6 +159,8 @@ export async function DELETE(request: NextRequest) {
 
 // PATCH /api/portfolio — update holding
 export async function PATCH(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const { id, qty, avgPrice } = await request.json();
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });

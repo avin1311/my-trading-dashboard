@@ -3,6 +3,7 @@ import { getLiveQuote, getHistoricalData } from "@/lib/market-data";
 import { generateSignals, DEFAULT_PARAMS, type StrategyParams } from "@/lib/trading-strategy";
 import { stockList } from "@/lib/stock-list";
 import { db } from "@/lib/db";
+import { requireWriteAuth } from '@/lib/api-auth';
 
 // Cache screener results for 10 minutes (longer TTL for 1000+ stocks)
 let screenerCache: { data: any; timestamp: number; params: string } | null = null;
@@ -211,6 +212,8 @@ function sleep(ms: number): Promise<void> {
 
 // POST /api/screener — save a screener preset
 export async function POST(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const { name, filters } = await request.json();
     if (!name || !filters) {
@@ -228,9 +231,14 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/screener?id=xxx — delete a saved screener
 export async function DELETE(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!/^[a-zA-Z0-9_-]{1,30}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid id format' }, { status: 400 });
+    }
     await db.savedScreener.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {

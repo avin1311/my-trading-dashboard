@@ -12,7 +12,7 @@ import {
   CHART_TYPES, INDICATOR_LIST,
 } from './candlestick-chart';
 import type { DetectedPattern } from '@/lib/technical-indicators';
-import { Target, TrendingUp, TrendingDown, Minus, PenTool, Crosshair, ArrowUpRight, ArrowDownRight, Ruler, Square, MinusIcon, Trash2, ChevronDown, Zap, Activity, BarChart3, Waves, GitBranch, Layers } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, Minus, PenTool, Crosshair, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Ruler, Square, MinusIcon, Trash2, ChevronDown, Zap, Activity, BarChart3, Waves, GitBranch, Layers } from 'lucide-react';
 
 const CandlestickChartDynamic = dynamic(() => import('./candlestick-chart'), {
   ssr: false,
@@ -414,8 +414,8 @@ export default function StrategySection({
               : 'bg-slate-800/40 text-slate-400 border-slate-700/50 hover:text-slate-300 hover:bg-slate-700/30'
           )}
         >
-          <Zap className="w-3 h-3" />
-          <span className="hidden xl:inline">Signals</span>
+          <ArrowLeftRight className="w-3 h-3" />
+          <span className="hidden md:inline">Buy/Sell</span>
         </button>
       </div>
 

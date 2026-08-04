@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isUpstoxConnected, fetchUpstoxLiveQuotes } from '@/lib/upstox-client';
 import { getLiveQuote } from "@/lib/market-data";
+import { requireWriteAuth } from '@/lib/api-auth';
 
 // GET /api/alerts — list all alerts (with live price check)
 export async function GET() {
@@ -85,6 +86,8 @@ export async function GET() {
 
 // POST /api/alerts — create alert
 export async function POST(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const { symbol, name, condition, targetPrice, note } = await request.json();
     if (!symbol || !condition || !targetPrice) {
@@ -111,6 +114,8 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/alerts?id=xxx
 export async function DELETE(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
@@ -130,6 +135,8 @@ export async function DELETE(request: NextRequest) {
 
 // PATCH /api/alerts — mark triggered or toggle active
 export async function PATCH(request: NextRequest) {
+  const auth = requireWriteAuth(request);
+  if (!auth.authorized) return auth.error!;
   try {
     const { id, triggered, active } = await request.json();
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
