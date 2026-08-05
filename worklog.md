@@ -228,3 +228,22 @@ Stage Summary:
 - Signal History panel added to Strategy view with full 200-day signal table
 - All chart and signal algorithms now use unified implementations (Wilder's ATR for Supertrend, Infinity for RSI zero-loss)
 - Security: OAuth CSRF fixed, prompt injection blocked, open redirect prevented, CSV injection prevented, error messages genericized
+---
+Task ID: 7
+Agent: Main Agent
+Task: Fix critical regression — all screens broken after lightweight-charts v5 marker migration
+
+Work Log:
+- User reported 'almost all screens are not working' after prior session's marker API fix
+- Investigated: lightweight-charts v5.2.0 is installed, `createSeriesMarkers` exists in typings
+- Found root cause: `createSeriesMarkers(series, markers)` AUTO-ATTACHES the primitive to the series
+- The extra `priceSeries.attachPrimitive(seriesMarkers)` call was a double-attach causing runtime crash
+- The crash in the chart component cascaded to all views that render charts
+- Fix: Removed `attachPrimitive` call, just use `createSeriesMarkers(priceSeries, markers)`
+- Build passes successfully
+
+Stage Summary:
+- Root cause: `createSeriesMarkers` in v5 auto-attaches; calling `attachPrimitive` again crashes
+- Fix: single line change — removed the double-attach
+- All screens should now work correctly
+- Committed as c6fcd83
