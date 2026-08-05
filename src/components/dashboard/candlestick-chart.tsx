@@ -497,8 +497,8 @@ export default function CandlestickChart({
           });
         }
         if (markers.length > 0) {
-          const seriesMarkers = createSeriesMarkers(priceSeries, markers);
-          priceSeries.attachPrimitive(seriesMarkers);
+          // createSeriesMarkers auto-attaches to the series; do NOT call attachPrimitive
+          createSeriesMarkers(priceSeries, markers);
         }
       }
 
