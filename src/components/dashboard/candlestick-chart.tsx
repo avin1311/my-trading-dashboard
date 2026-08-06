@@ -198,6 +198,7 @@ export default function CandlestickChart({
     } catch (e: any) {
       if (fetchIdRef.current !== id) return;
       setError(e.message);
+      setLoading(false);
       return null;
     }
   }, []);
@@ -211,26 +212,41 @@ export default function CandlestickChart({
 
     if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
 
+    // Guard: container must have dimensions
+    if (container.clientWidth === 0) {
+      // Retry after layout settles
+      const timer = setTimeout(() => fetchIdRef.current === id && setLoading(false), 500);
+      return () => clearTimeout(timer);
+    }
+
     // Determine sub-chart heights
     const showRSI = activeIndicators.includes('rsi') || activeIndicators.includes('stoch');
     const showMACD = activeIndicators.includes('macd');
     const mainH = height - (showRSI ? 100 : 0) - (showMACD ? 80 : 0);
 
-    const chart = createChart(container, {
-      width: container.clientWidth,
-      height,
-      layout: {
-        background: { type: ColorType.Solid, color: '#0a0e1a' },
-        textColor: '#94a3b8',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        fontSize: 11,
-      },
-      grid: { vertLines: { color: 'rgba(30, 41, 59, 0.4)' }, horzLines: { color: 'rgba(30, 41, 59, 0.4)' } },
-      crosshair: { mode: CrosshairMode.Normal, vertLine: { color: 'rgba(59, 130, 246, 0.4)', labelBackgroundColor: '#1e40af' }, horzLine: { color: 'rgba(59, 130, 246, 0.4)', labelBackgroundColor: '#1e40af' } },
-      rightPriceScale: { borderColor: 'rgba(30, 41, 59, 0.6)', scaleMargins: { top: 0.05, bottom: showMACD ? 0.45 : showRSI ? 0.25 : 0.25 } },
-      timeScale: { borderColor: 'rgba(30, 41, 59, 0.6)', timeVisible: ['1', '5', '15', '60', '240'].includes(interval), secondsVisible: false },
-      handleScroll: { vertTouchDrag: false },
-    });
+    let chart: IChartApi;
+    try {
+      chart = createChart(container, {
+        width: container.clientWidth,
+        height,
+        layout: {
+          background: { type: ColorType.Solid, color: '#0a0e1a' },
+          textColor: '#94a3b8',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontSize: 11,
+        },
+        grid: { vertLines: { color: 'rgba(30, 41, 59, 0.4)' }, horzLines: { color: 'rgba(30, 41, 59, 0.4)' } },
+        crosshair: { mode: CrosshairMode.Normal, vertLine: { color: 'rgba(59, 130, 246, 0.4)', labelBackgroundColor: '#1e40af' }, horzLine: { color: 'rgba(59, 130, 246, 0.4)', labelBackgroundColor: '#1e40af' } },
+        rightPriceScale: { borderColor: 'rgba(30, 41, 59, 0.6)', scaleMargins: { top: 0.05, bottom: showMACD ? 0.45 : showRSI ? 0.25 : 0.25 } },
+        timeScale: { borderColor: 'rgba(30, 41, 59, 0.6)', timeVisible: ['1', '5', '15', '60', '240'].includes(interval), secondsVisible: false },
+        handleScroll: { vertTouchDrag: false },
+      });
+    } catch (e: any) {
+      console.error('[CandlestickChart] createChart failed:', e);
+      setError('Chart library failed to initialize');
+      setLoading(false);
+      return;
+    }
     chartRef.current = chart;
 
     // ---- Create series ----

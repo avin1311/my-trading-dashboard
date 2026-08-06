@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { Component, useMemo, useState, useCallback, ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
@@ -13,6 +13,24 @@ import {
 } from './candlestick-chart';
 import type { DetectedPattern } from '@/lib/technical-indicators';
 import { Target, TrendingUp, TrendingDown, Minus, PenTool, Crosshair, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Ruler, Square, MinusIcon, Trash2, ChevronDown, Zap, Activity, BarChart3, Waves, GitBranch, Layers } from 'lucide-react';
+
+class ChartErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error?: Error }> {
+  state = { hasError: false, error: undefined as Error | undefined };
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error, info: any) { console.error('[ChartErrorBoundary]', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-[520px] bg-[#0a0e1a] flex flex-col items-center justify-center gap-2">
+          <span className="text-red-400 text-xs">Chart failed to render</span>
+          <span className="text-slate-600 text-[10px] max-w-md text-center">{this.state.error?.message}</span>
+          <button onClick={() => this.setState({ hasError: false, error: undefined })} className="text-[10px] text-blue-400 hover:underline mt-1">Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const CandlestickChartDynamic = dynamic(() => import('./candlestick-chart'), {
   ssr: false,
@@ -434,17 +452,19 @@ export default function StrategySection({
           <span className="text-[9px] text-slate-700 ml-auto">Lightweight Charts v5</span>
         </div>
         {symbol && (
-          <CandlestickChartDynamic
-            symbol={symbol}
-            interval={tfConfig.apiInterval}
-            height={520}
-            chartType={chartType}
-            activeIndicators={activeIndicators}
-            activeTool={activeTool}
-            onPatternsDetected={handlePatternsDetected}
-            liveTick={liveTick}
-            signalData={showSignals ? visibleData : undefined}
-          />
+          <ChartErrorBoundary>
+            <CandlestickChartDynamic
+              symbol={symbol}
+              interval={tfConfig.apiInterval}
+              height={520}
+              chartType={chartType}
+              activeIndicators={activeIndicators}
+              activeTool={activeTool}
+              onPatternsDetected={handlePatternsDetected}
+              liveTick={liveTick}
+              signalData={showSignals ? visibleData : undefined}
+            />
+          </ChartErrorBoundary>
         )}
       </div>
 
