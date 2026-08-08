@@ -259,49 +259,79 @@ const FUNDAMENTALS_DB: Record<string, {
 import https from 'https';
 
 const MAX_RESPONSE_SIZE = 500_000; // 500KB max response
-function httpsGet(url: string, timeout = 8000): Promise<string> {
+function httpsGet(url: string, timeout = 8000, retries = 2): Promise<string> {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'application/json,text/html,*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-      }
-    }, (res) => {
-      if (res.statusCode === 301 || res.statusCode === 302) {
-        res.resume();
-        httpsGet(res.headers.location || '', timeout).then(resolve).catch(reject);
-        return;
-      }
-      if (res.statusCode && res.statusCode >= 400) {
-        res.resume();
-        reject(new Error(`HTTP ${res.statusCode} for ${url.split('?')[0]}`));
-        return;
-      }
-      const chunks: Buffer[] = [];
-      let totalSize = 0;
-      res.on('data', (chunk: Buffer) => {
-        totalSize += chunk.length;
-        if (totalSize > MAX_RESPONSE_SIZE) {
-          res.destroy();
-          reject(new Error('Response too large'));
+    const attempt = (tryNum: number) => {
+      const req = https.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'application/json,text/html,*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+        }
+      }, (res) => {
+        if (res.statusCode === 301 || res.statusCode === 302) {
+          res.resume();
+          httpsGet(res.headers.location || '', timeout, 0).then(resolve).catch(reject);
           return;
         }
-        chunks.push(chunk);
+        if (res.statusCode === 429 && tryNum < retries) {
+          res.resume();
+          const delay = 1000 * Math.pow(2, tryNum);
+          console.warn(`[httpsGet] 429 on ${url.split('?')[0].split('/').pop()}, retry ${tryNum + 1}/${retries} in ${delay}ms`);
+          setTimeout(() => attempt(tryNum + 1), delay);
+          return;
+        }
+        if (res.statusCode && res.statusCode >= 400) {
+          res.resume();
+          reject(new Error(`HTTP ${res.statusCode} for ${url.split('?')[0]}`));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        let totalSize = 0;
+        res.on('data', (chunk: Buffer) => {
+          totalSize += chunk.length;
+          if (totalSize > MAX_RESPONSE_SIZE) {
+            res.destroy();
+            reject(new Error('Response too large'));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        res.on('error', (e: Error) => { res.destroy(); reject(e); });
       });
-      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-      res.on('error', (e: Error) => { res.destroy(); reject(e); });
-    });
-    req.on('error', reject);
-    req.setTimeout(timeout, () => { req.destroy(); reject(new Error('Timeout')); });
+      req.on('error', (e: Error) => {
+        // Retry on network errors (ECONNRESET, ETIMEDOUT)
+        if (tryNum < retries && (e.message.includes('ECONNRESET') || e.message.includes('ETIMEDOUT') || e.message.includes('ECONNREFUSED'))) {
+          const delay = 1000 * Math.pow(2, tryNum);
+          console.warn(`[httpsGet] ${e.message} on ${url.split('?')[0].split('/').pop()}, retry ${tryNum + 1}/${retries} in ${delay}ms`);
+          setTimeout(() => attempt(tryNum + 1), delay);
+          return;
+        }
+        reject(e);
+      });
+      req.setTimeout(timeout, () => {
+        req.destroy();
+        if (tryNum < retries) {
+          const delay = 1000 * Math.pow(2, tryNum);
+          console.warn(`[httpsGet] Timeout on ${url.split('?')[0].split('/').pop()}, retry ${tryNum + 1}/${retries} in ${delay}ms`);
+          setTimeout(() => attempt(tryNum + 1), delay);
+          return;
+        }
+        reject(new Error('Timeout'));
+      });
+    };
+    attempt(0);
   });
 }
 
 // ==================== CACHING ====================
 const quoteCache = new Map<string, { data: LiveQuote; timestamp: number }>();
 const histCache = new Map<string, { data: HistoricalDataPoint[]; timestamp: number }>();
+const fundamentalsCache = new Map<string, { data: Partial<LiveQuote>; timestamp: number }>();
 const QUOTE_TTL = 3_000; // 3s for real-time data
 const HIST_TTL = 15_000; // 15s for historical data
+const FUNDAMENTALS_TTL = 3_600_000; // 1 hour for fundamentals (don't change intraday)
 
 // ==================== SYMBOL HELPERS ====================
 function getYahooSymbol(nseSymbol: string): string {
@@ -323,6 +353,18 @@ function calculateSMA(data: number[], period: number): number | null {
 // This works for ALL NSE/BSE stocks, not just the hardcoded FUNDAMENTALS_DB
 async function enrichWithYahooQuote(quote: LiveQuote, yahooSymbol: string): Promise<void> {
   try {
+    // Check fundamentals cache first (1-hour TTL — ratios don't change intraday)
+    const cacheKey = yahooSymbol;
+    const cached = fundamentalsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < FUNDAMENTALS_TTL) {
+      const fd = cached.data;
+      // Apply cached fundamentals (only fill nulls)
+      for (const [k, v] of Object.entries(fd)) {
+        if (v != null && (quote as any)[k] == null) (quote as any)[k] = v;
+      }
+      return;
+    }
+
     const url = `https://query2.finance.yahoo.com/v6/finance/quote?symbols=${encodeURIComponent(yahooSymbol)}&fields=beta,dividendYield,marketCap,priceToBook,trailingEps,forwardPE,trailingPE,fiftyTwoWeekHigh,fiftyTwoWeekLow,fiftyDayAverage,twoHundredDayAverage,regularMarketVolume,averageDailyVolume3Month,earningsTimestamp`;
     const body = await httpsGet(url);
     const data = JSON.parse(body);
@@ -373,6 +415,19 @@ async function enrichWithYahooQuote(quote: LiveQuote, yahooSymbol: string): Prom
     if (result.regularMarketVolume != null && quote.volume === 0) quote.volume = result.regularMarketVolume;
     if (result.averageDailyVolume3Month != null && quote.avgVolume === 0) quote.avgVolume = result.averageDailyVolume3Month;
     if (quote.avgVolume > 0) quote.volumeRatio = Math.round((quote.volume / quote.avgVolume) * 100) / 100;
+    // Cache the enriched fundamentals (1-hour TTL)
+    const cacheFields: Partial<LiveQuote> = {};
+    for (const k of ['pe', 'forwardPE', 'pb', 'eps', 'beta', 'dividendYield', 'totalRevenue', 'ebitda', 'grossProfits', 'freeCashflow', 'profitMargins', 'operatingMargins', 'revenueGrowth', 'currentRatio', 'debtToEquity', 'roe', 'roa', 'fiftyDMA', 'twoHundredDMA', 'marketCap'] as const) {
+      if (quote[k] != null) cacheFields[k] = quote[k];
+    }
+    fundamentalsCache.set(cacheKey, { data: cacheFields, timestamp: Date.now() });
+    // Evict stale entries periodically
+    if (fundamentalsCache.size > 200) {
+      const now = Date.now();
+      for (const [key, val] of fundamentalsCache) {
+        if (now - val.timestamp > FUNDAMENTALS_TTL) fundamentalsCache.delete(key);
+      }
+    }
   } catch (e: any) {
     // Log enrichment failure — helps diagnose blank fundamentals
     console.warn(`[enrich] Yahoo v6 quote failed for ${yahooSymbol}:`, e.message?.substring(0, 80));
